@@ -1,43 +1,70 @@
-mod ops
+use std::vec::Vec;
+use std::io::stdin;
+#[path = "ops.rs"]
+mod ops;
 
 struct Browser {
-    entries ;
-    pointer u32;
-    dir_stack ;
+    entries: u32,
+    pointer: u32,
+    dir_stack: Vec<u32>,
 }
 
 impl Browser {
-    fn up() {
+    fn up(&self) {
+        println!("I'm up");
+    }
+    fn down(&self) {
+        println!("I'm down");
 
     }
-    fn down() {
+    fn left(&self) {
+        println!("I'm left");
 
     }
-    fn left() {
+    fn right(&self) {
+        println!("I'm right");
 
     }
-    fn right() {
-
+    fn display(&self) {
     }
 }
 
-fn process_input() {
-
+fn process_input() -> u32{
+    let mut input_string = String::new();
+    stdin().read_line(&mut input_string)
+        .ok()
+        .expect("Failed to read line");
+    if input_string == "u" {
+        return ops::UP;
+    }
+    else if input_string == "d" {
+        return ops::DOWN;
+    }
+    else if input_string == "l" {
+        return ops::LEFT;
+    }
+    else if input_string == "r" {
+        return ops::RIGHT;
+    }
+    else {
+        return 0;
+    }
 }
 
-fn init() {
-    let browser = Browser() {
-        entries:,
-        pointer:,
-        dir_stack:
+pub fn init() {
+    let browser = Browser {
+        entries: 1,
+        pointer: 2,
+        dir_stack: Vec::new()
     };
-    while true {
+    loop {
         match process_input() {
-            ops::UP => browser.up();
-            ops::DOWN => browser.down();
-            ops::LEFT => browser.left();
-            ops::RIGHT => browser.right();
+            ops::UP => {browser.up();}
+            ops::DOWN => {browser.down();}
+            ops::LEFT => {browser.left();}
+            ops::RIGHT => {browser.right();}
+            _ => {browser.right();}
         }
-        // display()
+        browser.display()
     }
 }
