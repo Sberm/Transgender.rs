@@ -1,4 +1,4 @@
-# transgender
+# Transgender
 
 Simple terminal based file explorer, written by a ranger hater.
 
