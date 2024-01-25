@@ -1,7 +1,6 @@
 use std::vec::Vec;
 use std::io::stdin;
-#[path = "ops.rs"]
-mod ops;
+use crate::ops::code;
 
 struct Browser {
     entries: u32,
@@ -32,19 +31,21 @@ impl Browser {
 fn process_input() -> u32{
     let mut input_string = String::new();
     stdin().read_line(&mut input_string)
-        .ok()
-        .expect("Failed to read line");
-    if input_string == "u" {
-        return ops::UP;
+        .unwrap();
+
+    input_string = input_string.trim().to_string();
+
+    if input_string.eq("u") {
+        return code::UP;
     }
-    else if input_string == "d" {
-        return ops::DOWN;
+    else if input_string.eq("d") {
+        return code::DOWN;
     }
-    else if input_string == "l" {
-        return ops::LEFT;
+    else if input_string.eq("l") {
+        return code::LEFT;
     }
-    else if input_string == "r" {
-        return ops::RIGHT;
+    else if input_string.eq("r") {
+        return code::RIGHT;
     }
     else {
         return 0;
@@ -59,10 +60,10 @@ pub fn init() {
     };
     loop {
         match process_input() {
-            ops::UP => {browser.up();}
-            ops::DOWN => {browser.down();}
-            ops::LEFT => {browser.left();}
-            ops::RIGHT => {browser.right();}
+            code::UP => {browser.up();}
+            code::DOWN => {browser.down();}
+            code::LEFT => {browser.left();}
+            code::RIGHT => {browser.right();}
             _ => {browser.right();}
         }
         browser.display()
