@@ -2,10 +2,12 @@ use std::vec::Vec;
 use std::io::stdin;
 use crate::ops::code;
 
+
 struct Browser {
     entries: u32,
     pointer: u32,
     dir_stack: Vec<u32>,
+    global_v: i32,
 }
 
 impl Browser {
@@ -24,7 +26,11 @@ impl Browser {
         println!("I'm right");
 
     }
-    fn display(&self) {
+    fn display(&mut self) {
+        self.global_v += 1;
+        print!("\x1b[2J");
+        print!("\x1b[H");
+        println!("global_v {}", self.global_v)
     }
 }
 
@@ -53,10 +59,11 @@ fn process_input() -> u32{
 }
 
 pub fn init() {
-    let browser = Browser {
+    let mut browser = Browser {
         entries: 1,
         pointer: 2,
-        dir_stack: Vec::new()
+        dir_stack: Vec::new(),
+        global_v: 2
     };
     loop {
         match process_input() {
