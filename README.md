@@ -1,6 +1,6 @@
 # Transgender
 
-Simple terminal based file explorer, written by a ranger hater.
+A TUI file explorer, written by a ranger hater.
 
 ## usage
 
