@@ -3,6 +3,12 @@ extern crate libc;
 use std::mem;
 use self::libc::{c_ushort, ioctl, STDOUT_FILENO, TIOCGWINSZ};
 use std::any::type_name;
+use std::time::Duration;
+use std::thread::sleep;
+
+fn slp() {
+    sleep(Duration::from_secs(3));
+}
 
 pub struct Canvas {
     pub height: usize,
@@ -75,6 +81,17 @@ impl Canvas {
 
         let mut extra: Vec<Extra> = Vec::new();
 
+        /* no content */
+        if (current_dir.len() == 0) {
+            for line in &self.pixels {
+                let tmp_s = line.iter().collect::<String>(); // Vec<char> -> String
+                str_to_draw.push_str(&tmp_s); // concat
+            }
+            str_to_draw.push_str(&CSI("[1H"));
+            print!("{}", str_to_draw);
+            return
+        }
+
         for i in w_b..w_t {
             let c_a = current_dir[dir_i].chars().collect::<Vec<char>>();
             ch_i = 0;
@@ -83,6 +100,7 @@ impl Canvas {
                     break
                 }
                 self.set(w_t - i, j, c_a[ch_i]);
+                // self.set(w_t - i, j, '*');
                 ch_i += 1;
             }
 
@@ -139,6 +157,7 @@ impl Canvas {
                     break
                 }
                 self.set(w_t - i, j, c_a[ch_i]);
+                // self.set(w_t - i, j, '*');
                 ch_i += 1;
             }
             ch_i = 0;
@@ -147,9 +166,14 @@ impl Canvas {
 
         /* start drawing */
 
-        for line in &self.pixels {
-            let tmp_s = line.iter().collect::<String>(); // Vec<char> -> String
-            str_to_draw.push_str(&tmp_s); // concat
+        //for line in &self.pixels {
+            //let tmp_s = line.iter().collect::<String>(); // Vec<char> -> String
+            //str_to_draw.push_str(&tmp_s); // concat
+        //}
+        for i in 0..self.height {
+            for j in 0..self.width {
+                str_to_draw.push(self.pixels[i][j]);
+            }
         }
 
         for ex in &extra {
@@ -182,8 +206,10 @@ pub fn init() -> Canvas {
         width: w,
         pixels: vec![vec!['*'; w]; h],
     };
+
     /* clear space for printing */
     canvas.clear_whole();
+
     /* hide cursor */
     print!("\x1b[?25l");
     canvas

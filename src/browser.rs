@@ -2,8 +2,8 @@ extern crate libc;
 
 use std::vec::Vec;
 use std::io::{stdin, Read};
-use std::fs::{read_dir};
-use std::path::Path;
+use std::fs::{read_dir,canonicalize};
+use std::path::{Path, PathBuf};
 use crate::ops::code;
 use crate::canvas;
 use self::libc::{termios, STDIN_FILENO, ECHO, ICANON, tcgetattr, tcsetattr, TCSAFLUSH};
@@ -14,20 +14,41 @@ struct Browser {
     cursor: usize,
     current_dir: Vec<String>, // for display
     past_dir: Vec<String>, // for popping back
+    current_path: String,
 }
 
 impl Browser {
+
+    fn init(&mut self) {
+        let srcdir = PathBuf::from(".");
+        let absolute = canonicalize(&srcdir).unwrap().to_str().unwrap().to_string();
+        let mut split = absolute.split("/");
+        let mut temp = String::from("");
+        for s in split {
+            temp += s; temp += "/";
+            self.past_dir.push(String::from(temp.clone()));
+        }
+        self.current_path = self.past_dir.pop().unwrap().clone();
+    } 
+
     fn get_preview(&self) -> Vec<String>{
         let mut ret: Vec<String> = Vec::new();
 
-        /* if it's a file */
-        if Path::new(&self.current_dir[self.cursor]).is_dir() == false {
+        if self.current_dir.len() == 0 {
             return ret
         }
 
-        for entry in read_dir(&self.current_dir[self.cursor]).unwrap() {
+        let mut dir_under_cursor = String::from(self.current_path.clone() + &self.current_dir[self.cursor].clone());
+        dir_under_cursor += "/";
+
+        /* if it's a file */
+        if Path::new(dir_under_cursor.as_str()).is_dir() == false {
+            return ret
+        }
+
+        for entry in read_dir(&dir_under_cursor).unwrap() {
             let entry = entry.unwrap();
-            ret.push(entry.path().to_str().unwrap().to_string());
+            ret.push(entry.file_name().into_string().unwrap());
         }
         ret
     }
@@ -53,32 +74,36 @@ impl Browser {
         if self.past_dir.is_empty() == true {// < might not be necessary 
             return
         }
-        let last_dir = self.past_dir.pop();
-        self.read_to_current_dir(&last_dir.unwrap());
+        let last_dir = self.past_dir.pop().unwrap();
+        self.read_to_current_dir(&last_dir);
+
+        self.current_path = last_dir.clone();
+
         self.cursor = 0;
     }
 
     fn right(&mut self) {
-        let dir_under_cursor = &self.current_dir[self.cursor].clone();
 
-        if Path::new(dir_under_cursor).is_dir() == false {
+        let mut dir_under_cursor = String::from(self.current_path.clone() + &self.current_dir[self.cursor].clone());
+        dir_under_cursor += "/";
+
+        if Path::new(dir_under_cursor.as_str()).is_dir() == false {
             return
         }
 
-        self.past_dir.push(self.current_dir[self.cursor].clone());
+        self.past_dir.push(self.current_path.clone());
+        self.current_path = dir_under_cursor.clone();
         self.cursor = 0;
-        self.read_to_current_dir(dir_under_cursor);
+        self.read_to_current_dir(&dir_under_cursor);
     }
 
     fn read_to_current_dir(&mut self, path: &String) {
 
         self.current_dir.clear();
 
-        // println!("len {}", self.current_dir.len());
-
         for entry in read_dir(path).unwrap() {
             let entry = entry.unwrap();
-            self.current_dir.push(entry.path().to_str().unwrap().to_string());
+            self.current_dir.push(entry.file_name().into_string().unwrap());
         }
     }
 }
@@ -166,13 +191,17 @@ fn start_loop(browser: &mut Browser, canvas: &mut canvas::Canvas) {
 }
 
 pub fn init() {
+    
     let mut canvas = canvas::init();
 
     let mut browser = Browser {
         cursor: 0,
         current_dir: Vec::new(),
         past_dir: Vec::new(),
+        current_path: String::from(""),
     };
+
+    browser.init();
 
     raw_input();
 
