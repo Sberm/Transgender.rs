@@ -1,39 +1,22 @@
 extern crate libc;
 
 use std::vec::Vec;
-use std::str;
 use std::io::{stdin, Read};
 use std::fs::{read_dir};
 use std::path::Path;
 use crate::ops::code;
 use crate::canvas;
-use self::libc::{termios, STDIN_FILENO, ECHO, ICANON, tcgetattr, tcsetattr};
+use self::libc::{termios, STDIN_FILENO, ECHO, ICANON, tcgetattr, tcsetattr, TCSAFLUSH};
 use std::mem;
 use std::process::exit;
 
-struct Browser<'canvas> {
+struct Browser {
     cursor: usize,
     current_dir: Vec<String>, // for display
     past_dir: Vec<String>, // for popping back
-    canvas: &'canvas mut canvas::Canvas,
 }
 
-impl Browser<'_> {
-    fn start_loop(&mut self) {
-        self.read_to_current_dir(&String::from("."));
-        loop {
-            let preview_dir = self.get_preview();
-            self.canvas.draw(self.cursor, &self.current_dir, &preview_dir);
-            match process_input() {
-                code::UP => {self.up();}
-                code::DOWN => {self.down();}
-                code::LEFT => {self.left();}
-                code::RIGHT => {self.right();}
-                _ => {self.right();}
-            }
-        }
-    }
-
+impl Browser {
     fn get_preview(&self) -> Vec<String>{
         let mut ret: Vec<String> = Vec::new();
 
@@ -135,6 +118,7 @@ fn process_input() -> u32{
         }
     }
 
+    /* hjkl */
     if input == 107 {
         return code::UP;
     } else if input == 106 {
@@ -153,7 +137,31 @@ fn raw_input() {
         let mut termios_:termios = mem::zeroed();
         tcgetattr(STDIN_FILENO, &mut termios_);
         termios_.c_lflag &= !(ECHO | ICANON);
-        tcsetattr(STDIN_FILENO, 0, &termios_);
+        tcsetattr(STDIN_FILENO, TCSAFLUSH, &termios_);
+    }
+}
+
+fn canonical_input() {
+    unsafe {
+        let mut termios_:termios = mem::zeroed();
+        tcgetattr(STDIN_FILENO, &mut termios_);
+        termios_.c_lflag |= (ECHO | ICANON);
+        tcsetattr(STDIN_FILENO, TCSAFLUSH, &termios_);
+    }
+}
+
+fn start_loop(browser: &mut Browser, canvas: &mut canvas::Canvas) {
+    browser.read_to_current_dir(&String::from("."));
+    loop {
+        let preview_dir = browser.get_preview();
+        canvas.draw(browser.cursor, &browser.current_dir, &preview_dir);
+        match process_input() {
+            code::UP => {browser.up();}
+            code::DOWN => {browser.down();}
+            code::LEFT => {browser.left();}
+            code::RIGHT => {browser.right();}
+            _ => {browser.right();}
+        }
     }
 }
 
@@ -164,10 +172,21 @@ pub fn init() {
         cursor: 0,
         current_dir: Vec::new(),
         past_dir: Vec::new(),
-        canvas: &mut canvas,
     };
 
     raw_input();
 
-    browser.start_loop();
+    ctrlc::set_handler(
+        {
+            let canvas_static = canvas.clone();
+            move || {
+                canvas_static.clear_whole();
+                canonical_input();
+                print!("\x1b[?25h");
+                exit(0);
+            }
+        }
+    );
+
+    start_loop(&mut browser, &mut canvas);
 }

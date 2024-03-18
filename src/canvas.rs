@@ -5,9 +5,19 @@ use self::libc::{c_ushort, ioctl, STDOUT_FILENO, TIOCGWINSZ};
 use std::any::type_name;
 
 pub struct Canvas {
-    height: usize,
-    width: usize,
+    pub height: usize,
+    pub width: usize,
     pixels: Vec<Vec<char>>,
+}
+
+impl Clone for Canvas {
+    fn clone(&self) -> Canvas {
+        Canvas {
+            height: self.height,
+            width: self.width,
+            pixels: vec![],
+        }
+    }
 }
 
 fn CSI(s: &str) -> String{
@@ -23,7 +33,7 @@ pub struct Extra {
 
 impl Canvas {
 
-    fn clear_whole(&self) {
+    pub fn clear_whole(&self) {
         let mut str_to_draw = String::from("");
 
         str_to_draw.push_str(&(0..(self.width * self.height) as isize).map(|_| " ").collect::<String>());
@@ -174,7 +184,7 @@ pub fn init() -> Canvas {
     };
     /* clear space for printing */
     canvas.clear_whole();
-    /* hide mouse */
+    /* hide cursor */
     print!("\x1b[?25l");
     canvas
 }
