@@ -1,9 +1,15 @@
+extern crate libc;
+
 use std::vec::Vec;
-use std::io::stdin;
+use std::str;
+use std::io::{stdin, Read};
 use std::fs::{read_dir};
 use std::path::Path;
 use crate::ops::code;
 use crate::canvas;
+use self::libc::{termios, STDIN_FILENO, ECHO, ICANON, tcgetattr, tcsetattr};
+use std::mem;
+use std::process::exit;
 
 struct Browser<'canvas> {
     cursor: usize,
@@ -16,6 +22,8 @@ impl Browser<'_> {
     fn start_loop(&mut self) {
         self.read_to_current_dir(&String::from("."));
         loop {
+            let preview_dir = self.get_preview();
+            self.canvas.draw(self.cursor, &self.current_dir, &preview_dir);
             match process_input() {
                 code::UP => {self.up();}
                 code::DOWN => {self.down();}
@@ -23,23 +31,6 @@ impl Browser<'_> {
                 code::RIGHT => {self.right();}
                 _ => {self.right();}
             }
-
-            /* for preview */
-            let preview_dir = self.get_preview();
-
-            /*
-            println!("\ncurrent:");
-            for i in 0..self.current_dir.len() {
-                println!("{}", self.current_dir[i]);
-            }
-
-            println!("\npreview:");
-            for i in 0..preview_dir.len() {
-                println!("{}", preview_dir[i]);
-            }
-            */
-
-            self.canvas.draw(self.cursor, &self.current_dir, &preview_dir);
         }
     }
 
@@ -109,30 +100,62 @@ impl Browser<'_> {
     }
 }
 
+fn read_input() -> isize {
+    let mut stdin_handle = stdin().lock();  
+    let mut byte = [0_u8];  
+    stdin_handle.read_exact(&mut byte).unwrap();
+    byte[0] as isize
+}
+
 fn process_input() -> u32{
-    let mut input_string = String::new();
-    stdin().read_line(&mut input_string)
-        .unwrap();
 
-    input_string = input_string.trim().to_string();
+    let mut input = read_input();
 
-    if input_string.eq("u") {
+    /* arrow keys */
+    if input == 27 {
+        input = read_input();
+        if input == 91 {
+            input = read_input();
+            if input == 65 {
+                return code::UP;
+            }
+            else if input == 66 {
+                return code::DOWN;
+            }
+            else if input == 67 {
+                return code::RIGHT;
+            }
+            else if input == 68 {
+                return code::LEFT;
+            } else {
+                return code::NOOP;
+            }
+        } else {
+            return code::NOOP;
+        }
+    }
+
+    if input == 107 {
         return code::UP;
-    }
-    else if input_string.eq("d") {
+    } else if input == 106 {
         return code::DOWN;
-    }
-    else if input_string.eq("l") {
+    } else if input == 104 {
         return code::LEFT;
-    }
-    else if input_string.eq("r") {
+    } else if input == 108 {
         return code::RIGHT;
-    }
-    else {
-        return 0;
+    } else {
+        return code::NOOP;
     }
 }
 
+fn raw_input() {
+    unsafe {
+        let mut termios_:termios = mem::zeroed();
+        tcgetattr(STDIN_FILENO, &mut termios_);
+        termios_.c_lflag &= !(ECHO | ICANON);
+        tcsetattr(STDIN_FILENO, 0, &termios_);
+    }
+}
 
 pub fn init() {
     let mut canvas = canvas::init();
@@ -144,6 +167,7 @@ pub fn init() {
         canvas: &mut canvas,
     };
 
+    raw_input();
 
     browser.start_loop();
 }
