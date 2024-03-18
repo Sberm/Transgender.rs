@@ -52,7 +52,7 @@ impl Canvas {
     fn clear_pixels(&mut self) {
         for i in 0..self.height {
             for j in 0..self.width {
-                self.pixels[i][j] = ' ';
+                self.pixels[i][j] = '*';
             }
         }
     }
@@ -122,19 +122,19 @@ impl Canvas {
             pos: cursor * self.width,
             extra_str: highlight.clone(),
         });
-        offset += highlight.len();
+        offset += highlight.chars().count();
 
         extra.push(Extra{
             pos: cursor * self.width + offset,
             extra_str: highlight_bg.clone(),
         });
-        offset += highlight_bg.len();
+        offset += highlight_bg.chars().count();
 
         extra.push(Extra{
             pos: cursor * self.width + r_w_l + offset,
             extra_str: normal.clone(),
         });
-        offset += normal.len();
+        offset += normal.chars().count();
 
         extra.push(Extra{
             pos: cursor * self.width + r_w_l + offset,
