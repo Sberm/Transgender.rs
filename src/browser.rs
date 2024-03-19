@@ -30,7 +30,7 @@ impl Browser {
             self.past_dir.push(String::from(temp.clone()));
             self.past_cursor.push(0);
         }
-        if self.current_path.len() > 0 {
+        if self.past_dir.len() > 1 {
             self.current_path = self.past_dir.pop().unwrap().clone();
             self.past_cursor.pop().unwrap();
         }
@@ -81,6 +81,7 @@ impl Browser {
     }
 
     fn left(&mut self) {
+
         if self.past_dir.is_empty() == true {// < might not be necessary 
             return
         }
