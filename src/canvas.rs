@@ -5,8 +5,9 @@ use self::libc::{c_ushort, ioctl, STDOUT_FILENO, TIOCGWINSZ};
 use std::any::type_name;
 use std::time::Duration;
 use std::thread::sleep;
+use std::io::{self, Write};
 
-fn slp() {
+pub fn slp() {
     sleep(Duration::from_secs(3));
 }
 
@@ -50,11 +51,29 @@ impl Canvas {
     }
 
     fn clear_pixels(&mut self) {
+        let c: char = ' ';
         for i in 0..self.height {
             for j in 0..self.width {
-                self.pixels[i][j] = '*';
+                self.pixels[i][j] = c;
             }
         }
+    }
+
+    fn check_insert_highlight(&self, str_to_draw: &mut String, i: usize, j: usize, cursor: usize, r_w_l: usize) {
+
+        let highlight = CSI("[0;30m");
+        let highlight_bg = CSI("[47m");
+        let normal = CSI("[0;37m");
+        let normal_bg = CSI("[40m");
+
+        if i == cursor && j == 0{
+            str_to_draw.push_str(&highlight);
+            str_to_draw.push_str(&highlight_bg);
+        } else if i == cursor && j == r_w_l {
+            str_to_draw.push_str(&normal);
+            str_to_draw.push_str(&normal_bg);
+        }
+
     }
 
     pub fn draw(&mut self, cursor: usize, current_dir: &Vec<String>, preview_dir: &Vec<String>) {
@@ -65,14 +84,16 @@ impl Canvas {
         let w_b: usize = 0;
 
         let l_w_l: usize = 0;
-        let l_w_r: usize = (self.width as isize / 10 * 6 - 1) as usize;
+        let l_w_r: usize = (self.width / 10 * 6 - 1) as usize;
 
         let r_w_l: usize = l_w_r + 1;
         let r_w_r: usize = self.width - 1;
+        let preview_width: usize = self.width - r_w_l;
 
         /* left side */
         let mut dir_i: usize = 0;
         let mut ch_i: usize = 0;
+
 
         self.clear_pixels();
 
@@ -82,7 +103,7 @@ impl Canvas {
         let mut extra: Vec<Extra> = Vec::new();
 
         /* no content */
-        if (current_dir.len() == 0) {
+        if current_dir.len() == 0 {
             for line in &self.pixels {
                 let tmp_s = line.iter().collect::<String>(); // Vec<char> -> String
                 str_to_draw.push_str(&tmp_s); // concat
@@ -100,11 +121,8 @@ impl Canvas {
                     break
                 }
                 self.set(w_t - i, j, c_a[ch_i]);
-                // self.set(w_t - i, j, '*');
                 ch_i += 1;
             }
-
-            ch_i = 0;
             dir_i += 1;
             if dir_i >= current_dir.len() {
                 break
@@ -112,34 +130,6 @@ impl Canvas {
         }
 
         let mut offset = 0;
-
-        let highlight = CSI("[0;30m");
-        let highlight_bg = CSI("[47m");
-        let normal = CSI("[0;37m");
-        let normal_bg = CSI("[40m");
-
-        extra.push(Extra{
-            pos: cursor * self.width,
-            extra_str: highlight.clone(),
-        });
-        offset += highlight.chars().count();
-
-        extra.push(Extra{
-            pos: cursor * self.width + offset,
-            extra_str: highlight_bg.clone(),
-        });
-        offset += highlight_bg.chars().count();
-
-        extra.push(Extra{
-            pos: cursor * self.width + r_w_l + offset,
-            extra_str: normal.clone(),
-        });
-        offset += normal.chars().count();
-
-        extra.push(Extra{
-            pos: cursor * self.width + r_w_l + offset,
-            extra_str: normal_bg.clone(),
-        });
 
         /* right side(preview) */
 
@@ -157,28 +147,52 @@ impl Canvas {
                     break
                 }
                 self.set(w_t - i, j, c_a[ch_i]);
-                // self.set(w_t - i, j, '*');
                 ch_i += 1;
             }
-            ch_i = 0;
             dir_i += 1;
         }
 
-        /* start drawing */
+        let mut i:usize = 0; 
+        let mut j:usize = 0;
+        let mut font_len:usize = 0;
+        let mut do_preview: bool = false;
 
-        //for line in &self.pixels {
-            //let tmp_s = line.iter().collect::<String>(); // Vec<char> -> String
-            //str_to_draw.push_str(&tmp_s); // concat
-        //}
-        for i in 0..self.height {
-            for j in 0..self.width {
-                str_to_draw.push(self.pixels[i][j]);
+        loop {
+            if i >= self.height {
+                break;
             }
+            j = 0;
+            loop {
+                if j >= self.width {
+                    break;
+                }
+                if self.pixels[i][j] as usize > 256 {
+                    font_len += 2;
+                } else {
+                    font_len += 1;
+                } 
+
+                if font_len - 1 > l_w_r && !do_preview {
+                    j = r_w_l;
+                    font_len = 0;
+                    do_preview = true;
+                    continue;
+                }
+
+                if do_preview && font_len > preview_width {
+                    break;
+                }
+
+                self.check_insert_highlight(&mut str_to_draw, i, j, cursor, r_w_l);
+                str_to_draw.push(self.pixels[i][j]);
+
+                j += 1;
+            }
+            font_len = 0;
+            i += 1;
+            do_preview = false;
         }
 
-        for ex in &extra {
-            str_to_draw.insert_str(ex.pos, &ex.extra_str);
-        }
 
         str_to_draw.push_str(&CSI("[1H"));
 

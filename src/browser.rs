@@ -14,6 +14,7 @@ struct Browser {
     cursor: usize,
     current_dir: Vec<String>, // for display
     past_dir: Vec<String>, // for popping back
+    past_cursor: Vec<usize>,
     current_path: String,
 }
 
@@ -27,8 +28,12 @@ impl Browser {
         for s in split {
             temp += s; temp += "/";
             self.past_dir.push(String::from(temp.clone()));
+            self.past_cursor.push(0);
         }
-        self.current_path = self.past_dir.pop().unwrap().clone();
+        if self.current_path.len() > 0 {
+            self.current_path = self.past_dir.pop().unwrap().clone();
+            self.past_cursor.pop().unwrap();
+        }
     } 
 
     fn get_preview(&self) -> Vec<String>{
@@ -48,7 +53,12 @@ impl Browser {
 
         for entry in read_dir(&dir_under_cursor).unwrap() {
             let entry = entry.unwrap();
-            ret.push(entry.file_name().into_string().unwrap());
+            // ret.push(entry.file_name().into_string().unwrap());
+            let s = entry.file_name().into_string();
+            match s {
+                Ok(v) => {ret.push(v);}
+                Err(e) => {ret.push(String::from("[bad string]"));}
+            }
         }
         ret
     }
@@ -79,7 +89,7 @@ impl Browser {
 
         self.current_path = last_dir.clone();
 
-        self.cursor = 0;
+        self.cursor = self.past_cursor.pop().unwrap();
     }
 
     fn right(&mut self) {
@@ -92,6 +102,7 @@ impl Browser {
         }
 
         self.past_dir.push(self.current_path.clone());
+        self.past_cursor.push(self.cursor);
         self.current_path = dir_under_cursor.clone();
         self.cursor = 0;
         self.read_to_current_dir(&dir_under_cursor);
@@ -103,7 +114,11 @@ impl Browser {
 
         for entry in read_dir(path).unwrap() {
             let entry = entry.unwrap();
-            self.current_dir.push(entry.file_name().into_string().unwrap());
+            let s = entry.file_name().into_string();
+            match s {
+                Ok(v) => {self.current_dir.push(v);}
+                Err(e) => {self.current_dir.push(String::from("[bad string]"));}
+            }
         }
     }
 }
@@ -191,6 +206,9 @@ fn start_loop(browser: &mut Browser, canvas: &mut canvas::Canvas) {
 }
 
 pub fn init() {
+
+    /* use alternate screen buffer */
+    print!("\x1b[?1049h");
     
     let mut canvas = canvas::init();
 
@@ -198,6 +216,7 @@ pub fn init() {
         cursor: 0,
         current_dir: Vec::new(),
         past_dir: Vec::new(),
+        past_cursor: Vec::new(),
         current_path: String::from(""),
     };
 
@@ -211,7 +230,13 @@ pub fn init() {
             move || {
                 canvas_static.clear_whole();
                 canonical_input();
+
+                /* show cursor */
                 print!("\x1b[?25h");
+                
+                /* switch back to normal screen buffer */
+                print!("\x1b[?1049l");
+
                 exit(0);
             }
         }
