@@ -112,10 +112,30 @@ impl Browser {
         let last_dir = self.past_dir.pop().unwrap();
         self.read_to_current_dir(&last_dir);
 
+        let temp = self.current_path.clone();
+        let (mut splt, _) = temp.rsplit_once('/').unwrap();
+        (_, splt) = splt.rsplit_once('/').unwrap();
+
         self.current_path = last_dir.clone();
 
         self.cursor = self.past_cursor.pop().unwrap();
         self.window_start = self.past_window_start.pop().unwrap();
+
+        /* 0 could be good, but it could be because it was pushed in beginning */
+        if self.cursor == 0 {
+            let mut i = 0;
+            for dir in &self.current_dir {
+                if dir.as_str() == splt {
+                    self.cursor = i;
+                    let (h, _) = canvas::term_size();
+                    if self.cursor > self.window_start + h - 1 {
+                        self.window_start = self.cursor - h + 1;
+                    }
+                    break;
+                }
+                i += 1;
+            }
+        }
     }
 
     fn right(&mut self) {
@@ -132,6 +152,7 @@ impl Browser {
         self.past_window_start.push(self.window_start);
         self.current_path = dir_under_cursor.clone();
         self.cursor = 0;
+        self.window_start = 0;
         self.read_to_current_dir(&dir_under_cursor);
     }
 
