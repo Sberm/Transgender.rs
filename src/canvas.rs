@@ -38,6 +38,16 @@ pub struct Extra {
     extra_str: String,
 }
 
+fn check_if_wide(c: char) -> bool{
+    if c as usize > 256 &&
+       c != '�' &&
+       c != 'ξ' {
+        return true;
+    } else {
+        return false;
+    }
+}
+
 impl Canvas {
 
     pub fn clear_whole(&self) {
@@ -62,8 +72,7 @@ impl Canvas {
     fn check_insert_highlight(&self, str_to_draw: &mut String, i: usize, j: usize, cursor: usize, r_w_l: usize) {
 
         let highlight = CSI("[0;30m");
-        // let highlight_bg = CSI("[47m");
-        let highlight_bg = CSI("[38;5;212m");
+        let highlight_bg = CSI("[47m");
         let normal = CSI("[0;37m");
         let normal_bg = CSI("[40m");
 
@@ -169,7 +178,7 @@ impl Canvas {
                 if j >= self.width {
                     break;
                 }
-                if self.pixels[i][j] as usize > 256 {
+                if check_if_wide(self.pixels[i][j]) {
                     font_len += 2;
                 } else {
                     font_len += 1;

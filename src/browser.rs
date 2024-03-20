@@ -9,6 +9,7 @@ use crate::canvas;
 use self::libc::{termios, STDIN_FILENO, ECHO, ICANON, tcgetattr, tcsetattr, TCSAFLUSH};
 use std::mem;
 use std::process::exit;
+use std::env;
 
 struct Browser {
     cursor: usize,
@@ -18,6 +19,7 @@ struct Browser {
     past_cursor: Vec<usize>,
     past_window_start: Vec<usize>,
     current_path: String,
+    original_path: String,
 }
 
 impl Browser {
@@ -40,6 +42,7 @@ impl Browser {
         }
         if self.past_dir.len() > 1 {
             self.current_path = self.past_dir.pop().unwrap().clone();
+            self.original_path = self.current_path.clone();
             self.past_cursor.pop().unwrap();
             self.past_window_start.pop().unwrap();
         }
@@ -182,6 +185,20 @@ impl Browser {
 
         exit(0);
     }
+    
+    fn quit(&self) {
+        canonical_input();
+
+        /* show cursor */
+        print!("\x1b[?25h");
+        
+        /* switch back to normal screen buffer */
+        print!("\x1b[?1049l");
+
+        eprintln!("{}", self.original_path);
+
+        exit(0);
+    }
 }
 
 fn read_input() -> isize {
@@ -219,29 +236,19 @@ fn process_input() -> u8{
         }
     }
 
-    /* hjkl */
-    if input == 107 {
-        return code::UP;
-    } else if input == 106 {
-        return code::DOWN;
-    } else if input == 104 {
-        return code::LEFT;
-    } else if input == 108 {
-        return code::RIGHT;
-    } 
-
-    if input == 111 {
-        return code::EXIT_CURSOR;
+    match input {
+        107 => return code::UP,
+        106 => return code::DOWN,
+        104 => return code::LEFT,
+        108 => return code::RIGHT,
+        111 => return code::EXIT_CURSOR,
+        10 => return code::EXIT_CURSOR,
+        115 => return code::EXIT,
+        113 => return code::QUIT,
+        _ => return code::NOOP,
     }
-
-    if input == 10 {
-        return code::EXIT;
-    }
-
 
     return code::NOOP;
-
-
 }
 
 fn raw_input() {
@@ -274,6 +281,7 @@ fn start_loop(browser: &mut Browser, canvas: &mut canvas::Canvas) {
             code::RIGHT => {browser.right();}
             code::EXIT_CURSOR => {browser.exit_under_cursor();}
             code::EXIT => {browser.exit_cur_dir();}
+            code::QUIT => {browser.quit();}
             _ => {browser.right();}
         }
     }
@@ -294,6 +302,7 @@ pub fn init() {
         past_cursor: Vec::new(),
         past_window_start: Vec::new(),
         current_path: String::from(""),
+        original_path: String::from(""),
     };
 
     browser.init();
