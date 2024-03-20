@@ -2,6 +2,7 @@ extern crate libc;
 
 use std::vec::Vec;
 use std::io::{stdin, Read};
+use std::io;
 use std::fs::{read_dir,canonicalize};
 use std::path::{Path, PathBuf};
 use crate::ops::code;
@@ -160,17 +161,19 @@ impl Browser {
 
         self.current_dir.clear();
 
-        for entry in read_dir(path).unwrap() {
-            let entry = entry.unwrap();
-            let s = entry.file_name().into_string();
-            match s {
-                Ok(v) => {self.current_dir.push(v);}
-                Err(e) => {
-                    let str = entry.file_name().to_string_lossy().into_owned();
-                    self.current_dir.push(str);
+        if let Ok(entries) = read_dir(path) {
+            for entry in entries {
+                let entry = entry.unwrap();
+                let s = entry.file_name().into_string();
+                match s {
+                    Ok(v) => {self.current_dir.push(v);}
+                    Err(e) => {
+                        let str = entry.file_name().to_string_lossy().into_owned();
+                        self.current_dir.push(str);
+                    }
                 }
             }
-        }
+        } 
     }
 
     fn exit_cur_dir(&self) {
