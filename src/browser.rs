@@ -64,14 +64,16 @@ impl Browser {
             return ret
         }
 
-        for entry in read_dir(&dir_under_cursor).unwrap() {
-            let entry = entry.unwrap();
-            let s = entry.file_name().into_string();
-            match s {
-                Ok(v) => {ret.push(v);}
-                Err(e) => {
-                    let str = entry.file_name().to_string_lossy().into_owned();
-                    ret.push(str);
+        if let Ok(entries) = read_dir(dir_under_cursor) {
+            for entry in entries {
+                let entry = entry.unwrap();
+                let s = entry.file_name().into_string();
+                match s {
+                    Ok(v) => {ret.push(v);}
+                    Err(e) => {
+                        let str = entry.file_name().to_string_lossy().into_owned();
+                        ret.push(str);
+                    }
                 }
             }
         }
