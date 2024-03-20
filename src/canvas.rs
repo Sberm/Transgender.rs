@@ -62,7 +62,8 @@ impl Canvas {
     fn check_insert_highlight(&self, str_to_draw: &mut String, i: usize, j: usize, cursor: usize, r_w_l: usize) {
 
         let highlight = CSI("[0;30m");
-        let highlight_bg = CSI("[47m");
+        // let highlight_bg = CSI("[47m");
+        let highlight_bg = CSI("[38;5;212m");
         let normal = CSI("[0;37m");
         let normal_bg = CSI("[40m");
 
@@ -76,7 +77,10 @@ impl Canvas {
 
     }
 
-    pub fn draw(&mut self, cursor: usize, current_dir: &Vec<String>, preview_dir: &Vec<String>) {
+    pub fn draw(&mut self, cursor: usize, current_dir: &Vec<String>, preview_dir: &Vec<String>, window_start: usize) {
+
+        (self.height, self.width) = term_size();
+        self.pixels = vec![vec![' '; self.width]; self.height];
 
         /* write pixel */
 
@@ -90,10 +94,8 @@ impl Canvas {
         let r_w_r: usize = self.width - 1;
         let preview_width: usize = self.width - r_w_l;
 
-        /* left side */
-        let mut dir_i: usize = 0;
+        let mut dir_i: usize = window_start;
         let mut ch_i: usize = 0;
-
 
         self.clear_pixels();
 
@@ -113,7 +115,8 @@ impl Canvas {
             return
         }
 
-        for i in w_b..w_t {
+        /* left side */
+        for i in w_b..=w_t {
             let c_a = current_dir[dir_i].chars().collect::<Vec<char>>();
             ch_i = 0;
             for j in l_w_l..l_w_r {
@@ -136,7 +139,7 @@ impl Canvas {
         dir_i = 0;
         ch_i = 0;
 
-        for i in w_b..w_t {
+        for i in w_b..=w_t {
             if dir_i >= preview_dir.len() {
                 break
             }
@@ -183,7 +186,7 @@ impl Canvas {
                     break;
                 }
 
-                self.check_insert_highlight(&mut str_to_draw, i, j, cursor, r_w_l);
+                self.check_insert_highlight(&mut str_to_draw, i, j, cursor - window_start, r_w_l);
                 str_to_draw.push(self.pixels[i][j]);
 
                 j += 1;
@@ -218,7 +221,7 @@ pub fn init() -> Canvas {
     let canvas = Canvas {
         height: h,
         width: w,
-        pixels: vec![vec!['*'; w]; h],
+        pixels: vec![vec![' '; w]; h],
     };
 
     /* clear space for printing */
@@ -226,6 +229,7 @@ pub fn init() -> Canvas {
 
     /* hide cursor */
     print!("\x1b[?25l");
+
     canvas
 }
 
@@ -236,7 +240,7 @@ struct TermSize {
     b: c_ushort,
 }
 
-fn term_size() -> (usize, usize) {
+pub fn term_size() -> (usize, usize) {
     unsafe {
         let mut sz: TermSize = mem::zeroed();
         ioctl(STDOUT_FILENO, TIOCGWINSZ.into(), &mut sz as *mut _);

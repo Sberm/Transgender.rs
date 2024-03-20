@@ -12,13 +12,20 @@ use std::process::exit;
 
 struct Browser {
     cursor: usize,
+    window_start: usize,
     current_dir: Vec<String>, // for display
     past_dir: Vec<String>, // for popping back
     past_cursor: Vec<usize>,
+    past_window_start: Vec<usize>,
     current_path: String,
 }
 
 impl Browser {
+
+    fn get_current_path(&self) -> String{
+        let ret = self.current_path.clone();
+        ret
+    }
 
     fn init(&mut self) {
         let srcdir = PathBuf::from(".");
@@ -29,10 +36,12 @@ impl Browser {
             temp += s; temp += "/";
             self.past_dir.push(String::from(temp.clone()));
             self.past_cursor.push(0);
+            self.past_window_start.push(0);
         }
         if self.past_dir.len() > 1 {
             self.current_path = self.past_dir.pop().unwrap().clone();
             self.past_cursor.pop().unwrap();
+            self.past_window_start.pop().unwrap();
         }
     } 
 
@@ -53,7 +62,6 @@ impl Browser {
 
         for entry in read_dir(&dir_under_cursor).unwrap() {
             let entry = entry.unwrap();
-            // ret.push(entry.file_name().into_string().unwrap());
             let s = entry.file_name().into_string();
             match s {
                 Ok(v) => {ret.push(v);}
@@ -66,9 +74,13 @@ impl Browser {
     fn up(&mut self) {
         if self.current_dir.is_empty() == true {
             self.cursor = 0;
+            self.window_start = 0;
             return
         }
         self.cursor = if self.cursor as isize - 1 >= 0 {self.cursor - 1} else {0};
+        if self.cursor < self.window_start {
+            self.window_start -= 1;
+        }
     }
 
     fn down(&mut self) {
@@ -78,6 +90,12 @@ impl Browser {
         }
         let l = self.current_dir.len();
         self.cursor = if self.cursor + 1 < l {self.cursor + 1} else {l - 1};
+
+        let (h, _) = canvas::term_size();
+
+        if self.cursor as isize > (h - 1) as isize && self.cursor > self.window_start + h - 1{
+            self.window_start += 1;
+        }
     }
 
     fn left(&mut self) {
@@ -91,6 +109,7 @@ impl Browser {
         self.current_path = last_dir.clone();
 
         self.cursor = self.past_cursor.pop().unwrap();
+        self.window_start = self.past_window_start.pop().unwrap();
     }
 
     fn right(&mut self) {
@@ -104,6 +123,7 @@ impl Browser {
 
         self.past_dir.push(self.current_path.clone());
         self.past_cursor.push(self.cursor);
+        self.past_window_start.push(self.window_start);
         self.current_path = dir_under_cursor.clone();
         self.cursor = 0;
         self.read_to_current_dir(&dir_under_cursor);
@@ -122,6 +142,40 @@ impl Browser {
             }
         }
     }
+
+    fn exit_cur_dir(&self) {
+        canonical_input();
+
+        /* show cursor */
+        print!("\x1b[?25h");
+        
+        /* switch back to normal screen buffer */
+        print!("\x1b[?1049l");
+
+        eprintln!("{}", self.current_path);
+
+        exit(0);
+    }
+
+    fn exit_under_cursor(&self) {
+        canonical_input();
+
+        /* show cursor */
+        print!("\x1b[?25h");
+        
+        /* switch back to normal screen buffer */
+        print!("\x1b[?1049l");
+
+        let dir = format!("{}{}", &self.current_path, &self.current_dir[self.cursor]);
+
+        if Path::new(dir.as_str()).is_dir() == false {
+            eprintln!("{}", self.current_path);
+        } else {
+            eprintln!("{}", dir);
+        }
+
+        exit(0);
+    }
 }
 
 fn read_input() -> isize {
@@ -131,7 +185,7 @@ fn read_input() -> isize {
     byte[0] as isize
 }
 
-fn process_input() -> u32{
+fn process_input() -> u8{
 
     let mut input = read_input();
 
@@ -168,9 +222,20 @@ fn process_input() -> u32{
         return code::LEFT;
     } else if input == 108 {
         return code::RIGHT;
-    } else {
-        return code::NOOP;
+    } 
+
+    if input == 111 {
+        return code::EXIT_CURSOR;
     }
+
+    if input == 10 {
+        return code::EXIT;
+    }
+
+
+    return code::NOOP;
+
+
 }
 
 fn raw_input() {
@@ -195,12 +260,14 @@ fn start_loop(browser: &mut Browser, canvas: &mut canvas::Canvas) {
     browser.read_to_current_dir(&String::from("."));
     loop {
         let preview_dir = browser.get_preview();
-        canvas.draw(browser.cursor, &browser.current_dir, &preview_dir);
+        canvas.draw(browser.cursor, &browser.current_dir, &preview_dir, browser.window_start);
         match process_input() {
             code::UP => {browser.up();}
             code::DOWN => {browser.down();}
             code::LEFT => {browser.left();}
             code::RIGHT => {browser.right();}
+            code::EXIT_CURSOR => {browser.exit_under_cursor();}
+            code::EXIT => {browser.exit_cur_dir();}
             _ => {browser.right();}
         }
     }
@@ -215,9 +282,11 @@ pub fn init() {
 
     let mut browser = Browser {
         cursor: 0,
+        window_start: 0,
         current_dir: Vec::new(),
         past_dir: Vec::new(),
         past_cursor: Vec::new(),
+        past_window_start: Vec::new(),
         current_path: String::from(""),
     };
 
@@ -225,23 +294,21 @@ pub fn init() {
 
     raw_input();
 
-    ctrlc::set_handler(
-        {
-            let canvas_static = canvas.clone();
-            move || {
-                canvas_static.clear_whole();
-                canonical_input();
+    ctrlc::set_handler({
+        // let canvas_static = canvas.clone();
+        move || {
+            // canvas_static.clear_whole();
+            canonical_input();
 
-                /* show cursor */
-                print!("\x1b[?25h");
-                
-                /* switch back to normal screen buffer */
-                print!("\x1b[?1049l");
-
-                exit(0);
-            }
+            /* show cursor */
+            print!("\x1b[?25h");
+            
+            /* switch back to normal screen buffer */
+            print!("\x1b[?1049l");
+            
+            exit(0);
         }
-    );
+    });
 
     start_loop(&mut browser, &mut canvas);
 }
