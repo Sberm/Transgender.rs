@@ -2,16 +2,26 @@
 
 ![](img/trans.png)
 
-A TUI file explorer with zero dependancy except for libc, written by a ranger hater.
+A minimalistic TUI file explorer with zero dependancy except libc, written by a [ranger](https://github.com/ranger/ranger) hater.
 
 ## quick start
+
+before compilation, make sure you have rust's environment installed, if not, goto [HERE](https://www.rust-lang.org/tools/install)
 
 compile
 ```
 make
 ```
 
-and then enjoy
+refresh your shell configuration, or open up a new terminal window
+```bash
+# linux
+source ~/.bashrc
+# mac 
+source ~/.bash_profile
+```
+
+enjoy
 ```bash
 trans
 ```
