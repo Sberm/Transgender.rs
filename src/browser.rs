@@ -161,7 +161,8 @@ impl Browser {
         /* switch back to normal screen buffer */
         print!("\x1b[?1049l");
 
-        eprintln!("{}", self.current_path);
+        print_file_name(&self.current_path);
+        // eprintln!("{}", self.current_path);
 
         exit(0);
     }
@@ -178,9 +179,11 @@ impl Browser {
         let dir = format!("{}{}", &self.current_path, &self.current_dir[self.cursor]);
 
         if Path::new(dir.as_str()).is_dir() == false {
-            eprintln!("{}", self.current_path);
+            // eprintln!("{}", self.current_path);
+            print_file_name(&self.current_path);
         } else {
-            eprintln!("{}", dir);
+            // eprintln!("{}", dir);
+            print_file_name(&dir);
         }
 
         exit(0);
@@ -195,10 +198,15 @@ impl Browser {
         /* switch back to normal screen buffer */
         print!("\x1b[?1049l");
 
-        eprintln!("{}", self.original_path);
+        // eprintln!("{}", self.original_path);
+        print_file_name(&self.original_path);
 
         exit(0);
     }
+}
+
+fn print_file_name(str_: &String) {
+    eprintln!(r"{}", str_);
 }
 
 fn read_input() -> isize {

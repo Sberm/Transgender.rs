@@ -9,9 +9,9 @@ compile
 make
 ```
 
-put this line in your `~/.bashrc`
+put this line into your `~/.bashrc`
 ```shellscript
-alias trans="/bin/transgender 2>/tmp/trans && cd \`tail -n 1 /tmp/trans\`"
+alias trans="transgender 2>/tmp/trans && cd \"\`tail -n 1 /tmp/trans\`\""
 ```
 
 and then enjoy
