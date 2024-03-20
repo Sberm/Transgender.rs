@@ -4,6 +4,8 @@
 
 A minimalistic TUI file explorer with zero dependancy except libc, written by a [ranger](https://github.com/ranger/ranger) hater.
 
+works on Linux & MacOS
+
 ## quick start
 
 before compilation, make sure you have rust's environment installed, if not, goto [HERE](https://www.rust-lang.org/tools/install)
