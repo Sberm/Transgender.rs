@@ -25,7 +25,7 @@ source ~/.bash_profile
 
 enjoy
 ```bash
-trans
+ts
 ```
 
 keys:
