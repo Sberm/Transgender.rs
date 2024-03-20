@@ -75,7 +75,7 @@ impl Canvas {
         //let highlight_bg = CSI("[47m");
         //let normal = CSI("[0;37m");
         //let normal_bg = CSI("[40m");
-
+        
         let highlight = CSI("[0;30m");
         let highlight_bg = CSI("[48;5;175m");
         let normal = CSI("[0;37m");
@@ -87,11 +87,14 @@ impl Canvas {
         } else if i == cursor && j == r_w_l {
             str_to_draw.push_str(&normal);
             str_to_draw.push_str(&normal_bg);
+        } else if i == 0 && j == 0 {
+            str_to_draw.push_str(&normal_bg);
         }
 
     }
 
     pub fn draw(&mut self, cursor: usize, current_dir: &Vec<String>, preview_dir: &Vec<String>, window_start: usize) {
+
 
         (self.height, self.width) = term_size();
         self.pixels = vec![vec![' '; self.width]; self.height];
