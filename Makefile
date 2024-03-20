@@ -9,6 +9,7 @@ else
 endif
 
 TRANS_ALIAS ?= "alias trans=\"transgender 2>/tmp/trans && cd \\\"\\\`tail -n 1 /tmp/trans\\\`\\\"\""
+
 all: 
 	$(Q)cargo build --release 2>/dev/null
 	$(Q)cp ./target/release/transgender /usr/local/bin/transgender
