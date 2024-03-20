@@ -65,7 +65,10 @@ impl Browser {
             let s = entry.file_name().into_string();
             match s {
                 Ok(v) => {ret.push(v);}
-                Err(e) => {ret.push(String::from("[bad string]"));}
+                Err(e) => {
+                    let str = entry.file_name().to_string_lossy().into_owned();
+                    ret.push(str);
+                }
             }
         }
         ret
@@ -138,7 +141,10 @@ impl Browser {
             let s = entry.file_name().into_string();
             match s {
                 Ok(v) => {self.current_dir.push(v);}
-                Err(e) => {self.current_dir.push(String::from("[bad string]"));}
+                Err(e) => {
+                    let str = entry.file_name().to_string_lossy().into_owned();
+                    self.current_dir.push(str);
+                }
             }
         }
     }
@@ -295,9 +301,7 @@ pub fn init() {
     raw_input();
 
     ctrlc::set_handler({
-        // let canvas_static = canvas.clone();
         move || {
-            // canvas_static.clear_whole();
             canonical_input();
 
             /* show cursor */
