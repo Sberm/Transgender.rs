@@ -309,19 +309,5 @@ pub fn init() {
 
     raw_input();
 
-    ctrlc::set_handler({
-        move || {
-            canonical_input();
-
-            /* show cursor */
-            print!("\x1b[?25h");
-            
-            /* switch back to normal screen buffer */
-            print!("\x1b[?1049l");
-            
-            exit(0);
-        }
-    });
-
     start_loop(&mut browser, &mut canvas);
 }
