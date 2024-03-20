@@ -15,3 +15,5 @@ all:
 	$(Q)echo $(TRANS_ALIAS) >> ~/.bashrc
 	$(Q)echo $(TRANS_ALIAS) >> ~/.bash_profile
 	$(call msg,TRANS,BUILD-SUCCEED)
+	$(Q)source ~/.bashrc
+	$(Q)source ~/.bash_profile
