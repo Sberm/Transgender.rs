@@ -16,8 +16,9 @@ trans
 
 keys:
 
-|||
+|keys|function|
 |:---:|:---:|
-|o|<ENTER>: go to directory under cursor|
+|o|go to directory under cursor|
+|<ENTER>|go to directory under cursor|
 |s|go to current directory(in left side window)|
 |q|quit|
