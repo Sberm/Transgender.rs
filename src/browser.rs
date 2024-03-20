@@ -31,6 +31,7 @@ impl Browser {
     }
 
     fn init(&mut self) {
+        self.read_to_current_dir(&String::from("."));
         let srcdir = PathBuf::from(".");
         let absolute = canonicalize(&srcdir).unwrap().to_str().unwrap().to_string();
         let mut split = absolute.split("/");
@@ -46,6 +47,13 @@ impl Browser {
             self.original_path = self.current_path.clone();
             self.past_cursor.pop().unwrap();
             self.past_window_start.pop().unwrap();
+        }
+        let (h, _) = canvas::term_size();
+        self.cursor = (self.current_dir.len() - 1) / 2;
+        self.window_start = if self.cursor as isize - h as isize / 2 > 0 {
+            self.cursor - h / 2
+        } else {
+            0
         }
     } 
 
@@ -82,8 +90,6 @@ impl Browser {
 
     fn up(&mut self) {
         if self.current_dir.is_empty() == true {
-            self.cursor = 0;
-            self.window_start = 0;
             return
         }
         self.cursor = if self.cursor as isize - 1 >= 0 {self.cursor - 1} else {0};
@@ -94,7 +100,6 @@ impl Browser {
 
     fn down(&mut self) {
         if self.current_dir.is_empty() == true {
-            self.cursor = 0;
             return
         }
         let l = self.current_dir.len();
@@ -143,7 +148,7 @@ impl Browser {
 
     fn right(&mut self) {
 
-        if (self.current_dir.len() <= 0) {
+        if self.current_dir.len() <= 0 {
             return;
         }
 
@@ -158,9 +163,14 @@ impl Browser {
         self.past_cursor.push(self.cursor);
         self.past_window_start.push(self.window_start);
         self.current_path = dir_under_cursor.clone();
-        self.cursor = 0;
-        self.window_start = 0;
         self.read_to_current_dir(&dir_under_cursor);
+        let (h, _) = canvas::term_size();
+        self.cursor = (self.current_dir.len() - 1) / 2;
+        self.window_start = if self.cursor as isize - h as isize / 2 > 0 {
+            self.cursor - h / 2
+        } else {
+            0
+        }
     }
 
     fn read_to_current_dir(&mut self, path: &String) {
@@ -308,7 +318,6 @@ fn canonical_input() {
 }
 
 fn start_loop(browser: &mut Browser, canvas: &mut canvas::Canvas) {
-    browser.read_to_current_dir(&String::from("."));
     loop {
         let preview_dir = browser.get_preview();
         canvas.draw(browser.cursor, &browser.current_dir, &preview_dir, browser.window_start);
