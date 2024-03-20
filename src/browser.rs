@@ -7,7 +7,7 @@ use std::fs::{read_dir,canonicalize};
 use std::path::{Path, PathBuf};
 use crate::ops::code;
 use crate::canvas;
-use self::libc::{termios, STDIN_FILENO, ECHO, ICANON, tcgetattr, tcsetattr, TCSAFLUSH};
+use self::libc::{termios, STDIN_FILENO, ECHO, ICANON, ISIG, tcgetattr, tcsetattr, TCSAFLUSH};
 use std::mem;
 use std::process::exit;
 use std::env;
@@ -142,6 +142,10 @@ impl Browser {
     }
 
     fn right(&mut self) {
+
+        if (self.current_dir.len() <= 0) {
+            return;
+        }
 
         let mut dir_under_cursor = String::from(self.current_path.clone() + &self.current_dir[self.cursor].clone());
         dir_under_cursor += "/";
@@ -289,7 +293,7 @@ fn raw_input() {
     unsafe {
         let mut termios_:termios = mem::zeroed();
         tcgetattr(STDIN_FILENO, &mut termios_);
-        termios_.c_lflag &= !(ECHO | ICANON);
+        termios_.c_lflag &= !(ECHO | ICANON | ISIG);
         tcsetattr(STDIN_FILENO, TCSAFLUSH, &termios_);
     }
 }
@@ -298,7 +302,7 @@ fn canonical_input() {
     unsafe {
         let mut termios_:termios = mem::zeroed();
         tcgetattr(STDIN_FILENO, &mut termios_);
-        termios_.c_lflag |= (ECHO | ICANON);
+        termios_.c_lflag |= (ECHO | ICANON | ISIG);
         tcsetattr(STDIN_FILENO, TCSAFLUSH, &termios_);
     }
 }
