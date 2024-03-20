@@ -11,11 +11,6 @@ compile
 make
 ```
 
-put this line into your `~/.bashrc`
-```shellscript
-alias trans="transgender 2>/tmp/trans && cd \"\`tail -n 1 /tmp/trans\`\""
-```
-
 and then enjoy
 ```bash
 trans
