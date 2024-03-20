@@ -1,5 +1,7 @@
 # Transgender
 
+![](img/trans.png)
+
 A TUI file explorer, written by a ranger hater.
 
 ## quick start

@@ -1,2 +1,5 @@
 /target
 note
+
+*.png
+!trans.png
