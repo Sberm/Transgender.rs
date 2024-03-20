@@ -8,7 +8,7 @@ else
 	CFLAGS = -O2 -std=c11
 endif
 
-TRANS_ALIAS ?= "alias trans=\"transgender 2>/tmp/trans && cd \\\"\\\`tail -n 1 /tmp/trans\\\`\\\"\""
+TRANS_ALIAS ?= "alias ts=\"transgender 2>/tmp/trans && cd \\\"\\\`tail -n 1 /tmp/trans\\\`\\\"\""
 
 all: 
 	$(Q)cargo build --release 2>/dev/null
