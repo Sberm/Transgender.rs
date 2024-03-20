@@ -71,10 +71,15 @@ impl Canvas {
 
     fn check_insert_highlight(&self, str_to_draw: &mut String, i: usize, j: usize, cursor: usize, r_w_l: usize) {
 
+        //let highlight = CSI("[0;30m");
+        //let highlight_bg = CSI("[47m");
+        //let normal = CSI("[0;37m");
+        //let normal_bg = CSI("[40m");
+
         let highlight = CSI("[0;30m");
-        let highlight_bg = CSI("[47m");
+        let highlight_bg = CSI("[48;5;175m");
         let normal = CSI("[0;37m");
-        let normal_bg = CSI("[40m");
+        let normal_bg = CSI("[48;5;31m");
 
         if i == cursor && j == 0{
             str_to_draw.push_str(&highlight);
