@@ -2,7 +2,6 @@ extern crate libc;
 
 use std::vec::Vec;
 use std::io::{stdin, Read};
-use std::io;
 use std::fs::{read_dir,canonicalize};
 use std::path::{Path, PathBuf};
 use crate::ops::code;

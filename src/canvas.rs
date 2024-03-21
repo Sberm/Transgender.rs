@@ -3,7 +3,6 @@ extern crate libc;
 use std::mem;
 use self::libc::{c_ushort, ioctl, STDOUT_FILENO, TIOCGWINSZ};
 use std::path::Path;
-use std::any::type_name;
 use std::time::Duration;
 use std::thread::sleep;
 use std::io::{self, Write};
@@ -233,10 +232,6 @@ impl Canvas {
         }
     }
 
-}
-
-fn print_type_of<T>(_: &T) {
-    println!("{}", std::any::type_name::<T>())
 }
 
 pub fn init() -> Canvas {
