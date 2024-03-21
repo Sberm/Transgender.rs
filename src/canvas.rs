@@ -78,7 +78,7 @@ impl Canvas {
         //let normal_bg = CSI("[40m");
         
         let highlight = CSI("[0;30m");
-        let highlight_dir = CSI("[38;5;2m");
+        let highlight_dir = CSI("[38;5;13m");
         let highlight_bg = CSI("[48;5;175m");
         let normal = CSI("[0;37m");
         let normal_bg = CSI("[48;5;31m");
