@@ -320,7 +320,7 @@ fn canonical_input() {
 fn start_loop(browser: &mut Browser, canvas: &mut canvas::Canvas) {
     loop {
         let preview_dir = browser.get_preview();
-        canvas.draw(browser.cursor, &browser.current_dir, &preview_dir, browser.window_start);
+        canvas.draw(browser.cursor, &browser.current_dir, &preview_dir, browser.window_start, &browser.current_path);
         match process_input() {
             code::UP => {browser.up();}
             code::DOWN => {browser.down();}
