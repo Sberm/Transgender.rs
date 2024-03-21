@@ -2,6 +2,7 @@ extern crate libc;
 
 use std::mem;
 use self::libc::{c_ushort, ioctl, STDOUT_FILENO, TIOCGWINSZ};
+use std::path::Path;
 use std::any::type_name;
 use std::time::Duration;
 use std::thread::sleep;
@@ -69,7 +70,7 @@ impl Canvas {
         }
     }
 
-    fn check_insert_highlight(&self, str_to_draw: &mut String, i: usize, j: usize, cursor: usize, r_w_l: usize) {
+    fn check_insert_highlight(&self, str_to_draw: &mut String, i: usize, j: usize, cursor: usize, r_w_l: usize, is_dir_bool: bool) {
 
         //let highlight = CSI("[0;30m");
         //let highlight_bg = CSI("[47m");
@@ -77,12 +78,17 @@ impl Canvas {
         //let normal_bg = CSI("[40m");
         
         let highlight = CSI("[0;30m");
+        let highlight_dir = CSI("[38;5;2m");
         let highlight_bg = CSI("[48;5;175m");
         let normal = CSI("[0;37m");
         let normal_bg = CSI("[48;5;31m");
 
         if i == cursor && j == 0{
-            str_to_draw.push_str(&highlight);
+            if is_dir_bool {
+                str_to_draw.push_str(&highlight_dir);
+            } else {
+                str_to_draw.push_str(&highlight);
+            }
             str_to_draw.push_str(&highlight_bg);
         } else if i == cursor && j == r_w_l {
             str_to_draw.push_str(&normal);
@@ -93,7 +99,7 @@ impl Canvas {
 
     }
 
-    pub fn draw(&mut self, cursor: usize, current_dir: &Vec<String>, preview_dir: &Vec<String>, window_start: usize) {
+    pub fn draw(&mut self, cursor: usize, current_dir: &Vec<String>, preview_dir: &Vec<String>, window_start: usize, current_path: &String) {
 
 
         (self.height, self.width) = term_size();
@@ -176,6 +182,9 @@ impl Canvas {
         let mut j:usize = 0;
         let mut font_len:usize = 0;
         let mut do_preview: bool = false;
+        let mut is_dir_bool:bool = false;
+
+        is_dir_bool = true;
 
         loop {
             if i >= self.height {
@@ -203,8 +212,12 @@ impl Canvas {
                     break;
                 }
 
-                self.check_insert_highlight(&mut str_to_draw, i, j, cursor - window_start, r_w_l);
+                if i == cursor && j == 0 && Path::new(&(current_path.to_owned() + current_dir[cursor].as_str())).is_dir() == true {
+                    is_dir_bool = true;
+                }
+                self.check_insert_highlight(&mut str_to_draw, i, j, cursor - window_start, r_w_l, is_dir_bool);
                 str_to_draw.push(self.pixels[i][j]);
+                is_dir_bool = false;
 
                 j += 1;
             }
