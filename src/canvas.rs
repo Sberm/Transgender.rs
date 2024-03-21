@@ -8,8 +8,8 @@ use std::time::Duration;
 use std::thread::sleep;
 use std::io::{self, Write};
 
-pub fn slp() {
-    sleep(Duration::from_secs(3));
+pub fn slp(i: u64) {
+    sleep(Duration::from_secs(i));
 }
 
 pub struct Canvas {
@@ -72,11 +72,6 @@ impl Canvas {
 
     fn check_insert_highlight(&self, str_to_draw: &mut String, i: usize, j: usize, cursor: usize, r_w_l: usize, is_dir_bool: bool) {
 
-        //let highlight = CSI("[0;30m");
-        //let highlight_bg = CSI("[47m");
-        //let normal = CSI("[0;37m");
-        //let normal_bg = CSI("[40m");
-        
         let highlight = CSI("[0;30m");
         let highlight_dir = CSI("[38;5;13m");
         let highlight_bg = CSI("[48;5;175m");
@@ -183,8 +178,6 @@ impl Canvas {
         let mut font_len:usize = 0;
         let mut do_preview: bool = false;
         let mut is_dir_bool:bool = false;
-
-        is_dir_bool = true;
 
         loop {
             if i >= self.height {
