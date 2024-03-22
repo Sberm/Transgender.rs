@@ -34,8 +34,7 @@ keys:
 | keys                             | function                                     |
 | :---:                            | :---:                                        |
 | hjkl(vim bindings) or arrow keys | scroll/enter/exit a directory                |
-| o                                | go to directory under cursor                 |
-| \<ENTER\>                        | go to directory under cursor                 |
+| o or \<ENTER\>                   | go to directory under cursor                 |
 | s                                | go to current directory(in left side window) |
 | q                                | quit                                         |
 
