@@ -3,3 +3,6 @@ note
 
 *.png
 !trans-img.png
+
+# mac
+.DS_Store
