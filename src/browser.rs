@@ -9,7 +9,6 @@ use crate::canvas;
 use self::libc::{termios, STDIN_FILENO, ECHO, ICANON, ISIG, tcgetattr, tcsetattr, TCSAFLUSH};
 use std::mem;
 use std::process::exit;
-use std::env;
 
 struct Browser {
     cursor: usize,
@@ -24,16 +23,11 @@ struct Browser {
 
 impl Browser {
 
-    fn get_current_path(&self) -> String{
-        let ret = self.current_path.clone();
-        ret
-    }
-
     fn init(&mut self) {
         self.read_to_current_dir(&String::from("."));
         let srcdir = PathBuf::from(".");
         let absolute = canonicalize(&srcdir).unwrap().to_str().unwrap().to_string();
-        let mut split = absolute.split("/");
+        let split = absolute.split("/");
         let mut temp = String::from("");
         for s in split {
             temp += s; temp += "/";
@@ -77,7 +71,7 @@ impl Browser {
                 let s = entry.file_name().into_string();
                 match s {
                     Ok(v) => {ret.push(v);}
-                    Err(e) => {
+                    Err(_) => {
                         let str = entry.file_name().to_string_lossy().into_owned();
                         ret.push(str);
                     }
@@ -182,7 +176,7 @@ impl Browser {
                 let s = entry.file_name().into_string();
                 match s {
                     Ok(v) => {self.current_dir.push(v);}
-                    Err(e) => {
+                    Err(_) => {
                         let str = entry.file_name().to_string_lossy().into_owned();
                         self.current_dir.push(str);
                     }
@@ -294,8 +288,6 @@ fn process_input() -> u8{
         113 => return code::QUIT,
         _ => return code::NOOP,
     }
-
-    return code::NOOP;
 }
 
 fn raw_input() {
@@ -311,7 +303,7 @@ fn canonical_input() {
     unsafe {
         let mut termios_:termios = mem::zeroed();
         tcgetattr(STDIN_FILENO, &mut termios_);
-        termios_.c_lflag |= (ECHO | ICANON | ISIG);
+        termios_.c_lflag |= ECHO | ICANON | ISIG;
         tcsetattr(STDIN_FILENO, TCSAFLUSH, &termios_);
     }
 }
