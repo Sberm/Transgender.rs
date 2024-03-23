@@ -11,7 +11,7 @@ endif
 TRANS_ALIAS ?= "alias ts=\"transgender 2>/tmp/trans && cd \\\"\\\`tail -n 1 /tmp/trans\\\`\\\"\""
 
 all: 
-	$(call msg,TRANS,BUILDING)
+	$(call msg,TRANS,START-BUILDING)
 	$(Q)cargo build --release
 	$(Q)echo $(TRANS_ALIAS) >> ~/.bashrc
 	$(Q)echo $(TRANS_ALIAS) >> ~/.bash_profile
