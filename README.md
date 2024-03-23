@@ -14,6 +14,7 @@ before compilation, make sure you have rust's environment installed, if not, got
 compile
 ```
 make
+make install
 ```
 
 refresh your shell configuration, or open up a new terminal window
@@ -37,6 +38,11 @@ keys:
 | o or \<ENTER\>                   | go to directory under cursor                 |
 | s                                | go to current directory(in left side window) |
 | q                                | quit                                         |
+
+if you want to uninstall Transgender
+```
+make uninstall
+```
 
 
 ```
