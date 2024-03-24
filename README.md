@@ -1,10 +1,12 @@
 # Transgender
 
-![](img/trans-scrnshot.png)
-
 A minimalistic TUI file explorer with zero dependancy except libc, written by a [ranger](https://github.com/ranger/ranger) hater.
 
 works on Linux & MacOS
+
+![](img/trans-img.png)
+
+![](img/trans.gif)
 
 ## quick start
 
@@ -13,6 +15,7 @@ before compilation, make sure you have rust's environment installed, if not, got
 compile
 ```
 make
+make install
 ```
 
 refresh your shell configuration, or open up a new terminal window
@@ -30,12 +33,17 @@ ts
 
 keys:
 
-|keys|function|
-|:---:|:---:|
-|o|go to directory under cursor|
-|\<ENTER\>|go to directory under cursor|
-|s|go to current directory(in left side window)|
-|q|quit|
+| keys                             | function                                     |
+| :---:                            | :---:                                        |
+| hjkl(vim bindings) or arrow keys | scroll/enter/exit a directory                |
+| o or \<ENTER\>                   | go to directory under cursor                 |
+| s                                | go to current directory(in left side window) |
+| q                                | quit                                         |
+
+if you want to uninstall Transgender
+```
+make uninstall
+```
 
 
 ```

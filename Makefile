@@ -11,8 +11,20 @@ endif
 TRANS_ALIAS ?= "alias ts=\"transgender 2>/tmp/trans && cd \\\"\\\`tail -n 1 /tmp/trans\\\`\\\"\""
 
 all: 
-	$(Q)cargo build --release 2>/dev/null
-	$(Q)cp ./target/release/transgender /usr/local/bin/transgender
+	$(call msg,TRANS,START-BUILDING)
+	$(Q)cargo build --release
 	$(Q)echo $(TRANS_ALIAS) >> ~/.bashrc
 	$(Q)echo $(TRANS_ALIAS) >> ~/.bash_profile
 	$(call msg,TRANS,BUILD-SUCCEED)
+
+install:
+	$(call msg,INSTALL)
+	$(Q)sudo cp ./target/release/transgender /usr/local/bin/transgender
+
+uninstall:
+	$(call msg,UNINSTALL)
+	$(Q)sudo rm -f /usr/local/bin/transgender
+
+clean:
+	$(call msg,CLEAN)
+	$(Q)sudo rm -f ./target/release/transgender
