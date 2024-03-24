@@ -284,6 +284,19 @@ fn process_input() -> u8{
         }
     }
 
+    // gg
+    if input == 107 {
+        input = read_input();
+        if input == 107 {
+            return code::TOP;
+        }
+    }
+
+    // G
+    if input == 71 {
+        return code::BOTTOM;
+    }
+
     match input {
         107 => return code::UP,
         106 => return code::DOWN,
@@ -329,6 +342,8 @@ fn start_loop(browser: &mut Browser, canvas: &mut canvas::Canvas) {
             code::EXIT_CURSOR => {browser.exit_under_cursor();}
             code::EXIT => {browser.exit_cur_dir();}
             code::QUIT => {browser.quit();}
+            code::TOP => {browser.top();}
+            code::BOTTOM => {browser.bottom();}
             _ => {browser.right();}
         }
     }
