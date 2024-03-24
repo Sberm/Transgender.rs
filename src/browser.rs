@@ -87,12 +87,13 @@ impl Browser {
     fn search(&mut self) {
         self.mode = 1;
         let mut stdin_handle = stdin().lock();  
-        let mut c = [0_u8];  
+        let mut c = [4_u8];  
         stdin_handle.read_exact(&mut c).unwrap();
         let rc = str::from_utf8(&c).expect("Read to searchbar failed").chars().collect::<Vec<char>>()[0];
 
         if rc as u8 == 10 {
             self.mode = 0;
+            self.search_txt = Vec::new();
             return;
         }
 
@@ -371,6 +372,7 @@ fn start_loop(browser: &mut Browser, canvas: &mut canvas::Canvas) {
         let preview_dir = browser.get_preview();
         canvas.draw(browser.cursor, &browser.current_dir, &preview_dir, browser.window_start, &browser.current_path, browser.mode, &browser.search_txt);
         if browser.mode == 1 {
+            browser.search();
             continue;
         }
         match process_input() {
