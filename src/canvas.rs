@@ -3,11 +3,10 @@ extern crate libc;
 use std::mem;
 use self::libc::{c_ushort, ioctl, STDOUT_FILENO, TIOCGWINSZ};
 use std::path::Path;
-use std::any::type_name;
 use std::time::Duration;
 use std::thread::sleep;
-use std::io::{self, Write};
 
+#[allow(dead_code)]
 pub fn slp(i: u64) {
     sleep(Duration::from_secs(i));
 }
@@ -28,15 +27,10 @@ impl Clone for Canvas {
     }
 }
 
-fn CSI(s: &str) -> String{
+fn csi(s: &str) -> String{
     let mut ret: String = String::from("\x1b");
     ret.push_str(s);
     ret
-}
-
-pub struct Extra {
-    pos: usize,
-    extra_str: String,
 }
 
 fn check_if_wide(c: char) -> bool{
@@ -56,7 +50,7 @@ impl Canvas {
 
         str_to_draw.push_str(&(0..(self.width * self.height) as isize).map(|_| " ").collect::<String>());
 
-        str_to_draw.push_str(&CSI("[1H"));
+        str_to_draw.push_str(&csi("[1H"));
 
         print!("{}", str_to_draw);
     }
@@ -72,11 +66,11 @@ impl Canvas {
 
     fn check_insert_highlight(&self, str_to_draw: &mut String, i: usize, j: usize, cursor: usize, r_w_l: usize, is_dir_bool: bool) {
 
-        let highlight = CSI("[0;30m");
-        let highlight_dir = CSI("[38;5;13m");
-        let highlight_bg = CSI("[48;5;175m");
-        let normal = CSI("[0;37m");
-        let normal_bg = CSI("[48;5;31m");
+        let highlight = csi("[0;30m");
+        let highlight_dir = csi("[38;5;13m");
+        let highlight_bg = csi("[48;5;175m");
+        let normal = csi("[0;37m");
+        let normal_bg = csi("[48;5;31m");
 
         if i == cursor && j == 0{
             if is_dir_bool {
@@ -113,14 +107,11 @@ impl Canvas {
         let preview_width: usize = self.width - r_w_l;
 
         let mut dir_i: usize = window_start;
-        let mut ch_i: usize = 0;
+        let mut ch_i: usize;
 
         self.clear_pixels();
 
         let mut str_to_draw = String::from("");
-        let mut back: bool = false;
-
-        let mut extra: Vec<Extra> = Vec::new();
 
         /* no content */
         if current_dir.len() == 0 {
@@ -128,7 +119,7 @@ impl Canvas {
                 let tmp_s = line.iter().collect::<String>(); // Vec<char> -> String
                 str_to_draw.push_str(&tmp_s); // concat
             }
-            str_to_draw.push_str(&CSI("[1H"));
+            str_to_draw.push_str(&csi("[1H"));
             print!("{}", str_to_draw);
             return
         }
@@ -150,12 +141,9 @@ impl Canvas {
             }
         }
 
-        let mut offset = 0;
-
         /* right side(preview) */
 
         dir_i = 0;
-        ch_i = 0;
 
         for i in w_b..=w_t {
             if dir_i >= preview_dir.len() {
@@ -174,7 +162,7 @@ impl Canvas {
         }
 
         let mut i:usize = 0; 
-        let mut j:usize = 0;
+        let mut j:usize;
         let mut font_len:usize = 0;
         let mut do_preview: bool = false;
         let mut is_dir_bool:bool = false;
@@ -220,7 +208,7 @@ impl Canvas {
         }
 
 
-        str_to_draw.push_str(&CSI("[1H"));
+        str_to_draw.push_str(&csi("[1H"));
 
         print!("{}", str_to_draw);
     }
@@ -233,10 +221,6 @@ impl Canvas {
         }
     }
 
-}
-
-fn print_type_of<T>(_: &T) {
-    println!("{}", std::any::type_name::<T>())
 }
 
 pub fn init() -> Canvas {
@@ -256,6 +240,7 @@ pub fn init() -> Canvas {
     canvas
 }
 
+#[allow(dead_code)]
 struct TermSize {
     height: c_ushort,
     width: c_ushort,
