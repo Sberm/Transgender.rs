@@ -81,6 +81,21 @@ impl Browser {
         ret
     }
 
+    fn top(&mut self) {
+        self.cursor = 0;
+        self.window_start = 0;
+    }
+
+    fn bottom(&mut self) {
+        self.cursor = self.current_dir.len() - 1;
+        let (h, _) = canvas::term_size();
+        self.window_start = if self.current_dir.len() as isize - h as isize + 1 > 0 {
+            self.current_dir.len() - h
+        } else {
+            0
+        }
+    }
+
     fn up(&mut self) {
         if self.current_dir.is_empty() == true {
             return
@@ -278,9 +293,9 @@ fn process_input() -> u8{
     }
 
     // gg
-    if input == 107 {
+    if input == 103 {
         input = read_input();
-        if input == 107 {
+        if input == 103 {
             return code::TOP;
         }
     }
