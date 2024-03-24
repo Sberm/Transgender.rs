@@ -9,4 +9,5 @@ pub mod code {
     pub const QUIT:u8 = 7;
     pub const TOP:u8 = 8;
     pub const BOTTOM:u8 = 9;
+    pub const SEARCH:u8 = 10;
 }

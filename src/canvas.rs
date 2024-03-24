@@ -28,7 +28,7 @@ impl Clone for Canvas {
 }
 
 fn csi(s: &str) -> String{
-    let mut ret: String = String::from("\x1b");
+    let mut ret: String = String::from("\x1b[");
     ret.push_str(s);
     ret
 }
@@ -50,7 +50,7 @@ impl Canvas {
 
         str_to_draw.push_str(&(0..(self.width * self.height) as isize).map(|_| " ").collect::<String>());
 
-        str_to_draw.push_str(&csi("[1H"));
+        str_to_draw.push_str(&csi("1H"));
 
         print!("{}", str_to_draw);
     }
@@ -66,11 +66,11 @@ impl Canvas {
 
     fn check_insert_highlight(&self, str_to_draw: &mut String, i: usize, j: usize, cursor: usize, r_w_l: usize, is_dir_bool: bool) {
 
-        let highlight = csi("[0;30m");
-        let highlight_dir = csi("[38;5;13m");
-        let highlight_bg = csi("[48;5;175m");
-        let normal = csi("[0;37m");
-        let normal_bg = csi("[48;5;31m");
+        let highlight = csi("0;30m");
+        let highlight_dir = csi("38;5;13m");
+        let highlight_bg = csi("48;5;175m");
+        let normal = csi("0;37m");
+        let normal_bg = csi("48;5;31m");
 
         if i == cursor && j == 0{
             if is_dir_bool {
@@ -88,11 +88,21 @@ impl Canvas {
 
     }
 
-    pub fn draw(&mut self, cursor: usize, current_dir: &Vec<String>, preview_dir: &Vec<String>, window_start: usize, current_path: &String) {
-
+    pub fn draw(&mut self, cursor: usize, current_dir: &Vec<String>, preview_dir: &Vec<String>, window_start: usize, current_path: &String, mode: u8, search_txt: &Vec<char>) {
 
         (self.height, self.width) = term_size();
         self.pixels = vec![vec![' '; self.width]; self.height];
+
+        let mut str_to_draw = String::from("");
+
+        if mode == 1 {
+            // goto bottom line
+            str_to_draw.push_str(&csi(&format!("{}H", self.height)));
+            str_to_draw.push_str(&search_txt.iter().collect::<String>());
+            str_to_draw.push_str(&csi("1H"));
+            print!("{}", str_to_draw);
+            return
+        }
 
         /* write pixel */
 
@@ -111,15 +121,13 @@ impl Canvas {
 
         self.clear_pixels();
 
-        let mut str_to_draw = String::from("");
-
         /* no content */
         if current_dir.len() == 0 {
             for line in &self.pixels {
                 let tmp_s = line.iter().collect::<String>(); // Vec<char> -> String
                 str_to_draw.push_str(&tmp_s); // concat
             }
-            str_to_draw.push_str(&csi("[1H"));
+            str_to_draw.push_str(&csi("1H"));
             print!("{}", str_to_draw);
             return
         }
@@ -142,7 +150,6 @@ impl Canvas {
         }
 
         /* right side(preview) */
-
         dir_i = 0;
 
         for i in w_b..=w_t {
@@ -208,7 +215,7 @@ impl Canvas {
         }
 
 
-        str_to_draw.push_str(&csi("[1H"));
+        str_to_draw.push_str(&csi("1H"));
 
         print!("{}", str_to_draw);
     }
