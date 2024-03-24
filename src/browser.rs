@@ -1,6 +1,7 @@
 extern crate libc;
 
 use std::vec::Vec;
+use std::str;
 use std::io::{stdin, Read};
 use std::fs::{read_dir,canonicalize};
 use std::path::{Path, PathBuf};
@@ -19,6 +20,8 @@ struct Browser {
     past_window_start: Vec<usize>,
     current_path: String,
     original_path: String,
+    mode: u8, // 0->normal, 1->search
+    search_txt: Vec<char>,
 }
 
 impl Browser {
@@ -79,6 +82,28 @@ impl Browser {
             }
         }
         ret
+    }
+
+    fn search(&mut self) {
+        self.mode = 1;
+        let mut stdin_handle = stdin().lock();  
+        let mut c = [0_u8];  
+        stdin_handle.read_exact(&mut c).unwrap();
+        let rc = str::from_utf8(&c).expect("Read to searchbar failed").chars().collect::<Vec<char>>()[0];
+
+        if rc as u8 == 10 {
+            self.mode = 0;
+            return;
+        }
+
+        self.search_txt.push(rc);
+        let search_str = self.search_txt.iter().collect::<String>();
+        for (i, cd) in self.current_dir.iter().enumerate() {
+            if search_str.eq(cd) {
+                self.cursor = i;
+                break;
+            }
+        }
     }
 
     fn top(&mut self) {
@@ -305,6 +330,11 @@ fn process_input() -> u8{
         return code::BOTTOM;
     }
 
+    // searching
+    if input == 47 {
+        return code::SEARCH;
+    }
+
     match input {
         107 => return code::UP,
         106 => return code::DOWN,
@@ -339,7 +369,10 @@ fn canonical_input() {
 fn start_loop(browser: &mut Browser, canvas: &mut canvas::Canvas) {
     loop {
         let preview_dir = browser.get_preview();
-        canvas.draw(browser.cursor, &browser.current_dir, &preview_dir, browser.window_start, &browser.current_path);
+        canvas.draw(browser.cursor, &browser.current_dir, &preview_dir, browser.window_start, &browser.current_path, browser.mode, &browser.search_txt);
+        if browser.mode == 1 {
+            continue;
+        }
         match process_input() {
             code::UP => {browser.up();}
             code::DOWN => {browser.down();}
@@ -350,6 +383,7 @@ fn start_loop(browser: &mut Browser, canvas: &mut canvas::Canvas) {
             code::QUIT => {browser.quit();}
             code::TOP => {browser.top();}
             code::BOTTOM => {browser.bottom();}
+            code::SEARCH => {browser.search();}
             _ => {browser.right();}
         }
     }
@@ -371,6 +405,8 @@ pub fn init() {
         past_window_start: Vec::new(),
         current_path: String::from(""),
         original_path: String::from(""),
+        mode: 0,
+        search_txt: Vec::new(),
     };
 
     browser.init();
