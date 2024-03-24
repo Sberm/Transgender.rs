@@ -2,4 +2,7 @@
 note
 
 *.png
-!trans-scrnshot.png
+!trans-img.png
+
+# mac
+.DS_Store
