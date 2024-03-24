@@ -7,4 +7,6 @@ pub mod code {
     pub const EXIT:u8 = 5;
     pub const EXIT_CURSOR:u8 = 6;
     pub const QUIT:u8 = 7;
+    pub const TOP:u8 = 8;
+    pub const BOTTOM:u8 = 9;
 }
