@@ -85,11 +85,13 @@ impl Browser {
     }
 
     fn search(&mut self) {
-        self.mode = 1;
         let mut stdin_handle = stdin().lock();  
-        let mut c = [4_u8];  
+        let mut c = vec![4_u8];  
         stdin_handle.read_exact(&mut c).unwrap();
-        let rc = str::from_utf8(&c).expect("Read to searchbar failed").chars().collect::<Vec<char>>()[0];
+        // let rc = str::from_utf7(&c).expect("Read to searchbar failed").chars().collect::<Vec<char>>()[0];
+        let rc = unsafe {
+            str::from_utf8_unchecked(&c).to_string().chars().collect::<Vec<char>>()[0]
+        };
 
         if rc as u8 == 10 {
             self.mode = 0;
@@ -385,7 +387,11 @@ fn start_loop(browser: &mut Browser, canvas: &mut canvas::Canvas) {
             code::QUIT => {browser.quit();}
             code::TOP => {browser.top();}
             code::BOTTOM => {browser.bottom();}
-            code::SEARCH => {browser.search();}
+            code::SEARCH => {
+                browser.mode = 1;
+                canvas.draw(browser.cursor, &browser.current_dir, &preview_dir, browser.window_start, &browser.current_path, browser.mode, &browser.search_txt);
+                browser.search();
+            }
             _ => {browser.right();}
         }
     }
