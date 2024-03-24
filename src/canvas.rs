@@ -5,6 +5,7 @@ use self::libc::{c_ushort, ioctl, STDOUT_FILENO, TIOCGWINSZ};
 use std::path::Path;
 use std::time::Duration;
 use std::thread::sleep;
+use std::io::{self, Write};
 
 #[allow(dead_code)]
 pub fn slp(i: u64) {
@@ -98,9 +99,12 @@ impl Canvas {
         if mode == 1 {
             // goto bottom line
             str_to_draw.push_str(&csi(&format!("{}H", self.height)));
+            str_to_draw.push_str(&csi("0K"));
+            str_to_draw.push_str("/");
             str_to_draw.push_str(&search_txt.iter().collect::<String>());
             str_to_draw.push_str(&csi("1H"));
             print!("{}", str_to_draw);
+            io::stdout().flush();
             return
         }
 
