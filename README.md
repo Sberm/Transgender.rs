@@ -6,6 +6,7 @@ works on Linux & MacOS
 
 ![](img/trans-img.png)
 
+![](img/trans.gif)
 
 ## quick start
 
