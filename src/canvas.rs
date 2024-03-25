@@ -104,7 +104,7 @@ impl Canvas {
             str_to_draw.push_str(&search_txt.iter().collect::<String>());
             str_to_draw.push_str(&csi("1H"));
             print!("{}", str_to_draw);
-            io::stdout().flush();
+            let _ = io::stdout().flush();
             return
         }
 
