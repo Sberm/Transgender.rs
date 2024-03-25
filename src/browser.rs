@@ -49,7 +49,7 @@ impl Browser {
             self.cursor - h / 2
         } else {
             0
-        }
+        };
     } 
 
     fn get_preview(&self) -> Vec<String>{
@@ -433,6 +433,8 @@ pub fn init() {
 
     /* use alternate screen buffer */
     print!("\x1b[?1049h");
+
+    raw_input();
     
     let mut canvas = canvas::init();
 
@@ -450,8 +452,6 @@ pub fn init() {
     };
 
     browser.init();
-
-    raw_input();
 
     start_loop(&mut browser, &mut canvas);
 }

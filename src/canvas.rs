@@ -54,6 +54,8 @@ impl Canvas {
         str_to_draw.push_str(&csi("1H"));
 
         print!("{}", str_to_draw);
+
+        let _ = io::stdout().flush();
     }
 
     fn clear_pixels(&mut self) {
@@ -133,6 +135,7 @@ impl Canvas {
             }
             str_to_draw.push_str(&csi("1H"));
             print!("{}", str_to_draw);
+            let _ = io::stdout().flush();
             return
         }
 
@@ -222,6 +225,8 @@ impl Canvas {
         str_to_draw.push_str(&csi("1H"));
 
         print!("{}", str_to_draw);
+
+        let _ = io::stdout().flush();
     }
 
     fn set(&mut self, i: usize, j: usize, c: char) {
@@ -239,7 +244,8 @@ pub fn init() -> Canvas {
     let canvas = Canvas {
         height: h,
         width: w,
-        pixels: vec![vec![' '; w]; h],
+        // pixels: vec![vec![' '; w]; h],
+        pixels: vec![vec![]],
     };
 
     /* clear space for printing */
