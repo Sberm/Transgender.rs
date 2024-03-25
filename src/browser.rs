@@ -419,11 +419,7 @@ fn start_loop(browser: &mut Browser, canvas: &mut canvas::Canvas) {
             code::QUIT => {browser.quit();}
             code::TOP => {browser.top();}
             code::BOTTOM => {browser.bottom();}
-            code::SEARCH => {
-                browser.mode = 1;
-                canvas.draw(browser.cursor, &browser.current_dir, &preview_dir, browser.window_start, &browser.current_path, browser.mode, &browser.search_txt);
-                browser.search();
-            }
+            code::SEARCH => {browser.mode = 1;}
             _ => {browser.right();}
         }
     }
