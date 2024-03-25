@@ -207,7 +207,8 @@ impl Canvas {
                     break;
                 }
 
-                if i == cursor && j == 0 && Path::new(&(current_path.to_owned() + current_dir[cursor].as_str())).is_dir() == true {
+                let tmp_str = format!("{}{}{}", current_path.to_owned(), current_dir[cursor].as_str(), "/");
+                if i + window_start == cursor && j == 0 && Path::new(&tmp_str).is_dir() == true {
                     is_dir_bool = true;
                 }
                 self.check_insert_highlight(&mut str_to_draw, i, j, cursor - window_start, r_w_l, is_dir_bool);
