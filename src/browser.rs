@@ -1,7 +1,6 @@
 extern crate libc;
 
 use std::vec::Vec;
-use std::str;
 use std::io::{stdin, Read};
 use std::fs::{read_dir,canonicalize};
 use std::path::{Path, PathBuf};
@@ -86,27 +85,60 @@ impl Browser {
 
     fn search(&mut self) {
         let mut stdin_handle = stdin().lock();  
-        let mut c = vec![4_u8];  
+        let mut c = vec![0_u8];  
         stdin_handle.read_exact(&mut c).unwrap();
-        // let rc = str::from_utf7(&c).expect("Read to searchbar failed").chars().collect::<Vec<char>>()[0];
-        let rc = unsafe {
-            str::from_utf8_unchecked(&c).to_string().chars().collect::<Vec<char>>()[0]
-        };
+        let rc = c[0] as char;
 
+        /* esc */
+        if rc as u8 == 27 {
+            self.mode = 0;
+            self.search_txt = Vec::new();
+            return;
+        }
+
+        if rc as u8 == 127 {
+            if self.search_txt.len() > 0 {
+                self.search_txt.pop().expect("search txt(pop) out of bound");
+            }
+            return;
+        }
+
+        /* enter */
         if rc as u8 == 10 {
+            /* search */
+
+            let mut flag;
+
+            for (i, cd) in self.current_dir.iter().enumerate() {
+                flag = true;
+                if self.search_txt.len() > cd.chars().collect::<String>().len() {
+                    continue;
+                }
+                for (j, c) in self.search_txt.iter().enumerate() {
+                    if j < cd.len() {
+                        if *c != cd.chars().nth(j).expect("current_dir string out of bound") {
+                            flag = false;
+                            break;
+                        }
+                    }
+                }
+                if flag == true {
+                    self.cursor = i;
+                    let (h, _) = canvas::term_size();
+                    self.window_start = if self.cursor as isize - h as isize / 2 > 0 {
+                        self.cursor - h / 2
+                    } else {
+                        0
+                    };
+                    break;
+                }
+            }
             self.mode = 0;
             self.search_txt = Vec::new();
             return;
         }
 
         self.search_txt.push(rc);
-        let search_str = self.search_txt.iter().collect::<String>();
-        for (i, cd) in self.current_dir.iter().enumerate() {
-            if search_str.eq(cd) {
-                self.cursor = i;
-                break;
-            }
-        }
     }
 
     fn top(&mut self) {
