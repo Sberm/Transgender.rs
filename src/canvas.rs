@@ -68,7 +68,7 @@ impl Canvas {
     fn check_insert_highlight(&self, str_to_draw: &mut String, i: usize, j: usize, cursor: usize, r_w_l: usize, is_dir_bool: bool) {
 
         let highlight = csi("0;30m");
-        let highlight_dir = csi("38;5;13m");
+        let highlight_dir = csi("38;5;57m");
         let highlight_bg = csi("48;5;175m");
         let normal = csi("0;37m");
         let normal_bg = csi("48;5;31m");
