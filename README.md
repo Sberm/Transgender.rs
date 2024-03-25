@@ -39,6 +39,7 @@ keys:
 | o or \<ENTER\>                   | go to directory under cursor                 |
 | s                                | go to current directory(in left side window) |
 | q                                | quit                                         |
+| /                                | search                                       |
 
 if you want to uninstall Transgender
 ```
