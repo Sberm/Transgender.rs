@@ -75,6 +75,11 @@ impl Canvas {
         let normal = csi("0;37m");
         let normal_bg = csi("48;5;31m");
 
+        if i == 0 && j == 0 {
+            str_to_draw.push_str(&normal);
+            str_to_draw.push_str(&normal_bg);
+        }
+
         if i == cursor && j == 0{
             if is_dir_bool {
                 str_to_draw.push_str(&highlight_dir);
@@ -85,10 +90,7 @@ impl Canvas {
         } else if i == cursor && j == r_w_l {
             str_to_draw.push_str(&normal);
             str_to_draw.push_str(&normal_bg);
-        } else if i == 0 && j == 0 {
-            str_to_draw.push_str(&normal_bg);
-        }
-
+        } 
     }
 
     pub fn draw(&mut self, cursor: usize, current_dir: &Vec<String>, preview_dir: &Vec<String>, window_start: usize, current_path: &String, mode: u8, search_txt: &Vec<char>) {
