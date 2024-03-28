@@ -2,7 +2,7 @@
 
 A minimalistic TUI file explorer with zero dependancy except libc, written by a [ranger](https://github.com/ranger/ranger) hater.
 
-works on Linux & MacOS
+Works on Linux & MacOS
 
 ![](img/trans-img.png)
 
