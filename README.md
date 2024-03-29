@@ -31,7 +31,13 @@ enjoy
 ts
 ```
 
-keys:
+### Features:
+
+* file exploring
+* cd to directories
+* search directories
+
+### keys:
 
 | keys                             | function                                     |
 | :---:                            | :---:                                        |
