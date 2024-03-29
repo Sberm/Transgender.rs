@@ -1,6 +1,6 @@
 # Transgender
 
-A minimalistic TUI file explorer with zero dependancy except libc, written by a [ranger](https://github.com/ranger/ranger) hater.
+A minimalistic TUI file explorer with **zero dependancy** except libc, written by a [ranger](https://github.com/ranger/ranger) hater.
 
 Works on Linux & MacOS
 
