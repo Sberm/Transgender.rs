@@ -103,6 +103,8 @@ impl Browser {
             return;
         }
 
+        // TODO: press n jump to next match
+
         /* enter */
         if rc as u8 == 10 {
             /* search */
