@@ -10,4 +10,5 @@ pub mod code {
     pub const TOP:u8 = 8;
     pub const BOTTOM:u8 = 9;
     pub const SEARCH:u8 = 10;
+    pub const NEXT_MATCH:u8 = 11;
 }
