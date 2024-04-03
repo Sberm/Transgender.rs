@@ -83,6 +83,40 @@ impl Browser {
         ret
     }
 
+    fn next_match(&mut self) {
+        let mut flag;
+
+        if self.cursor >= self.current_dir.len() {
+            return
+        }
+
+        for i in self.cursor + 1..self.current_dir.len() {
+            let cd = &self.current_dir[i];
+            flag = true;
+            if self.search_txt.len() > cd.chars().collect::<String>().len() {
+                continue;
+            }
+            for (j, c) in self.search_txt.iter().enumerate() {
+                if j < cd.len() {
+                    if *c != cd.chars().nth(j).expect("current_dir string out of bound") {
+                        flag = false;
+                        break;
+                    }
+                }
+            }
+            if flag == true {
+                self.cursor = i;
+                let (h, _) = canvas::term_size();
+                self.window_start = if self.cursor as isize - h as isize / 2 > 0 {
+                    self.cursor - h / 2
+                } else {
+                    0
+                };
+                break;
+            }
+        }
+    }
+
     fn search(&mut self) {
         let mut stdin_handle = stdin().lock();  
         let mut c = vec![0_u8];  
@@ -92,7 +126,6 @@ impl Browser {
         /* esc */
         if rc as u8 == 27 {
             self.mode = 0;
-            self.search_txt = Vec::new();
             return;
         }
 
@@ -108,36 +141,9 @@ impl Browser {
         /* enter */
         if rc as u8 == 10 {
             /* search */
-
-            let mut flag;
-
-            for (i, cd) in self.current_dir.iter().enumerate() {
-                flag = true;
-                if self.search_txt.len() > cd.chars().collect::<String>().len() {
-                    continue;
-                }
-                for (j, c) in self.search_txt.iter().enumerate() {
-                    if j < cd.len() {
-                        if *c != cd.chars().nth(j).expect("current_dir string out of bound") {
-                            flag = false;
-                            break;
-                        }
-                    }
-                }
-                if flag == true {
-                    self.cursor = i;
-                    let (h, _) = canvas::term_size();
-                    self.window_start = if self.cursor as isize - h as isize / 2 > 0 {
-                        self.cursor - h / 2
-                    } else {
-                        0
-                    };
-                    break;
-                }
-            }
+            self.next_match();
             self.mode = 0;
-            self.search_txt = Vec::new();
-            return;
+            return
         }
 
         self.search_txt.push(rc);
@@ -362,16 +368,6 @@ fn process_input() -> u8{
         }
     }
 
-    // G
-    if input == 71 {
-        return code::BOTTOM;
-    }
-
-    // searching
-    if input == 47 {
-        return code::SEARCH;
-    }
-
     match input {
         107 => return code::UP,
         106 => return code::DOWN,
@@ -381,6 +377,9 @@ fn process_input() -> u8{
         10 => return code::EXIT_CURSOR,
         115 => return code::EXIT,
         113 => return code::QUIT,
+        47 => return code::SEARCH, // /
+        71 => return code::BOTTOM, // G
+        110 => return code::NEXT_MATCH,
         _ => return code::NOOP,
     }
 }
@@ -421,7 +420,11 @@ fn start_loop(browser: &mut Browser, canvas: &mut canvas::Canvas) {
             code::QUIT => {browser.quit();}
             code::TOP => {browser.top();}
             code::BOTTOM => {browser.bottom();}
-            code::SEARCH => {browser.mode = 1;}
+            code::SEARCH => {
+                browser.search_txt = Vec::new();
+                browser.mode = 1;
+            }
+            code::NEXT_MATCH => {browser.next_match();}
             _ => {browser.right();}
         }
     }
