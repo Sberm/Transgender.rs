@@ -46,6 +46,7 @@ ts
 | s                                | go to current directory(in left side window) |
 | q                                | quit                                         |
 | /                                | search                                       |
+| n                                | jump to next search match                    |
 
 if you want to uninstall Transgender
 ```
