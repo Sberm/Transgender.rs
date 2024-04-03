@@ -84,7 +84,7 @@ impl Browser {
     }
 
     fn next_match(&mut self) {
-        let mut flag;
+        let mut flag = false;
 
         if self.cursor >= self.current_dir.len() {
             return
@@ -92,10 +92,10 @@ impl Browser {
 
         for i in self.cursor + 1..self.current_dir.len() {
             let cd = &self.current_dir[i];
-            flag = true;
             if self.search_txt.len() > cd.chars().collect::<String>().len() {
                 continue;
             }
+            flag = true;
             for (j, c) in self.search_txt.iter().enumerate() {
                 if j < cd.len() {
                     if *c != cd.chars().nth(j).expect("current_dir string out of bound") {
@@ -113,6 +113,35 @@ impl Browser {
                     0
                 };
                 break;
+            }
+        }
+
+        /* start from 0 */
+        if flag == false {
+            for i in 0..self.cursor {
+                let cd = &self.current_dir[i];
+                flag = true;
+                if self.search_txt.len() > cd.chars().collect::<String>().len() {
+                    continue;
+                }
+                for (j, c) in self.search_txt.iter().enumerate() {
+                    if j < cd.len() {
+                        if *c != cd.chars().nth(j).expect("current_dir string out of bound") {
+                            flag = false;
+                            break;
+                        }
+                    }
+                }
+                if flag == true {
+                    self.cursor = i;
+                    let (h, _) = canvas::term_size();
+                    self.window_start = if self.cursor as isize - h as isize / 2 > 0 {
+                        self.cursor - h / 2
+                    } else {
+                        0
+                    };
+                    break;
+                }
             }
         }
     }
