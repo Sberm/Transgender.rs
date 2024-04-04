@@ -13,7 +13,7 @@ use std::process::exit;
 struct Browser {
     cursor: usize,
     window_start: usize,
-    current_dir: Vec<String>, // for display
+    current_dir: Vec<String>, // for display TODO: change to pathbuf
     past_dir: Vec<String>, // for popping back
     past_cursor: Vec<usize>,
     past_window_start: Vec<usize>,
