@@ -34,7 +34,8 @@ fn csi(s: &str) -> String{
     ret
 }
 
-fn check_if_wide(c: char) -> bool{
+// TODO: complete fullwidth character checking
+fn check_if_fullwidth(c: char) -> bool{
     if c as usize > 256 &&
        c != '�' &&
        c != 'ξ' {
@@ -192,7 +193,7 @@ impl Canvas {
                 if j >= self.width {
                     break;
                 }
-                if check_if_wide(self.pixels[i][j]) {
+                if check_if_fullwidth(self.pixels[i][j]) {
                     font_len += 2;
                 } else {
                     font_len += 1;
