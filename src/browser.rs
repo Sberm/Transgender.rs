@@ -62,7 +62,6 @@ impl Browser {
         let mut dir_under_cursor = String::from(self.current_path.clone() + &self.current_dir[self.cursor].clone());
         dir_under_cursor += "/";
 
-        /* if it's a file */
         if Path::new(dir_under_cursor.as_str()).is_dir() == false {
             return ret
         }
@@ -307,7 +306,6 @@ impl Browser {
         print!("\x1b[?1049l");
 
         print_file_name(&self.current_path);
-        // eprintln!("{}", self.current_path);
 
         exit(0);
     }
@@ -324,10 +322,8 @@ impl Browser {
         let dir = format!("{}{}", &self.current_path, &self.current_dir[self.cursor]);
 
         if Path::new(dir.as_str()).is_dir() == false {
-            // eprintln!("{}", self.current_path);
             print_file_name(&self.current_path);
         } else {
-            // eprintln!("{}", dir);
             print_file_name(&dir);
         }
 
@@ -343,7 +339,6 @@ impl Browser {
         /* switch back to normal screen buffer */
         print!("\x1b[?1049l");
 
-        // eprintln!("{}", self.original_path);
         print_file_name(&self.original_path);
 
         exit(0);
