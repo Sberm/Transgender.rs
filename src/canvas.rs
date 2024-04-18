@@ -6,6 +6,7 @@ use std::path::Path;
 use std::time::Duration;
 use std::thread::sleep;
 use std::io::{self, Write};
+use crate::ops::Mode;
 
 #[allow(dead_code)]
 pub fn slp(i: u64) {
@@ -94,14 +95,14 @@ impl Canvas {
         } 
     }
 
-    pub fn draw(&mut self, cursor: usize, current_dir: &Vec<String>, preview_dir: &Vec<String>, window_start: usize, current_path: &String, mode: u8, search_txt: &Vec<char>) {
+    pub fn draw(&mut self, cursor: usize, current_dir: &Vec<String>, preview_dir: &Vec<String>, window_start: usize, current_path: &String, mode: Mode, search_txt: &Vec<char>) {
 
         (self.height, self.width) = term_size();
         self.pixels = vec![vec![' '; self.width]; self.height];
 
         let mut str_to_draw = String::from("");
 
-        if mode == 1 {
+        if matches!(mode, Mode::SEARCH) {
             // goto bottom line
             str_to_draw.push_str(&csi(&format!("{}H", self.height)));
             str_to_draw.push_str(&csi("0K"));
