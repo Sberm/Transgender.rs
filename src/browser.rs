@@ -5,6 +5,7 @@ use std::io::{stdin, Read};
 use std::fs::{read_dir,canonicalize};
 use std::path::{Path, PathBuf};
 use crate::ops::code;
+use crate::ops::Mode;
 use crate::canvas;
 use self::libc::{termios, STDIN_FILENO, ECHO, ICANON, ISIG, tcgetattr, tcsetattr, TCSAFLUSH};
 use std::mem;
@@ -14,12 +15,12 @@ struct Browser {
     cursor: usize,
     window_start: usize,
     current_dir: Vec<String>, // for display TODO: change to pathbuf
-    past_dir: Vec<String>, // for popping back
+    past_dir: Vec<String>,
     past_cursor: Vec<usize>,
     past_window_start: Vec<usize>,
     current_path: String,
     original_path: String,
-    mode: u8, // 0->normal, 1->search
+    mode: Mode, 
     search_txt: Vec<char>,
 }
 
@@ -153,7 +154,7 @@ impl Browser {
 
         /* esc */
         if rc as u8 == 27 {
-            self.mode = 0;
+            self.mode = Mode::NORMAL;
             return;
         }
 
@@ -170,7 +171,7 @@ impl Browser {
         if rc as u8 == 10 {
             /* search */
             self.next_match();
-            self.mode = 0;
+            self.mode = Mode::NORMAL;
             return
         }
 
@@ -430,7 +431,7 @@ fn start_loop(browser: &mut Browser, canvas: &mut canvas::Canvas) {
     loop {
         let preview_dir = browser.get_preview();
         canvas.draw(browser.cursor, &browser.current_dir, &preview_dir, browser.window_start, &browser.current_path, browser.mode, &browser.search_txt);
-        if browser.mode == 1 {
+        if matches!(browser.mode, Mode::SEARCH) {
             browser.search();
             continue;
         }
@@ -446,7 +447,7 @@ fn start_loop(browser: &mut Browser, canvas: &mut canvas::Canvas) {
             code::BOTTOM => {browser.bottom();}
             code::SEARCH => {
                 browser.search_txt = Vec::new();
-                browser.mode = 1;
+                browser.mode = Mode::SEARCH;
             }
             code::NEXT_MATCH => {browser.next_match();}
             _ => {browser.right();}
@@ -472,7 +473,7 @@ pub fn init() {
         past_window_start: Vec::new(),
         current_path: String::from(""),
         original_path: String::from(""),
-        mode: 0,
+        mode: Mode::NORMAL,
         search_txt: Vec::new(),
     };
 

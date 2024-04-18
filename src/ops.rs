@@ -12,3 +12,9 @@ pub mod code {
     pub const SEARCH:u8 = 10;
     pub const NEXT_MATCH:u8 = 11;
 }
+
+#[derive(Copy, Clone)]
+pub enum Mode{
+    NORMAL,
+    SEARCH,
+}
