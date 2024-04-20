@@ -190,7 +190,7 @@ impl Browser {
             self.current_dir.len() - h
         } else {
             0
-        }
+        };
     }
 
     fn up(&mut self) {
@@ -275,7 +275,7 @@ impl Browser {
             self.cursor - h / 2
         } else {
             0
-        }
+        };
     }
 
     fn read_to_current_dir(&mut self, path: &String) {
@@ -326,7 +326,7 @@ impl Browser {
             print_file_name(&self.current_path);
         } else {
             print_file_name(&dir);
-        }
+        };
 
         exit(0);
     }
