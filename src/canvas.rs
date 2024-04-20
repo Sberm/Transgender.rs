@@ -249,7 +249,6 @@ pub fn init() -> Canvas {
     let canvas = Canvas {
         height: h,
         width: w,
-        // pixels: vec![vec![' '; w]; h],
         pixels: vec![vec![]],
     };
 
