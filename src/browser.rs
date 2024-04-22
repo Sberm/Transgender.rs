@@ -4,12 +4,11 @@ use std::vec::Vec;
 use std::io::{stdin, Read};
 use std::fs::{read_dir,canonicalize};
 use std::path::{Path, PathBuf};
-use crate::ops::code;
-use crate::ops::Mode;
+use crate::ops::{code, Mode, Ops};
 use crate::canvas;
 use self::libc::{termios, STDIN_FILENO, ECHO, ICANON, ISIG, tcgetattr, tcsetattr, TCSAFLUSH};
 use std::mem;
-use std::process::exit;
+use std::process::{exit, Command};
 
 struct Browser {
     cursor: usize,
@@ -22,6 +21,7 @@ struct Browser {
     original_path: String,
     mode: Mode, 
     search_txt: Vec<char>,
+    ops: Ops,
 }
 
 impl Browser {
@@ -323,7 +323,13 @@ impl Browser {
         let dir = format!("{}{}", &self.current_path, &self.current_dir[self.cursor]);
 
         if Path::new(dir.as_str()).is_dir() == false {
-            print_file_name(&self.current_path);
+            // print_file_name(&self.current_path);
+            
+            let output = Command::new(&self.ops.editor)
+                .arg(&dir)
+                .spawn()
+                .expect(&format!("Failed to open {} with {}", dir, self.ops.editor));
+
         } else {
             print_file_name(&dir);
         };
@@ -475,6 +481,7 @@ pub fn init() {
         original_path: String::from(""),
         mode: Mode::NORMAL,
         search_txt: Vec::new(),
+        ops: Ops{editor: String::from("vi")},
     };
 
     browser.init();

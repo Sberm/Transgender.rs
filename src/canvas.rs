@@ -37,9 +37,7 @@ fn csi(s: &str) -> String{
 
 // TODO: complete fullwidth character checking
 fn check_if_fullwidth(c: char) -> bool{
-    if c as usize > 256 &&
-       c != '�' &&
-       c != 'ξ' {
+    if c as usize > 256 && c != '�' {
         return true;
     } else {
         return false;
