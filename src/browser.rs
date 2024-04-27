@@ -162,6 +162,7 @@ impl Browser {
             if self.search_txt.len() > 0 {
                 self.search_txt.pop().expect("search txt(pop) out of bound");
             }
+            //
             return;
         }
 
