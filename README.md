@@ -18,12 +18,24 @@ make
 make install
 ```
 
+put this line into your shell configuration file, depends on what shell you use (`~/.bashrc`, `~/.bash_profile`, `source ~/.zshrc`, `~/.config/fish/config.fish`)
+```
+alias ts='transgender 2>/tmp/trans && cd "`tail -n 1 /tmp/trans`"'
+```
+
 refresh your shell configuration, or open up a new terminal window
 ```bash
-# linux
+# bash
 source ~/.bashrc
-# mac 
+# or
 source ~/.bash_profile
+
+# zsh
+source ~/.zshrc
+
+# fish
+source ~/.config/fish/config.fish
+
 ```
 
 enjoy
