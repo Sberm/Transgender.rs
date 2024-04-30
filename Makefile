@@ -9,7 +9,7 @@ else
 endif
 
 # TODO: don't do /tmp/trans anymore
-TRANS_ALIAS ?= "alias ts=\"transgender 2>/tmp/trans && cd \\\"\\\`tail -n 1 /tmp/trans\\\`\\\"\""
+# TRANS_ALIAS ?= "alias ts=\"transgender 2>/tmp/trans && cd \\\"\\\`tail -n 1 /tmp/trans\\\`\\\"\""
 
 all: 
 	$(call msg,TRANS,START-BUILDING)
