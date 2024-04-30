@@ -43,12 +43,6 @@ enjoy
 ts
 ```
 
-### Features:
-
-* file exploring
-* cd to directories
-* search directories
-
 ### keys:
 
 | keys                             | function                                     |
@@ -65,6 +59,11 @@ if you want to uninstall Transgender
 make uninstall
 ```
 
+### Features:
+
+* file exploring
+* cd to directories
+* search directories
 
 ```
 WHY DO I MAKE TRANS?
