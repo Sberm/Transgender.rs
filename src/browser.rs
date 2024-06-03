@@ -168,7 +168,6 @@ impl Browser {
             if self.search_txt.len() > 0 {
                 self.search_txt.pop().expect("search txt(pop) out of bound");
             }
-            //
             return;
         }
 
@@ -323,31 +322,26 @@ impl Browser {
     }
 
     fn exit_under_cursor(&self) {
-        canonical_input();
-
-        /* show cursor */
-        print!("\x1b[?25h");
-        
-        /* switch back to normal screen buffer */
-        print!("\x1b[?1049l");
-
         let dir = format!("{}{}", &self.current_path, &self.current_dir[self.cursor]);
-        println!("dir is {}", dir);
 
         if Path::new(dir.as_str()).is_dir() == false {
             let _output = Command::new(&self.ops.editor)
                 .arg(&dir)
                 .status()
                 .expect(&format!("Failed to open {} with {}", dir, self.ops.editor));
-            // let _output = Command::new("sh")
-            //     .arg(format!("{} {}", &self.ops.editor, &dir))
-            //     .status()
-            //     .expect(&format!("Failed to open {} with {}", dir, self.ops.editor));
-        } else {
-            print_file_name(&dir);
-        };
 
-        exit(0);
+            /* hide cursor */
+            print!("\x1b[?25l");
+        } else {
+            canonical_input();
+            /* show cursor */
+            print!("\x1b[?25h");
+            /* switch back to normal screen buffer */
+            print!("\x1b[?1049l");
+
+            print_file_name(&dir);
+            exit(0);
+        };
     }
     
     fn quit(&self) {
@@ -476,7 +470,6 @@ fn start_loop(browser: &mut Browser, canvas: &mut canvas::Canvas) {
 }
 
 pub fn init() {
-
     /* use alternate screen buffer */
     print!("\x1b[?1049h");
 
@@ -495,7 +488,7 @@ pub fn init() {
         original_path: String::from(""),
         mode: Mode::NORMAL,
         search_txt: Vec::new(),
-        ops: Ops{editor: String::from("vi")},
+        ops: Ops{editor: String::from("/bin/vi")},
     };
 
     browser.init();
