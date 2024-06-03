@@ -48,7 +48,7 @@ ts
 | keys                             | function                                     |
 | :---:                            | :---:                                        |
 | hjkl(vim bindings) or arrow keys | scroll/enter/exit a directory                |
-| o or \<ENTER\>                   | go to directory under cursor                 |
+| o or \<ENTER\>                   | go to directory/open file under cursor       |
 | s                                | go to current directory(in left side window) |
 | q                                | quit                                         |
 | /                                | search                                       |
@@ -73,3 +73,8 @@ featurism, growing size made ranger less attractive.
 Also, ranger is not a good software, it is filled
 with bad designs that irritate its users.
 ```
+
+### Todo:
+[] Read utf-8 input
+[] Better full-width character handling
+[] Config file to change text editor(default to vi)
