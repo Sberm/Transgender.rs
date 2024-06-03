@@ -75,8 +75,8 @@ with bad designs that irritate its users.
 ```
 
 ### Todo:
-- [] Read utf-8 input
+- [ ] Read utf-8 input
 
-- [] Better full-width character handling
+- [ ] Better full-width character handling
 
-- [] Config file to change text editor(default to vi)
+- [ ] Config file to change text editor(default to vi)
