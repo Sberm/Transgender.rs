@@ -8,9 +8,6 @@ else
 	CFLAGS = -O2 -std=c11
 endif
 
-# TODO: don't do /tmp/trans anymore
-# TRANS_ALIAS ?= "alias ts=\"transgender 2>/tmp/trans && cd \\\"\\\`tail -n 1 /tmp/trans\\\`\\\"\""
-
 all: 
 	$(call msg,TRANS,START-BUILDING)
 	$(Q)cargo build --release
@@ -18,8 +15,6 @@ all:
 
 install:
 	$(call msg,INSTALL)
-	$(Q)echo $(TRANS_ALIAS) >> ~/.bashrc
-	$(Q)echo $(TRANS_ALIAS) >> ~/.bash_profile
 	$(Q)sudo cp ./target/release/transgender /usr/local/bin/transgender
 
 uninstall:
