@@ -29,7 +29,9 @@ impl Browser {
     fn init(&mut self) {
         self.read_to_current_dir(&String::from("."));
         let srcdir = PathBuf::from(".");
-        let absolute = canonicalize(&srcdir).unwrap().to_str().unwrap().to_string();
+        let absolute = canonicalize(&srcdir)
+                        .expect("Failed to canonicalize").to_str()
+                        .expect("Failed when converting to &str").to_string();
         let split = absolute.split("/");
         let mut temp = String::from("");
         for s in split {
@@ -39,10 +41,13 @@ impl Browser {
             self.past_window_start.push(0);
         }
         if self.past_dir.len() > 1 {
-            self.current_path = self.past_dir.pop().unwrap().clone();
+            self.current_path = self.past_dir.pop()
+                                .expect("Failed to pop from past_dir").clone();
             self.original_path = self.current_path.clone();
-            self.past_cursor.pop().unwrap();
-            self.past_window_start.pop().unwrap();
+            self.past_cursor.pop()
+                .expect("Failed to pop from past_cursor");
+            self.past_window_start.pop()
+                .expect("Failed to pop from past_window_start");
         }
         let (h, _) = canvas::term_size();
         self.cursor = (self.current_dir.len() - 1) / 2;
@@ -67,9 +72,9 @@ impl Browser {
             return ret
         }
 
-        if let Ok(entries) = read_dir(dir_under_cursor) {
+        if let Ok(entries) = read_dir(&dir_under_cursor) {
             for entry in entries {
-                let entry = entry.unwrap();
+                let entry = entry.expect(&format!("Failed to interate through {}", &dir_under_cursor));
                 let s = entry.file_name().into_string();
                 match s {
                     Ok(v) => {ret.push(v);}
@@ -149,7 +154,8 @@ impl Browser {
     fn search(&mut self) {
         let mut stdin_handle = stdin().lock();  
         let mut c = vec![0_u8];  
-        stdin_handle.read_exact(&mut c).unwrap();
+        stdin_handle.read_exact(&mut c)
+            .expect("Failed to read single byte");
         let rc = c[0] as char;
 
         /* esc */
@@ -221,17 +227,22 @@ impl Browser {
         if self.past_dir.is_empty() == true {// < might not be necessary 
             return
         }
-        let last_dir = self.past_dir.pop().unwrap();
+        let last_dir = self.past_dir.pop()
+            .expect("Failed to pop from past_dir");
         self.read_to_current_dir(&last_dir);
 
         let temp = self.current_path.clone();
-        let (mut splt, _) = temp.rsplit_once('/').unwrap();
-        (_, splt) = splt.rsplit_once('/').unwrap();
+        let (mut splt, _) = temp.rsplit_once('/')
+            .expect("Failed to rsplit from the last slash");
+        (_, splt) = splt.rsplit_once('/')
+            .expect("Failed to rsplit from the last slash");
 
         self.current_path = last_dir.clone();
 
-        self.cursor = self.past_cursor.pop().unwrap();
-        self.window_start = self.past_window_start.pop().unwrap();
+        self.cursor = self.past_cursor.pop()
+            .expect("Failed to pop from past_cursor");
+        self.window_start = self.past_window_start.pop()
+            .expect("Failed to pop from past_window_start");
 
         /* 0 could be good, but it could be because it was pushed in beginning */
         if self.cursor == 0 {
@@ -283,7 +294,8 @@ impl Browser {
 
         if let Ok(entries) = read_dir(path) {
             for entry in entries {
-                let entry = entry.unwrap();
+                let entry = entry
+                    .expect(&format!("Failed to interate through {}", path));
                 let s = entry.file_name().into_string();
                 match s {
                     Ok(v) => {self.current_dir.push(v);}
@@ -320,15 +332,17 @@ impl Browser {
         print!("\x1b[?1049l");
 
         let dir = format!("{}{}", &self.current_path, &self.current_dir[self.cursor]);
+        println!("dir is {}", dir);
 
         if Path::new(dir.as_str()).is_dir() == false {
-            // print_file_name(&self.current_path);
-            
-            let output = Command::new(&self.ops.editor)
+            let _output = Command::new(&self.ops.editor)
                 .arg(&dir)
-                .spawn()
+                .status()
                 .expect(&format!("Failed to open {} with {}", dir, self.ops.editor));
-
+            // let _output = Command::new("sh")
+            //     .arg(format!("{} {}", &self.ops.editor, &dir))
+            //     .status()
+            //     .expect(&format!("Failed to open {} with {}", dir, self.ops.editor));
         } else {
             print_file_name(&dir);
         };
@@ -358,7 +372,8 @@ fn print_file_name(str_: &String) {
 fn read_input() -> isize {
     let mut stdin_handle = stdin().lock();  
     let mut byte = [0_u8];  
-    stdin_handle.read_exact(&mut byte).unwrap();
+    stdin_handle.read_exact(&mut byte)
+        .expect("Failed to read single byte");
     byte[0] as isize
 }
 
