@@ -54,6 +54,9 @@ ts
 | /                                | search                                       |
 | n                                | jump to next search match                    |
 
+<br/>
+<br/>
+
 ### config file
 located at
 ```bash
