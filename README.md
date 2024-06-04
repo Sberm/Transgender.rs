@@ -43,7 +43,7 @@ enjoy
 ts
 ```
 
-### keys:
+### keys
 
 | keys                             | function                                     |
 | :---:                            | :---:                                        |
@@ -54,11 +54,13 @@ ts
 | /                                | search                                       |
 | n                                | jump to next search match                    |
 
-## config file
+### config file
 located at
 ```bash
 ~/.tsrc
 ```
+
+**if `~/.tsrc` doesn't exist, user has to create one**
 
 currently only supports changing editor
 
@@ -68,6 +70,8 @@ editor = vim
 ```
 
 that will be the editor that's opened after hitting `o` or `ENTER` when cursor is on a file
+
+### uninstall
 
 if you want to uninstall Transgender
 ```
