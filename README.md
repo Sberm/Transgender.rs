@@ -101,6 +101,8 @@ Also, ranger is not a good software, it is filled
 with bad designs that irritate its users.
 ```
 
+<br/>
+
 ### Todo:
 - [ ] Read utf-8 input
 
