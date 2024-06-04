@@ -45,7 +45,6 @@ fn check_if_fullwidth(c: char) -> bool{
 }
 
 impl Canvas {
-
     pub fn clear_whole(&self) {
         let mut str_to_draw = String::from("");
 
@@ -68,7 +67,6 @@ impl Canvas {
     }
 
     fn check_insert_highlight(&self, str_to_draw: &mut String, i: usize, j: usize, cursor: usize, r_w_l: usize, is_dir_bool: bool) {
-
         let highlight = csi("0;30m");
         let highlight_dir = csi("38;5;57m");
         let highlight_bg = csi("48;5;175m");
@@ -94,7 +92,6 @@ impl Canvas {
     }
 
     pub fn draw(&mut self, cursor: usize, current_dir: &Vec<String>, preview_dir: &Vec<String>, window_start: usize, current_path: &String, mode: Mode, search_txt: &Vec<char>) {
-
         (self.height, self.width) = term_size();
         self.pixels = vec![vec![' '; self.width]; self.height];
 
@@ -113,7 +110,6 @@ impl Canvas {
         }
 
         /* write pixel */
-
         let w_t: usize = self.height - 1;
         let w_b: usize = 0;
 
