@@ -54,6 +54,21 @@ ts
 | /                                | search                                       |
 | n                                | jump to next search match                    |
 
+## config file
+located at
+```bash
+~/.tsrc
+```
+
+currently only supports changing editor
+
+change what's after equal sign to your favorite editor
+```
+editor = vim
+```
+
+that will be the editor that's opened after hitting `o` or `ENTER` when cursor is on a file
+
 if you want to uninstall Transgender
 ```
 make uninstall
