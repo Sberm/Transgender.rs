@@ -9,6 +9,14 @@ use crate::canvas;
 use self::libc::{termios, STDIN_FILENO, ECHO, ICANON, ISIG, tcgetattr, tcsetattr, TCSAFLUSH};
 use std::mem;
 use std::process::{exit, Command};
+use std::env::var;
+use std::fs::File;
+use std::io::{self, BufRead, Write};
+
+static HOME_VAR: &str = "HOME";
+static DEFLT_EDITOR: &str = "/bin/vi";
+static CONFIG_FILE: &str = ".tsrc";
+static EDITOR_KEY: &str = "editor";
 
 struct Browser {
     cursor: usize,
@@ -222,7 +230,6 @@ impl Browser {
     }
 
     fn left(&mut self) {
-
         if self.past_dir.is_empty() == true {// < might not be necessary 
             return
         }
@@ -261,7 +268,6 @@ impl Browser {
     }
 
     fn right(&mut self) {
-
         if self.current_dir.len() <= 0 {
             return;
         }
@@ -288,7 +294,6 @@ impl Browser {
     }
 
     fn read_to_current_dir(&mut self, path: &String) {
-
         self.current_dir.clear();
 
         if let Ok(entries) = read_dir(path) {
@@ -324,24 +329,25 @@ impl Browser {
     fn exit_under_cursor(&self) {
         let dir = format!("{}{}", &self.current_path, &self.current_dir[self.cursor]);
 
+        canonical_input();
+        print!("\x1b[?25h"); // show cursor
+        print!("\x1b[?1049l"); // exit alternate buffer
+        let _ = io::stdout().flush();
+
         if Path::new(dir.as_str()).is_dir() == false {
             let _output = Command::new(&self.ops.editor)
                 .arg(&dir)
                 .status()
                 .expect(&format!("Failed to open {} with {}", dir, self.ops.editor));
-
-            /* hide cursor */
-            print!("\x1b[?25l");
         } else {
-            canonical_input();
-            /* show cursor */
-            print!("\x1b[?25h");
-            /* switch back to normal screen buffer */
-            print!("\x1b[?1049l");
-
             print_file_name(&dir);
             exit(0);
         };
+
+        raw_input();
+        print!("\x1b[?25l"); // hide cursor
+        print!("\x1b[?1049h"); // use alternate buffer
+        let _ = io::stdout().flush();
     }
     
     fn quit(&self) {
@@ -469,11 +475,36 @@ fn start_loop(browser: &mut Browser, canvas: &mut canvas::Canvas) {
     }
 }
 
-pub fn init() {
-    /* use alternate screen buffer */
-    print!("\x1b[?1049h");
+fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
+where P: AsRef<Path>, {
+    let file = File::open(filename)?;
+    Ok(io::BufReader::new(file).lines())
+}
 
+fn get_editor() -> String {
+    if let Ok(home_dir) = var(HOME_VAR) {
+        if let Ok(lines) = read_lines(&format!("{}/{}", home_dir, CONFIG_FILE)) {
+            for line in lines.flatten() {
+                let trimmed = line.replace(" ", "");
+
+                let kv = trimmed.split("=").collect::<Vec<&str>>();
+                if kv.len() != 2 {
+                    break;
+                }
+                if kv[0].eq(EDITOR_KEY) {
+                    println!("editor in config {}", kv[1]);
+                    return String::from(kv[1]);
+                }
+            }
+        }
+    }
+    return String::from(DEFLT_EDITOR)
+}
+
+pub fn init() {
+    print!("\x1b[?1049h"); // alternate screen buffer
     raw_input();
+    let _ = io::stdout().flush();
     
     let mut canvas = canvas::init();
 
@@ -488,7 +519,7 @@ pub fn init() {
         original_path: String::from(""),
         mode: Mode::NORMAL,
         search_txt: Vec::new(),
-        ops: Ops{editor: String::from("/bin/vi")},
+        ops: Ops{editor: get_editor()},
     };
 
     browser.init();
