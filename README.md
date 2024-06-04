@@ -43,6 +43,8 @@ enjoy
 ts
 ```
 
+<br/>
+
 ### keys
 
 | keys                             | function                                     |
@@ -54,7 +56,6 @@ ts
 | /                                | search                                       |
 | n                                | jump to next search match                    |
 
-<br/>
 <br/>
 
 ### config file
@@ -74,12 +75,16 @@ editor = vim
 
 that will be the editor that's opened after hitting `o` or `ENTER` when cursor is on a file
 
+<br/>
+
 ### uninstall
 
 if you want to uninstall Transgender
 ```
 make uninstall
 ```
+
+<br/>
 
 ### Features:
 
