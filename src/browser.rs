@@ -14,7 +14,7 @@ use std::fs::File;
 use std::io::{self, BufRead, Write};
 
 static HOME_VAR: &str = "HOME";
-static DEFLT_EDITOR: &str = "/bin/vi";
+static EDITOR: &str = "/bin/vi";
 static CONFIG_FILE: &str = ".tsrc";
 static EDITOR_KEY: &str = "editor";
 
@@ -335,10 +335,11 @@ impl Browser {
         let _ = io::stdout().flush();
 
         if Path::new(dir.as_str()).is_dir() == false {
-            let _output = Command::new(&self.ops.editor)
-                .arg(&dir)
-                .status()
-                .expect(&format!("Failed to open {} with {}", dir, self.ops.editor));
+            if let Ok(_) = Command::new(&self.ops.editor).arg(&dir).status() {
+            } else {
+                Command::new(EDITOR).arg(&dir).status()
+                    .expect(&format!("Failed to open {} with default editor {}", dir, EDITOR));
+            }
         } else {
             print_path(&dir);
             exit(0);
@@ -497,7 +498,7 @@ fn get_editor() -> String {
             }
         }
     }
-    return String::from(DEFLT_EDITOR)
+    return String::from(EDITOR)
 }
 
 pub fn init() {
