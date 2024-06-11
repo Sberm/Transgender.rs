@@ -75,6 +75,8 @@ editor = vim
 
 that will be the editor that's opened after hitting `o` or `ENTER` when cursor is on a file
 
+the default editor is `vi`
+
 <br/>
 
 ### uninstall
