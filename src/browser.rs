@@ -378,7 +378,6 @@ fn read_input() -> isize {
 }
 
 fn process_input() -> u8{
-
     let mut input = read_input();
 
     /* arrow keys */
