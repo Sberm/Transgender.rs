@@ -367,7 +367,7 @@ impl Browser {
 }
 
 fn print_path(str_: &String) {
-    eprintln!(r"{}", str_);
+    eprintln!("\n{}", str_);
 }
 
 fn read_input() -> isize {
