@@ -321,7 +321,7 @@ impl Browser {
         /* switch back to normal screen buffer */
         print!("\x1b[?1049l");
 
-        print_file_name(&self.current_path);
+        print_path(&self.current_path);
 
         exit(0);
     }
@@ -340,7 +340,7 @@ impl Browser {
                 .status()
                 .expect(&format!("Failed to open {} with {}", dir, self.ops.editor));
         } else {
-            print_file_name(&dir);
+            print_path(&dir);
             exit(0);
         };
 
@@ -359,13 +359,13 @@ impl Browser {
         /* switch back to normal screen buffer */
         print!("\x1b[?1049l");
 
-        print_file_name(&self.original_path);
+        print_path(&self.original_path);
 
         exit(0);
     }
 }
 
-fn print_file_name(str_: &String) {
+fn print_path(str_: &String) {
     eprintln!(r"{}", str_);
 }
 
