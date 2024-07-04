@@ -1,24 +1,13 @@
-extern crate libc;
-
 use std::vec::Vec;
-use std::io::{stdin, Read};
+use std::io::{stdin, Read, self, Write};
 use std::fs::{read_dir,canonicalize};
 use std::path::{Path, PathBuf};
-use crate::ops::{code, Mode, Ops};
+use crate::ops::{Mode, code, Ops, consts};
 use crate::canvas;
-use self::libc::{termios, STDIN_FILENO, ECHO, ICANON, ISIG, tcgetattr, tcsetattr, TCSAFLUSH};
-use std::mem;
+use crate::util;
 use std::process::{exit, Command};
-use std::env::var;
-use std::fs::File;
-use std::io::{self, BufRead, Write};
 
-static HOME_VAR: &str = "HOME";
-static EDITOR: &str = "/bin/vi";
-static CONFIG_FILE: &str = ".tsrc";
-static EDITOR_KEY: &str = "editor";
-
-struct Browser {
+pub struct Browser {
     cursor: usize,
     window_start: usize,
     current_dir: Vec<String>, // for display TODO: change to pathbuf
@@ -33,8 +22,7 @@ struct Browser {
 }
 
 impl Browser {
-
-    fn init(&mut self) {
+    pub fn init(&mut self) {
         self.read_to_current_dir(&String::from("."));
         let srcdir = PathBuf::from(".");
         let absolute = canonicalize(&srcdir)
@@ -65,6 +53,34 @@ impl Browser {
             0
         };
     } 
+
+    pub fn start_loop(&mut self, canvas: &mut canvas::Canvas) {
+        loop {
+            let preview_dir = self.get_preview();
+            canvas.draw(self.cursor, &self.current_dir, &preview_dir, self.window_start, &self.current_path, self.mode, &self.search_txt);
+            if matches!(self.mode, Mode::SEARCH) {
+                self.search();
+                continue;
+            }
+            match process_input() {
+                code::UP => {self.up();}
+                code::DOWN => {self.down();}
+                code::LEFT => {self.left();}
+                code::RIGHT => {self.right();}
+                code::EXIT_CURSOR => {self.exit_under_cursor();}
+                code::EXIT => {self.exit_cur_dir();}
+                code::QUIT => {self.quit();}
+                code::TOP => {self.top();}
+                code::BOTTOM => {self.bottom();}
+                code::SEARCH => {
+                    self.search_txt = Vec::new();
+                    self.mode = Mode::SEARCH;
+                }
+                code::NEXT_MATCH => {self.next_match();}
+                _ => {self.right();}
+            }
+        }
+    }
 
     fn get_preview(&self) -> Vec<String>{
         let mut ret: Vec<String> = Vec::new();
@@ -313,7 +329,7 @@ impl Browser {
     }
 
     fn exit_cur_dir(&self) {
-        canonical_input();
+        util::canonical_input();
 
         /* show cursor */
         print!("\x1b[?25h");
@@ -329,7 +345,7 @@ impl Browser {
     fn exit_under_cursor(&self) {
         let dir = format!("{}{}", &self.current_path, &self.current_dir[self.cursor]);
 
-        canonical_input();
+        util::canonical_input();
         print!("\x1b[?25h"); // show cursor
         print!("\x1b[?1049l"); // exit alternate buffer
         let _ = io::stdout().flush();
@@ -337,22 +353,22 @@ impl Browser {
         if Path::new(dir.as_str()).is_dir() == false {
             if let Ok(_) = Command::new(&self.ops.editor).arg(&dir).status() {
             } else {
-                Command::new(EDITOR).arg(&dir).status()
-                    .expect(&format!("Failed to open {} with default editor {}", dir, EDITOR));
+                Command::new(consts::EDITOR).arg(&dir).status()
+                    .expect(&format!("Failed to open {} with default editor {}", dir, consts::EDITOR));
             }
         } else {
             print_path(&dir);
             exit(0);
         };
 
-        raw_input();
+        util::raw_input();
         print!("\x1b[?25l"); // hide cursor
         print!("\x1b[?1049h"); // use alternate buffer
         let _ = io::stdout().flush();
     }
     
     fn quit(&self) {
-        canonical_input();
+        util::canonical_input();
 
         /* show cursor */
         print!("\x1b[?25h");
@@ -427,102 +443,4 @@ fn process_input() -> u8{
         110 => return code::NEXT_MATCH,
         _ => return code::NOOP,
     }
-}
-
-fn raw_input() {
-    unsafe {
-        let mut termios_:termios = mem::zeroed();
-        tcgetattr(STDIN_FILENO, &mut termios_);
-        termios_.c_lflag &= !(ECHO | ICANON | ISIG);
-        tcsetattr(STDIN_FILENO, TCSAFLUSH, &termios_);
-    }
-}
-
-fn canonical_input() {
-    unsafe {
-        let mut termios_:termios = mem::zeroed();
-        tcgetattr(STDIN_FILENO, &mut termios_);
-        termios_.c_lflag |= ECHO | ICANON | ISIG;
-        tcsetattr(STDIN_FILENO, TCSAFLUSH, &termios_);
-    }
-}
-
-fn start_loop(browser: &mut Browser, canvas: &mut canvas::Canvas) {
-    loop {
-        let preview_dir = browser.get_preview();
-        canvas.draw(browser.cursor, &browser.current_dir, &preview_dir, browser.window_start, &browser.current_path, browser.mode, &browser.search_txt);
-        if matches!(browser.mode, Mode::SEARCH) {
-            browser.search();
-            continue;
-        }
-        match process_input() {
-            code::UP => {browser.up();}
-            code::DOWN => {browser.down();}
-            code::LEFT => {browser.left();}
-            code::RIGHT => {browser.right();}
-            code::EXIT_CURSOR => {browser.exit_under_cursor();}
-            code::EXIT => {browser.exit_cur_dir();}
-            code::QUIT => {browser.quit();}
-            code::TOP => {browser.top();}
-            code::BOTTOM => {browser.bottom();}
-            code::SEARCH => {
-                browser.search_txt = Vec::new();
-                browser.mode = Mode::SEARCH;
-            }
-            code::NEXT_MATCH => {browser.next_match();}
-            _ => {browser.right();}
-        }
-    }
-}
-
-fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
-where P: AsRef<Path>, {
-    let file = File::open(filename)?;
-    Ok(io::BufReader::new(file).lines())
-}
-
-fn get_editor() -> String {
-    if let Ok(home_dir) = var(HOME_VAR) {
-        if let Ok(lines) = read_lines(&format!("{}/{}", home_dir, CONFIG_FILE)) {
-            for line in lines.flatten() {
-                let trimmed = line.replace(" ", "");
-
-                let kv = trimmed.split("=").collect::<Vec<&str>>();
-                if kv.len() != 2 {
-                    break;
-                }
-                if kv[0].eq(EDITOR_KEY) {
-                    println!("editor in config {}", kv[1]);
-                    return String::from(kv[1]);
-                }
-            }
-        }
-    }
-    return String::from(EDITOR)
-}
-
-pub fn init() {
-    print!("\x1b[?1049h"); // alternate screen buffer
-    raw_input();
-    let _ = io::stdout().flush();
-    
-    let mut canvas = canvas::init();
-
-    let mut browser = Browser {
-        cursor: 0,
-        window_start: 0,
-        current_dir: Vec::new(),
-        past_dir: Vec::new(),
-        past_cursor: Vec::new(),
-        past_window_start: Vec::new(),
-        current_path: String::from(""),
-        original_path: String::from(""),
-        mode: Mode::NORMAL,
-        search_txt: Vec::new(),
-        ops: Ops{editor: get_editor()},
-    };
-
-    browser.init();
-
-    start_loop(&mut browser, &mut canvas);
 }
