@@ -1,4 +1,4 @@
-pub mod static {
+pub mod consts {
     pub static HOME_VAR: &str = "HOME";
     pub static EDITOR: &str = "/bin/vi";
     pub static CONFIG_FILE: &str = ".tsrc";

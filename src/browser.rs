@@ -1,11 +1,13 @@
 use std::vec::Vec;
-use std::io::{stdin, Read, self, Write};
+use std::io::{stdin, Read, self, Write, BufRead};
 use std::fs::{read_dir,canonicalize};
 use std::path::{Path, PathBuf};
 use crate::ops::{Mode, code, Ops, consts};
 use crate::canvas;
 use crate::util;
 use std::process::{exit, Command};
+use std::fs::File;
+use std::env::var;
 
 pub struct Browser {
     cursor: usize,
@@ -443,4 +445,51 @@ fn process_input() -> u8{
         110 => return code::NEXT_MATCH,
         _ => return code::NOOP,
     }
+}
+
+fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
+where P: AsRef<Path>, {
+    let file = File::open(filename)?;
+    Ok(io::BufReader::new(file).lines())
+}
+
+fn get_editor() -> String {
+    if let Ok(home_dir) = var(consts::HOME_VAR) {
+        if let Ok(lines) = read_lines(&format!("{}/{}", home_dir, consts::CONFIG_FILE)) {
+            for line in lines.flatten() {
+                let trimmed = line.replace(" ", "");
+
+                let kv = trimmed.split("=").collect::<Vec<&str>>();
+                if kv.len() != 2 {
+                    break;
+                }
+                if kv[0].eq(consts::EDITOR_KEY) {
+                    println!("editor in config {}", kv[1]);
+                    return String::from(kv[1]);
+                }
+            }
+        }
+    }
+    return String::from(consts::EDITOR)
+}
+
+
+
+pub fn new() -> Browser {
+    let mut browser = Browser {
+        cursor: 0,
+        window_start: 0,
+        current_dir: Vec::new(),
+        past_dir: Vec::new(),
+        past_cursor: Vec::new(),
+        past_window_start: Vec::new(),
+        current_path: String::from(""),
+        original_path: String::from(""),
+        mode: Mode::NORMAL,
+        search_txt: Vec::new(),
+        ops: Ops{editor: get_editor()},
+    };
+
+    browser.init();
+    browser
 }
