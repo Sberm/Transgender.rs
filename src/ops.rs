@@ -1,3 +1,10 @@
+pub mod static {
+    pub static HOME_VAR: &str = "HOME";
+    pub static EDITOR: &str = "/bin/vi";
+    pub static CONFIG_FILE: &str = ".tsrc";
+    pub static EDITOR_KEY: &str = "editor";
+}
+
 pub mod code {
     pub const NOOP:u8 = 0;
     pub const UP:u8 = 1;
