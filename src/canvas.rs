@@ -238,7 +238,7 @@ impl Canvas {
 
 }
 
-pub fn init() -> Canvas {
+pub fn new() -> Canvas {
     let (h, w) = term_size();
     let canvas = Canvas {
         height: h,
