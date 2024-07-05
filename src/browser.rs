@@ -418,7 +418,7 @@ fn process_input() -> u8{
         108 => return code::RIGHT,
         111 => return code::EXIT_CURSOR,
         10 => return code::EXIT_CURSOR,
-        115 => return code::EXIT,
+        105 => return code::EXIT,
         113 => return code::QUIT,
         47 => return code::SEARCH, // /
         71 => return code::BOTTOM, // G
