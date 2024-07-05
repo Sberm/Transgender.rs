@@ -53,7 +53,7 @@ ts
 | :---:                            | :---:                                        |
 | hjkl(vim bindings) or arrow keys | scroll/enter/exit a directory                |
 | o or \<ENTER\>                   | go to directory/open file under cursor       |
-| s                                | go to current directory(in left side window) |
+| i                                | go to current directory(in left side window) |
 | q                                | quit                                         |
 | /                                | search                                       |
 | n                                | jump to next search match                    |
@@ -112,4 +112,4 @@ with bad designs that irritate its users.
 
 - [ ] Better full-width character handling
 
-- [ ] Config file to change text editor(default to vi)
+- [x] Config file to change text editor(default to vi)
