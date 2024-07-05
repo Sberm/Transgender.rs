@@ -3,16 +3,10 @@ extern crate libc;
 use std::mem;
 use self::libc::{c_ushort, ioctl, STDOUT_FILENO, TIOCGWINSZ};
 use std::path::Path;
-use std::time::Duration;
-use std::thread::sleep;
 use std::io::{self, Write};
-use crate::ops::Mode;
+use crate::ops::{Mode, consts};
 
-#[allow(dead_code)]
-pub fn slp(i: u64) {
-    sleep(Duration::from_secs(i));
-}
-
+#[derive(Default)]
 pub struct Canvas {
     pub height: usize,
     pub width: usize,
@@ -45,18 +39,6 @@ fn check_if_fullwidth(c: char) -> bool{
 }
 
 impl Canvas {
-    pub fn clear_whole(&self) {
-        let mut str_to_draw = String::from("");
-
-        str_to_draw.push_str(&(0..(self.width * self.height) as isize).map(|_| " ").collect::<String>());
-
-        str_to_draw.push_str(&csi("1H"));
-
-        print!("{}", str_to_draw);
-
-        let _ = io::stdout().flush();
-    }
-
     fn clear_pixels(&mut self) {
         let c: char = ' ';
         for i in 0..self.height {
@@ -66,34 +48,32 @@ impl Canvas {
         }
     }
 
-    fn check_insert_highlight(&self, str_to_draw: &mut String, i: usize, j: usize, cursor: usize, r_w_l: usize, is_dir_bool: bool) {
-        let highlight = csi("0;30m");
-        let highlight_dir = csi("38;5;57m");
-        let highlight_bg = csi("48;5;175m");
-        let normal = csi("0;37m");
-        let normal_bg = csi("48;5;31m");
-
+    fn check_insert_highlight(&self, str_to_draw: &mut String, i: usize, j: usize, cursor: usize, r_w_l: usize, is_dir: bool) {
         if i == 0 && j == 0 {
-            str_to_draw.push_str(&normal);
-            str_to_draw.push_str(&normal_bg);
+            str_to_draw.push_str(&consts::NORMAL);
+            str_to_draw.push_str(&consts::NORMAL_BG);
         }
 
         if i == cursor && j == 0{
-            if is_dir_bool {
-                str_to_draw.push_str(&highlight_dir);
+            if is_dir {
+                str_to_draw.push_str(&consts::HIGHLIGHT_DIR);
             } else {
-                str_to_draw.push_str(&highlight);
+                str_to_draw.push_str(&consts::HIGHLIGHT);
             }
-            str_to_draw.push_str(&highlight_bg);
+            str_to_draw.push_str(&consts::HIGHLIGHT_BG);
         } else if i == cursor && j == r_w_l {
-            str_to_draw.push_str(&normal);
-            str_to_draw.push_str(&normal_bg);
+            str_to_draw.push_str(&consts::NORMAL);
+            str_to_draw.push_str(&consts::NORMAL_BG);
         } 
     }
 
     pub fn draw(&mut self, cursor: usize, current_dir: &Vec<String>, preview_dir: &Vec<String>, window_start: usize, current_path: &String, mode: Mode, search_txt: &Vec<char>) {
-        (self.height, self.width) = term_size();
-        self.pixels = vec![vec![' '; self.width]; self.height];
+        let (h, w) = term_size();
+        if self.height != h || self.width != w {
+            self.height = h;
+            self.width = w;
+            self.pixels = vec![vec![' '; self.width]; self.height];
+        }
 
         let mut str_to_draw = String::from("");
 
@@ -127,13 +107,18 @@ impl Canvas {
 
         /* no content */
         if current_dir.len() == 0 {
+            str_to_draw.push_str(&consts::NORMAL);
+            str_to_draw.push_str(&consts::NORMAL_BG);
+
             for line in &self.pixels {
                 let tmp_s = line.iter().collect::<String>(); // Vec<char> -> String
                 str_to_draw.push_str(&tmp_s); // concat
             }
+
             str_to_draw.push_str(&csi("1H"));
             print!("{}", str_to_draw);
             let _ = io::stdout().flush();
+            // util::slp(3);
             return
         }
 
@@ -177,7 +162,7 @@ impl Canvas {
         let mut j:usize;
         let mut font_len:usize = 0;
         let mut do_preview: bool = false;
-        let mut is_dir_bool:bool = false;
+        let mut is_dir:bool = false;
 
         loop {
             if i >= self.height {
@@ -207,11 +192,11 @@ impl Canvas {
 
                 let tmp_str = format!("{}{}{}", current_path.to_owned(), current_dir[cursor].as_str(), "/");
                 if i + window_start == cursor && j == 0 && Path::new(&tmp_str).is_dir() == true {
-                    is_dir_bool = true;
+                    is_dir = true;
                 }
-                self.check_insert_highlight(&mut str_to_draw, i, j, cursor - window_start, r_w_l, is_dir_bool);
+                self.check_insert_highlight(&mut str_to_draw, i, j, cursor - window_start, r_w_l, is_dir);
                 str_to_draw.push(self.pixels[i][j]);
-                is_dir_bool = false;
+                is_dir = false;
 
                 j += 1;
             }
@@ -220,11 +205,9 @@ impl Canvas {
             do_preview = false;
         }
 
-
         str_to_draw.push_str(&csi("1H"));
 
         print!("{}", str_to_draw);
-
         let _ = io::stdout().flush();
     }
 
@@ -239,19 +222,7 @@ impl Canvas {
 }
 
 pub fn new() -> Canvas {
-    let (h, w) = term_size();
-    let canvas = Canvas {
-        height: h,
-        width: w,
-        pixels: vec![vec![]],
-    };
-
-    /* clear space for printing */
-    canvas.clear_whole();
-
-    /* hide cursor */
-    print!("\x1b[?25l");
-
+    let canvas = Canvas::default();
     canvas
 }
 
