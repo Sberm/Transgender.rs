@@ -18,9 +18,11 @@ make
 make install
 ```
 
-put this line into your shell configuration file, depends on what shell you use (`~/.bashrc`, `~/.bash_profile`, `source ~/.zshrc`, `~/.config/fish/config.fish`)
+paste this function to your shell configuration file, depends on what shell you use (`~/.bashrc`, `~/.bash_profile`, `source ~/.zshrc`, `~/.config/fish/config.fish`)
 ```
-alias ts='transgender 2>/tmp/trans && cd "`tail -n 1 /tmp/trans`"'
+function ts() {
+  cd $(transgender 3>&1 1>&2 2>&3 3>&- | tail -n 1)
+}
 ```
 
 refresh your shell configuration, or open up a new terminal window
