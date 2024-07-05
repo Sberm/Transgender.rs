@@ -1,8 +1,14 @@
 pub mod consts {
-    pub static HOME_VAR: &str = "HOME";
-    pub static EDITOR: &str = "/bin/vi";
-    pub static CONFIG_FILE: &str = ".tsrc";
-    pub static EDITOR_KEY: &str = "editor";
+    pub static HOME_VAR: &str      = "HOME";
+    pub static EDITOR: &str        = "/bin/vi";
+    pub static CONFIG_FILE: &str   = ".tsrc";
+    pub static EDITOR_KEY: &str    = "editor";
+
+    pub static HIGHLIGHT: &str     = "\x1b[0;30m";
+    pub static HIGHLIGHT_DIR: &str = "\x1b[38;5;57m";
+    pub static HIGHLIGHT_BG: &str  = "\x1b[48;5;175m";
+    pub static NORMAL: &str        = "\x1b[0;37m";
+    pub static NORMAL_BG: &str     = "\x1b[48;5;31m";
 }
 
 pub mod code {

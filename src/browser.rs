@@ -1,5 +1,5 @@
 use std::vec::Vec;
-use std::io::{stdin, Read, self, Write, BufRead};
+use std::io::{stdin, Read, self, BufRead};
 use std::fs::{read_dir,canonicalize};
 use std::path::{Path, PathBuf};
 use crate::ops::{Mode, code, Ops, consts};
@@ -331,26 +331,15 @@ impl Browser {
     }
 
     fn exit_cur_dir(&self) {
-        util::canonical_input();
-
-        /* show cursor */
-        print!("\x1b[?25h");
-        
-        /* switch back to normal screen buffer */
-        print!("\x1b[?1049l");
-
+        util::exit_albuf();
         print_path(&self.current_path);
-
         exit(0);
     }
 
     fn exit_under_cursor(&self) {
         let dir = format!("{}{}", &self.current_path, &self.current_dir[self.cursor]);
 
-        util::canonical_input();
-        print!("\x1b[?25h"); // show cursor
-        print!("\x1b[?1049l"); // exit alternate buffer
-        let _ = io::stdout().flush();
+        util::exit_albuf();
 
         if Path::new(dir.as_str()).is_dir() == false {
             if let Ok(_) = Command::new(&self.ops.editor).arg(&dir).status() {
@@ -363,20 +352,11 @@ impl Browser {
             exit(0);
         };
 
-        util::raw_input();
-        print!("\x1b[?25l"); // hide cursor
-        print!("\x1b[?1049h"); // use alternate buffer
-        let _ = io::stdout().flush();
+        util::enter_albuf();
     }
     
     fn quit(&self) {
-        util::canonical_input();
-
-        /* show cursor */
-        print!("\x1b[?25h");
-        
-        /* switch back to normal screen buffer */
-        print!("\x1b[?1049l");
+        util::exit_albuf();
 
         print_path(&self.original_path);
 
@@ -464,7 +444,6 @@ fn get_editor() -> String {
                     break;
                 }
                 if kv[0].eq(consts::EDITOR_KEY) {
-                    println!("editor in config {}", kv[1]);
                     return String::from(kv[1]);
                 }
             }
