@@ -12,7 +12,7 @@ Works on Linux & MacOS
 
 before compilation, make sure you have rust's environment installed, if not, goto [HERE](https://www.rust-lang.org/tools/install)
 
-compile
+compile & install
 ```
 make
 make install
@@ -75,7 +75,7 @@ change what's after equal sign to your favorite editor
 editor = vim
 ```
 
-that will be the editor that's opened after hitting `o` or `ENTER` when cursor is on a file
+that will be the editor opened after hitting `o` or `ENTER` when cursor is on a file
 
 the default editor is `vi`
 
