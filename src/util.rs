@@ -31,14 +31,14 @@ pub fn canonical_input() {
 
 pub fn enter_albuf() {
     raw_input();
-    print!("\x1b[?25l"); // hide cursor
-    print!("\x1b[?1049h"); // use alternate buffer
+    print!("\x1b[?25l"); /* hide cursor */
+    print!("\x1b[?1049h"); /* use alternate buffer */
     let _ = io::stdout().flush();
 }
 
 pub fn exit_albuf() {
     canonical_input();
-    print!("\x1b[?25h"); // show cursor
-    print!("\x1b[?1049l"); // switch back to normal screen buffer
+    print!("\x1b[?25h"); /* show cursor */
+    print!("\x1b[?1049l"); /* switch back to normal screen buffer */
     let _ = io::stdout().flush();
 }
