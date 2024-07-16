@@ -29,7 +29,7 @@ fn csi(s: &str) -> String{
     ret
 }
 
-// TODO: complete fullwidth character checking
+/* TODO: complete fullwidth character checking */
 fn check_if_fullwidth(c: char) -> bool{
     if c as usize > 256 && c != '�' {
         return true;
@@ -118,7 +118,6 @@ impl Canvas {
             str_to_draw.push_str(&csi("1H"));
             print!("{}", str_to_draw);
             let _ = io::stdout().flush();
-            // util::slp(3);
             return
         }
 

@@ -12,7 +12,7 @@ use std::env::var;
 pub struct Browser {
     cursor: usize,
     window_start: usize,
-    current_dir: Vec<String>, // for display TODO: change to pathbuf
+    current_dir: Vec<String>, /* TODO: change to pathbuf */
     past_dir: Vec<String>,
     past_cursor: Vec<usize>,
     past_window_start: Vec<usize>,
@@ -248,7 +248,7 @@ impl Browser {
     }
 
     fn left(&mut self) {
-        if self.past_dir.is_empty() == true {// < might not be necessary 
+        if self.past_dir.is_empty() == true { // < might not be necessary 
             return
         }
         let last_dir = self.past_dir.pop()
@@ -403,7 +403,7 @@ fn process_input() -> u8{
         }
     }
 
-    // gg
+    /* gg */
     if input == 103 {
         input = read_input();
         if input == 103 {
@@ -420,8 +420,8 @@ fn process_input() -> u8{
         10 => return code::EXIT_CURSOR,
         105 => return code::EXIT,
         113 => return code::QUIT,
-        47 => return code::SEARCH, // /
-        71 => return code::BOTTOM, // G
+        47 => return code::SEARCH, /* / */
+        71 => return code::BOTTOM, /* G */
         110 => return code::NEXT_MATCH,
         _ => return code::NOOP,
     }
@@ -451,8 +451,6 @@ fn get_editor() -> String {
     }
     return String::from(consts::EDITOR)
 }
-
-
 
 pub fn new() -> Browser {
     let mut browser = Browser {
