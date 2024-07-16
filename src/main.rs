@@ -9,6 +9,5 @@ fn main() {
     let mut browser = browser::new();
 
     util::enter_albuf();
-
     browser.start_loop(&mut canvas);
 }
