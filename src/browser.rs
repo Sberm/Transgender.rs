@@ -1,6 +1,6 @@
 use std::vec::Vec;
 use std::io::{stdin, Read, self, BufRead};
-use std::fs::{read_dir,canonicalize};
+use std::fs::read_dir;
 use std::path::{Path, PathBuf};
 use crate::ops::{Mode, code, Ops, consts};
 use crate::canvas;
@@ -12,12 +12,12 @@ use std::env::var;
 pub struct Browser {
     cursor: usize,
     window_start: usize,
-    current_dir: Vec<String>, /* TODO: change to pathbuf */
-    past_dir: Vec<String>,
+    current_dir: Vec<String>, /* String instead of PathBuf for display purposes */
+    past_dir: Vec<PathBuf>,
     past_cursor: Vec<usize>,
     past_window_start: Vec<usize>,
-    current_path: String,
-    original_path: String,
+    current_path: PathBuf,
+    original_path: PathBuf,
     mode: Mode, 
     search_txt: Vec<char>,
     ops: Ops,
@@ -26,21 +26,22 @@ pub struct Browser {
 impl Browser {
     pub fn init(&mut self) {
         self.read_to_current_dir(&String::from("."));
-        let srcdir = PathBuf::from(".");
-        let absolute = canonicalize(&srcdir)
-                        .expect("Failed to canonicalize").to_str()
-                        .expect("Failed when converting to &str").to_string();
-        let split = absolute.split("/");
-        let mut temp = String::from("");
-        for s in split {
-            temp += s; temp += "/";
-            self.past_dir.push(String::from(temp.clone()));
+        let mut srcdir = PathBuf::from(".").canonicalize().expect("Failed to canonicalize current directory");
+        println!("srcdir {}", srcdir.to_str().unwrap());
+
+        loop {
+            self.past_dir.push(srcdir.clone());
             self.past_cursor.push(0);
             self.past_window_start.push(0);
+            if !srcdir.pop() {
+                break;
+            }
         }
+        self.past_dir = self.past_dir.clone().into_iter().rev().collect::<Vec<PathBuf>>();
+
         if self.past_dir.len() > 1 {
             self.current_path = self.past_dir.pop()
-                                .expect("Failed to pop from past_dir").clone();
+                                .expect("Failed to pop the last element from past_dir").clone();
             self.original_path = self.current_path.clone();
             self.past_cursor.pop()
                 .expect("Failed to pop from past_cursor");
@@ -91,16 +92,15 @@ impl Browser {
             return ret
         }
 
-        let mut dir_under_cursor = String::from(self.current_path.clone() + &self.current_dir[self.cursor].clone());
-        dir_under_cursor += "/";
-
-        if Path::new(dir_under_cursor.as_str()).is_dir() == false {
+        let mut dir_under_cursor = self.current_path.clone();
+        dir_under_cursor.push(&self.current_dir[self.cursor]);
+        if dir_under_cursor.is_dir() == false {
             return ret
         }
 
         if let Ok(entries) = read_dir(&dir_under_cursor) {
             for entry in entries {
-                let entry = entry.expect(&format!("Failed to interate through {}", &dir_under_cursor));
+                let entry = entry.expect(&format!("Failed to interate through {}", dir_under_cursor.to_str().unwrap()));
                 let s = entry.file_name().into_string();
                 match s {
                     Ok(v) => {ret.push(v);}
@@ -248,19 +248,13 @@ impl Browser {
     }
 
     fn left(&mut self) {
-        if self.past_dir.is_empty() == true { // < might not be necessary 
+        if self.past_dir.is_empty() { // < might not be necessary 
             return
         }
         let last_dir = self.past_dir.pop()
-            .expect("Failed to pop from past_dir");
-        self.read_to_current_dir(&last_dir);
+            .expect("Failed to pop from past_dir in when exiting a directory");
 
-        let temp = self.current_path.clone();
-        let (mut splt, _) = temp.rsplit_once('/')
-            .expect("Failed to rsplit from the last slash");
-        (_, splt) = splt.rsplit_once('/')
-            .expect("Failed to rsplit from the last slash");
-
+        self.read_to_current_dir(&last_dir.to_str().unwrap().to_string());
         self.current_path = last_dir.clone();
 
         self.cursor = self.past_cursor.pop()
@@ -268,11 +262,16 @@ impl Browser {
         self.window_start = self.past_window_start.pop()
             .expect("Failed to pop from past_window_start");
 
+        let dir_to_restore = self.current_path.file_name()
+                                              .expect("Failed to get file name of current path, to restore the directory")
+                                              .to_str()
+                                              .expect("Failed to do to_str()");
+
         /* 0 could be good, but it could be because it was pushed in beginning */
         if self.cursor == 0 {
             let mut i = 0;
             for dir in &self.current_dir {
-                if dir.as_str() == splt {
+                if dir.as_str() == dir_to_restore {
                     self.cursor = i;
                     let (h, _) = canvas::term_size();
                     if self.cursor > self.window_start + h - 1 {
@@ -290,10 +289,9 @@ impl Browser {
             return;
         }
 
-        let mut dir_under_cursor = String::from(self.current_path.clone() + &self.current_dir[self.cursor].clone());
-        dir_under_cursor += "/";
-
-        if Path::new(dir_under_cursor.as_str()).is_dir() == false {
+        let mut dir_under_cursor = self.current_path.clone();
+        dir_under_cursor.push(&self.current_dir[self.cursor]);
+        if dir_under_cursor.is_dir() == false {
             return
         }
 
@@ -301,7 +299,7 @@ impl Browser {
         self.past_cursor.push(self.cursor);
         self.past_window_start.push(self.window_start);
         self.current_path = dir_under_cursor.clone();
-        self.read_to_current_dir(&dir_under_cursor);
+        self.read_to_current_dir(&dir_under_cursor.to_str().unwrap().to_string());
         let (h, _) = canvas::term_size();
         self.cursor = (self.current_dir.len() - 1) / 2;
         self.window_start = if self.cursor as isize - h as isize / 2 > 0 {
@@ -332,23 +330,24 @@ impl Browser {
 
     fn exit_cur_dir(&self) {
         util::exit_albuf();
-        print_path(&self.current_path);
+        print_path(&self.current_path.to_str().unwrap());
         exit(0);
     }
 
     fn exit_under_cursor(&self) {
-        let dir = format!("{}{}", &self.current_path, &self.current_dir[self.cursor]);
+        let mut dir = self.current_path.clone();
+        dir.push(&self.current_dir[self.cursor]);
 
         util::exit_albuf();
 
-        if Path::new(dir.as_str()).is_dir() == false {
-            if let Ok(_) = Command::new(&self.ops.editor).arg(&dir).status() {
+        if dir.is_dir() == false {
+            if let Ok(_) = Command::new(&self.ops.editor).arg(dir.to_str().unwrap()).status() {
             } else {
-                Command::new(consts::EDITOR).arg(&dir).status()
-                    .expect(&format!("Failed to open {} with default editor {}", dir, consts::EDITOR));
+                Command::new(consts::EDITOR).arg(dir.to_str().unwrap()).status()
+                    .expect(&format!("Failed to open {} with default editor {}", dir.to_str().unwrap(), consts::EDITOR));
             }
         } else {
-            print_path(&dir);
+            print_path(dir.to_str().unwrap()); // you need to change this
             exit(0);
         };
 
@@ -358,13 +357,13 @@ impl Browser {
     fn quit(&self) {
         util::exit_albuf();
 
-        print_path(&self.original_path);
+        print_path(&self.original_path.to_str().unwrap());
 
         exit(0);
     }
 }
 
-fn print_path(str_: &String) {
+fn print_path(str_: &str) {
     eprintln!("\n{}", str_);
 }
 
@@ -460,8 +459,8 @@ pub fn new() -> Browser {
         past_dir: Vec::new(),
         past_cursor: Vec::new(),
         past_window_start: Vec::new(),
-        current_path: String::from(""),
-        original_path: String::from(""),
+        current_path: PathBuf::from(""),
+        original_path: PathBuf::from(""),
         mode: Mode::NORMAL,
         search_txt: Vec::new(),
         ops: Ops{editor: get_editor()},
