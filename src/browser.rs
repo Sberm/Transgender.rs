@@ -27,7 +27,6 @@ impl Browser {
     pub fn init(&mut self) {
         self.read_to_current_dir(&String::from("."));
         let mut srcdir = PathBuf::from(".").canonicalize().expect("Failed to canonicalize current directory");
-        println!("srcdir {}", srcdir.to_str().unwrap());
 
         loop {
             self.past_dir.push(srcdir.clone());
