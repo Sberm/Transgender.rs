@@ -299,13 +299,8 @@ impl Browser {
         self.past_window_start.push(self.window_start);
         self.current_path = dir_under_cursor.clone();
         self.read_to_current_dir(&dir_under_cursor.to_str().unwrap().to_string());
-        let (h, _) = canvas::term_size();
-        self.cursor = (self.current_dir.len() - 1) / 2;
-        self.window_start = if self.cursor as isize - h as isize / 2 > 0 {
-            self.cursor - h / 2
-        } else {
-            0
-        };
+        self.cursor = 0;
+        self.window_start = 0;
     }
 
     fn read_to_current_dir(&mut self, path: &String) {
