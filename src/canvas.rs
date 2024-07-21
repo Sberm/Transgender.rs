@@ -2,7 +2,7 @@ extern crate libc;
 
 use std::mem;
 use self::libc::{c_ushort, ioctl, STDOUT_FILENO, TIOCGWINSZ};
-use std::path::Path;
+use std::path::PathBuf;
 use std::io::{self, Write};
 use crate::ops::{Mode, consts};
 
@@ -67,7 +67,7 @@ impl Canvas {
         } 
     }
 
-    pub fn draw(&mut self, cursor: usize, current_dir: &Vec<String>, preview_dir: &Vec<String>, window_start: usize, current_path: &String, mode: Mode, search_txt: &Vec<char>) {
+    pub fn draw(&mut self, cursor: usize, current_dir: &Vec<String>, preview_dir: &Vec<String>, window_start: usize, current_path: &PathBuf, mode: Mode, search_txt: &Vec<char>) {
         let (h, w) = term_size();
         if self.height != h || self.width != w {
             self.height = h;
@@ -189,10 +189,12 @@ impl Canvas {
                     break;
                 }
 
-                let tmp_str = format!("{}{}{}", current_path.to_owned(), current_dir[cursor].as_str(), "/");
-                if i + window_start == cursor && j == 0 && Path::new(&tmp_str).is_dir() == true {
+                let mut tmp_path = current_path.clone();
+                tmp_path.push(&current_dir[cursor]);
+                if i + window_start == cursor && j == 0 && tmp_path.is_dir() == true {
                     is_dir = true;
                 }
+
                 self.check_insert_highlight(&mut str_to_draw, i, j, cursor - window_start, r_w_l, is_dir);
                 str_to_draw.push(self.pixels[i][j]);
                 is_dir = false;
