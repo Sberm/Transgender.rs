@@ -1,10 +1,10 @@
 extern crate libc;
 
-use std::mem;
 use self::libc::{c_ushort, ioctl, STDOUT_FILENO, TIOCGWINSZ};
-use std::path::PathBuf;
+use crate::ops::{consts, Mode};
 use std::io::{self, Write};
-use crate::ops::{Mode, consts};
+use std::mem;
+use std::path::PathBuf;
 
 #[derive(Default)]
 pub struct Canvas {
@@ -23,14 +23,14 @@ impl Clone for Canvas {
     }
 }
 
-fn csi(s: &str) -> String{
+fn csi(s: &str) -> String {
     let mut ret: String = String::from("\x1b[");
     ret.push_str(s);
     ret
 }
 
 /* TODO: complete fullwidth character checking */
-fn check_if_fullwidth(c: char) -> bool{
+fn check_if_fullwidth(c: char) -> bool {
     if c as usize > 256 && c != '�' {
         return true;
     } else {
@@ -48,13 +48,21 @@ impl Canvas {
         }
     }
 
-    fn check_insert_highlight(&self, str_to_draw: &mut String, i: usize, j: usize, cursor: usize, r_w_l: usize, is_dir: bool) {
+    fn check_insert_highlight(
+        &self,
+        str_to_draw: &mut String,
+        i: usize,
+        j: usize,
+        cursor: usize,
+        r_w_l: usize,
+        is_dir: bool,
+    ) {
         if i == 0 && j == 0 {
             str_to_draw.push_str(&consts::NORMAL);
             str_to_draw.push_str(&consts::NORMAL_BG);
         }
 
-        if i == cursor && j == 0{
+        if i == cursor && j == 0 {
             if is_dir {
                 str_to_draw.push_str(&consts::HIGHLIGHT_DIR);
             } else {
@@ -64,10 +72,19 @@ impl Canvas {
         } else if i == cursor && j == r_w_l {
             str_to_draw.push_str(&consts::NORMAL);
             str_to_draw.push_str(&consts::NORMAL_BG);
-        } 
+        }
     }
 
-    pub fn draw(&mut self, cursor: usize, current_dir: &Vec<String>, preview_dir: &Vec<String>, window_start: usize, current_path: &PathBuf, mode: Mode, search_txt: &Vec<char>) {
+    pub fn draw(
+        &mut self,
+        cursor: usize,
+        current_dir: &Vec<String>,
+        preview_dir: &Vec<String>,
+        window_start: usize,
+        current_path: &PathBuf,
+        mode: Mode,
+        search_txt: &Vec<char>,
+    ) {
         let (h, w) = term_size();
         if self.height != h || self.width != w {
             self.height = h;
@@ -86,7 +103,7 @@ impl Canvas {
             str_to_draw.push_str(&csi("1H"));
             print!("{}", str_to_draw);
             let _ = io::stdout().flush();
-            return
+            return;
         }
 
         /* write pixel */
@@ -118,7 +135,7 @@ impl Canvas {
             str_to_draw.push_str(&csi("1H"));
             print!("{}", str_to_draw);
             let _ = io::stdout().flush();
-            return
+            return;
         }
 
         /* left side */
@@ -127,14 +144,14 @@ impl Canvas {
             ch_i = 0;
             for j in l_w_l..l_w_r {
                 if ch_i >= c_a.len() {
-                    break
+                    break;
                 }
                 self.set(w_t - i, j, c_a[ch_i]);
                 ch_i += 1;
             }
             dir_i += 1;
             if dir_i >= current_dir.len() {
-                break
+                break;
             }
         }
 
@@ -143,13 +160,13 @@ impl Canvas {
 
         for i in w_b..=w_t {
             if dir_i >= preview_dir.len() {
-                break
+                break;
             }
             let c_a = preview_dir[dir_i].chars().collect::<Vec<char>>();
             ch_i = 0;
             for j in r_w_l..r_w_r {
                 if ch_i >= c_a.len() {
-                    break
+                    break;
                 }
                 self.set(w_t - i, j, c_a[ch_i]);
                 ch_i += 1;
@@ -157,11 +174,11 @@ impl Canvas {
             dir_i += 1;
         }
 
-        let mut i:usize = 0; 
-        let mut j:usize;
-        let mut font_len:usize = 0;
+        let mut i: usize = 0;
+        let mut j: usize;
+        let mut font_len: usize = 0;
         let mut do_preview: bool = false;
-        let mut is_dir:bool = false;
+        let mut is_dir: bool = false;
 
         loop {
             if i >= self.height {
@@ -176,7 +193,7 @@ impl Canvas {
                     font_len += 2;
                 } else {
                     font_len += 1;
-                } 
+                }
 
                 if font_len - 1 > l_w_r && !do_preview {
                     j = r_w_l;
@@ -195,7 +212,14 @@ impl Canvas {
                     is_dir = true;
                 }
 
-                self.check_insert_highlight(&mut str_to_draw, i, j, cursor - window_start, r_w_l, is_dir);
+                self.check_insert_highlight(
+                    &mut str_to_draw,
+                    i,
+                    j,
+                    cursor - window_start,
+                    r_w_l,
+                    is_dir,
+                );
                 str_to_draw.push(self.pixels[i][j]);
                 is_dir = false;
 
@@ -219,7 +243,6 @@ impl Canvas {
             self.pixels[i_to_write as usize][j_to_write] = c;
         }
     }
-
 }
 
 pub fn new() -> Canvas {
