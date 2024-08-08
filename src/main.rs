@@ -1,8 +1,7 @@
 mod browser;
 mod canvas;
-mod util;
 mod ops;
-
+mod util;
 
 fn main() {
     let mut canvas = canvas::new();
