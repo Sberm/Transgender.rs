@@ -3,9 +3,8 @@ use crate::ops::{code, consts, Mode, Ops};
 use crate::util;
 use std::env::var;
 use std::fs::read_dir;
-use std::fs::File;
-use std::io::{self, stdin, BufRead, Read};
-use std::path::{Path, PathBuf};
+use std::io::{stdin, Read};
+use std::path::PathBuf;
 use std::process::{exit, Command};
 use std::vec::Vec;
 
@@ -78,7 +77,7 @@ impl Browser {
                 self.search();
                 continue;
             }
-            match process_input() {
+            match util::process_input() {
                 code::UP => {
                     self.up();
                 }
@@ -382,7 +381,7 @@ impl Browser {
 
     fn exit_cur_dir(&self) {
         util::exit_albuf();
-        print_path(&self.current_path.to_str().unwrap());
+        util::print_path(&self.current_path.to_str().unwrap());
         exit(0);
     }
 
@@ -408,7 +407,7 @@ impl Browser {
                     ));
             }
         } else {
-            print_path(dir.to_str().unwrap());
+            util::print_path(dir.to_str().unwrap());
             exit(0);
         };
 
@@ -418,84 +417,15 @@ impl Browser {
     fn quit(&self) {
         util::exit_albuf();
 
-        print_path(&self.original_path.to_str().unwrap());
+        util::print_path(&self.original_path.to_str().unwrap());
 
         exit(0);
     }
 }
 
-fn print_path(str_: &str) {
-    eprintln!("\n{}", str_);
-}
-
-fn read_input() -> isize {
-    let mut stdin_handle = stdin().lock();
-    let mut byte = [0_u8];
-    stdin_handle
-        .read_exact(&mut byte)
-        .expect("Failed to read single byte");
-    byte[0] as isize
-}
-
-fn process_input() -> u8 {
-    let mut input = read_input();
-
-    /* arrow keys */
-    if input == 27 {
-        input = read_input();
-        if input == 91 {
-            input = read_input();
-            if input == 65 {
-                return code::UP;
-            } else if input == 66 {
-                return code::DOWN;
-            } else if input == 67 {
-                return code::RIGHT;
-            } else if input == 68 {
-                return code::LEFT;
-            } else {
-                return code::NOOP;
-            }
-        } else {
-            return code::NOOP;
-        }
-    }
-
-    /* gg */
-    if input == 103 {
-        input = read_input();
-        if input == 103 {
-            return code::TOP;
-        }
-    }
-
-    match input {
-        107 => return code::UP,
-        106 => return code::DOWN,
-        104 => return code::LEFT,
-        108 => return code::RIGHT,
-        111 => return code::EXIT_CURSOR,
-        10 => return code::EXIT_CURSOR,
-        105 => return code::EXIT,
-        113 => return code::QUIT,
-        47 => return code::SEARCH, /* / */
-        71 => return code::BOTTOM, /* G */
-        110 => return code::NEXT_MATCH,
-        _ => return code::NOOP,
-    }
-}
-
-fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
-where
-    P: AsRef<Path>,
-{
-    let file = File::open(filename)?;
-    Ok(io::BufReader::new(file).lines())
-}
-
 fn get_editor() -> String {
     if let Ok(home_dir) = var(consts::HOME_VAR) {
-        if let Ok(lines) = read_lines(&format!("{}/{}", home_dir, consts::CONFIG_FILE)) {
+        if let Ok(lines) = util::read_lines(&format!("{}/{}", home_dir, consts::CONFIG_FILE)) {
             for line in lines.flatten() {
                 let trimmed = line.replace(" ", "");
 
