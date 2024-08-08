@@ -1,10 +1,10 @@
 extern crate libc;
 
-use self::libc::{termios, STDIN_FILENO, ECHO, ICANON, ISIG, tcgetattr, tcsetattr, TCSAFLUSH};
-use std::mem;
+use self::libc::{tcgetattr, tcsetattr, termios, ECHO, ICANON, ISIG, STDIN_FILENO, TCSAFLUSH};
 use std::io::{self, Write};
-use std::time::Duration;
+use std::mem;
 use std::thread::sleep;
+use std::time::Duration;
 
 #[allow(dead_code)]
 pub fn slp(i: u64) {
@@ -13,7 +13,7 @@ pub fn slp(i: u64) {
 
 pub fn raw_input() {
     unsafe {
-        let mut termios_:termios = mem::zeroed();
+        let mut termios_: termios = mem::zeroed();
         tcgetattr(STDIN_FILENO, &mut termios_);
         termios_.c_lflag &= !(ECHO | ICANON | ISIG);
         tcsetattr(STDIN_FILENO, TCSAFLUSH, &termios_);
@@ -22,7 +22,7 @@ pub fn raw_input() {
 
 pub fn canonical_input() {
     unsafe {
-        let mut termios_:termios = mem::zeroed();
+        let mut termios_: termios = mem::zeroed();
         tcgetattr(STDIN_FILENO, &mut termios_);
         termios_.c_lflag |= ECHO | ICANON | ISIG;
         tcsetattr(STDIN_FILENO, TCSAFLUSH, &termios_);
