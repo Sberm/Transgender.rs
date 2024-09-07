@@ -10,10 +10,16 @@ Works on Linux & MacOS
 
 ## quick start
 
+clone the repo
+```bash
+git clone https://github.com/Sberm/Transgender.rs.git
+```
+
 before compilation, make sure you have rust's environment installed, if not, goto [HERE](https://www.rust-lang.org/tools/install)
 
 compile & install
-```
+```bash
+cd Transgender.rs
 make
 make install
 ```
