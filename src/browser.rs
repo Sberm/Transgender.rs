@@ -113,7 +113,7 @@ impl Browser {
                     self.next_match();
                 }
                 _ => {
-                    self.right();
+                    continue;
                 }
             }
         }
