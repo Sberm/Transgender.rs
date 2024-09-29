@@ -2,15 +2,16 @@ extern crate libc;
 
 use self::libc::{c_ushort, ioctl, STDOUT_FILENO, TIOCGWINSZ};
 use crate::ops::{consts, Mode};
+use crate::utf8;
 use std::io::{self, Write};
 use std::mem;
 use std::path::PathBuf;
 
-#[derive(Default)]
 pub struct Canvas {
     pub height: usize,
     pub width: usize,
     pixels: Vec<Vec<char>>,
+    utf8_tbl: utf8::U8Table,
 }
 
 impl Clone for Canvas {
@@ -18,7 +19,8 @@ impl Clone for Canvas {
         Canvas {
             height: self.height,
             width: self.width,
-            pixels: vec![],
+            pixels: Vec::new(),
+            utf8_tbl: utf8::new(),
         }
     }
 }
@@ -29,16 +31,25 @@ fn csi(s: &str) -> String {
     ret
 }
 
-/* TODO: complete fullwidth character checking */
-fn check_if_fullwidth(c: char) -> bool {
-    if c as usize > 256 && c != '�' {
-        return true;
-    } else {
-        return false;
-    }
-}
-
 impl Canvas {
+    fn is_fullwidth(&self, c: usize) -> bool {
+        let mut l = 0;
+        let mut r = self.utf8_tbl.tbl.len() - 1;
+
+        while l < r {
+            let m = (l + r) / 2;
+            if self.utf8_tbl.tbl[m].l <= c && self.utf8_tbl.tbl[m].r >= c {
+                return self.utf8_tbl.tbl[m].is_wide;
+            } else if self.utf8_tbl.tbl[m].l > c {
+                r = m - 1;
+            } else {
+                l = m + 1;
+            }
+        }
+
+        return self.utf8_tbl.tbl[l].is_wide;
+    }
+
     fn clear_pixels(&mut self) {
         let c: char = ' ';
         for i in 0..self.height {
@@ -189,7 +200,7 @@ impl Canvas {
                 if j >= self.width {
                     break;
                 }
-                if check_if_fullwidth(self.pixels[i][j]) {
+                if self.is_fullwidth(self.pixels[i][j] as usize) {
                     font_len += 2;
                 } else {
                     font_len += 1;
@@ -246,8 +257,12 @@ impl Canvas {
 }
 
 pub fn new() -> Canvas {
-    let canvas = Canvas::default();
-    canvas
+    Canvas {
+        height: 0,
+        width: 0,
+        pixels: Vec::new(),
+        utf8_tbl: utf8::new(),
+    }
 }
 
 #[allow(dead_code)]

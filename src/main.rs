@@ -2,6 +2,7 @@ mod browser;
 mod canvas;
 mod ops;
 mod util;
+mod utf8;
 
 fn main() {
     let mut canvas = canvas::new();
