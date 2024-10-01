@@ -11,7 +11,6 @@ pub struct Canvas {
     pub height: usize,
     pub width: usize,
     pixels: Vec<Vec<char>>,
-    utf8_tbl: utf8::U8Table,
 }
 
 impl Clone for Canvas {
@@ -20,7 +19,6 @@ impl Clone for Canvas {
             height: self.height,
             width: self.width,
             pixels: Vec::new(),
-            utf8_tbl: utf8::new(),
         }
     }
 }
@@ -34,20 +32,20 @@ fn csi(s: &str) -> String {
 impl Canvas {
     fn is_fullwidth(&self, c: usize) -> bool {
         let mut l = 0;
-        let mut r = self.utf8_tbl.tbl.len() - 1;
+        let mut r = utf8::UTF8_TBL.len() - 1;
 
         while l < r {
             let m = (l + r) / 2;
-            if self.utf8_tbl.tbl[m].l <= c && self.utf8_tbl.tbl[m].r >= c {
-                return self.utf8_tbl.tbl[m].is_wide;
-            } else if self.utf8_tbl.tbl[m].l > c {
+            if utf8::UTF8_TBL[m].l <= c && utf8::UTF8_TBL[m].r >= c {
+                return utf8::UTF8_TBL[m].is_wide;
+            } else if utf8::UTF8_TBL[m].l > c {
                 r = m - 1;
             } else {
                 l = m + 1;
             }
         }
 
-        return self.utf8_tbl.tbl[l].is_wide;
+        return utf8::UTF8_TBL[l].is_wide;
     }
 
     fn clear_pixels(&mut self) {
@@ -261,7 +259,6 @@ pub fn new() -> Canvas {
         height: 0,
         width: 0,
         pixels: Vec::new(),
-        utf8_tbl: utf8::new(),
     }
 }
 
