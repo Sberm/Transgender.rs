@@ -6,6 +6,7 @@ use std::fs::read_dir;
 use std::io::{stdin, Read};
 use std::path::PathBuf;
 use std::process::{exit, Command};
+use std::str::from_utf8;
 use std::vec::Vec;
 
 pub struct Browser {
@@ -217,32 +218,64 @@ impl Browser {
     }
 
     fn search(&mut self) {
-        let mut stdin_handle = stdin().lock();
-        let mut c = vec![0_u8];
-        stdin_handle
-            .read_exact(&mut c)
-            .expect("Failed to read single byte");
-        let rc = c[0] as char;
+        let mut c_bytes = [0u8; 4];
+        let mut bytes_cnt: usize = 0;
+        stdin()
+            .read(&mut c_bytes[0..1])
+            .expect("Failed to read the UTF8 prefix");
 
-        /* esc */
-        if rc as u8 == 27 {
-            self.mode = Mode::NORMAL;
-            return;
+        if c_bytes[0] & 0b10000000 == 0 {
+            bytes_cnt = 1;
+        } else if c_bytes[0] & 0b11000000 == 0b11000000 && c_bytes[0] & 0b00100000 == 0 {
+            bytes_cnt = 2;
+            stdin()
+                .read(&mut c_bytes[1..2])
+                .expect("Failed to read 1 byte for UTF8 char");
+        } else if c_bytes[0] & 0b11100000 == 0b11100000 && c_bytes[0] & 0b00010000 == 0 {
+            bytes_cnt = 3;
+            stdin()
+                .read(&mut c_bytes[1..3])
+                .expect("Failed to read 2 bytes for UTF8 char");
+        } else if c_bytes[0] & 0b11110000 == 0b11110000 && c_bytes[0] & 0b00001000 == 0 {
+            bytes_cnt = 4;
+            stdin()
+                .read(&mut c_bytes[1..])
+                .expect("Failed to read 3 bytes for UTF8 char");
         }
 
-        if rc as u8 == 127 {
-            if self.search_txt.len() > 0 {
-                self.search_txt.pop().expect("search txt(pop) out of bound");
+        let s = if bytes_cnt != 0 {
+            from_utf8(&c_bytes[0..bytes_cnt]).expect("Failed to convert bytes string to &str")
+        } else {
+            "�"
+        };
+
+        let rc = s
+            .chars()
+            .nth(0)
+            .expect("Failed to get the first & only character");
+
+        if bytes_cnt == 1 {
+            /* esc */
+            if rc as u8 == 27 {
+                self.mode = Mode::NORMAL;
+                return;
             }
-            return;
-        }
 
-        /* enter */
-        if rc as u8 == 10 {
-            /* search */
-            self.next_match();
-            self.mode = Mode::NORMAL;
-            return;
+            /* backspace */
+            if rc as u8 == 127 {
+                if self.search_txt.len() > 0 {
+                    self.search_txt.pop().expect("search txt(pop) out of bound");
+                }
+                return;
+            }
+
+            /* enter */
+            if rc as u8 == 10 {
+                /* search */
+                self.next_match();
+                self.mode = Mode::NORMAL;
+                return;
+            }
         }
 
         self.search_txt.push(rc);
