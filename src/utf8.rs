@@ -817,9 +817,10 @@ pub const UTF8_TBL: [U8Range; 308] = [
         is_wide: false,
     },
     U8Range {
+        // Halfwidth and Fullwidth Forms (Chinese punctuation)
         l: 0xFF00,
         r: 0xFFEF,
-        is_wide: false,
+        is_wide: true,
     },
     U8Range {
         l: 0xFFF0,
