@@ -1,6 +1,9 @@
 extern crate libc;
 
-use self::libc::{tcgetattr, tcsetattr, termios, ECHO, ICANON, ISIG, STDIN_FILENO, TCSAFLUSH, c_ushort, ioctl, STDOUT_FILENO, TIOCGWINSZ};
+use self::libc::{
+    c_ushort, ioctl, tcgetattr, tcsetattr, termios, ECHO, ICANON, ISIG, STDIN_FILENO,
+    STDOUT_FILENO, TCSAFLUSH, TIOCGWINSZ,
+};
 use crate::ops::code;
 use std::fs::File;
 use std::io::{self, stdin, BufRead, Read, Write};
@@ -8,6 +11,29 @@ use std::mem;
 use std::path::Path;
 use std::thread::sleep;
 use std::time::Duration;
+
+#[inline(always)]
+pub fn hide_cursor() {
+    print!("\x1b[?25l"); /* hide cursor */
+}
+
+#[inline(always)]
+pub fn show_cursor() {
+    print!("\x1b[?25h"); /* show cursor */
+}
+
+pub fn set_search_cursor() {
+    let (h, _) = term_size();
+    print!("\x1b[{}H", h);
+    show_cursor();
+    let _ = io::stdout().flush();
+}
+
+pub fn reset_search_cursor() {
+    print!("\x1b[1H");
+    hide_cursor();
+    let _ = io::stdout().flush();
+}
 
 #[allow(dead_code)]
 struct TermSize {
@@ -50,14 +76,14 @@ pub fn canonical_input() {
 
 pub fn enter_albuf() {
     raw_input();
-    print!("\x1b[?25l"); /* hide cursor */
+    hide_cursor();
     print!("\x1b[?1049h"); /* use alternate buffer */
     let _ = io::stdout().flush();
 }
 
 pub fn exit_albuf() {
     canonical_input();
-    print!("\x1b[?25h"); /* show cursor */
+    show_cursor();
     print!("\x1b[?1049l"); /* switch back to normal screen buffer */
     let _ = io::stdout().flush();
 }

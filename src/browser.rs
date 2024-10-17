@@ -1,6 +1,6 @@
+use crate::canvas;
 use crate::ops::{code, consts, Mode, Ops};
 use crate::util;
-use crate::canvas;
 use std::env::var;
 use std::fs::read_dir;
 use std::io::{stdin, Read};
@@ -109,6 +109,7 @@ impl Browser {
                 code::SEARCH => {
                     self.search_txt = Vec::new();
                     self.mode = Mode::SEARCH;
+                    util::set_search_cursor();
                 }
                 code::NEXT_MATCH => {
                     self.next_match();
@@ -258,6 +259,7 @@ impl Browser {
             /* esc */
             if rc as u8 == 27 {
                 self.mode = Mode::NORMAL;
+                util::reset_search_cursor();
                 return;
             }
 
@@ -266,6 +268,7 @@ impl Browser {
                 if self.search_txt.len() > 0 {
                     self.search_txt.pop().expect("search txt(pop) out of bound");
                 }
+                util::reset_search_cursor();
                 return;
             }
 
@@ -274,6 +277,7 @@ impl Browser {
                 /* search */
                 self.next_match();
                 self.mode = Mode::NORMAL;
+                util::reset_search_cursor();
                 return;
             }
         }
