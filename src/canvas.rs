@@ -1,10 +1,9 @@
 extern crate libc;
 
-use self::libc::{c_ushort, ioctl, STDOUT_FILENO, TIOCGWINSZ};
 use crate::ops::{consts, Mode};
+use crate::util::term_size;
 use crate::utf8;
 use std::io::{self, Write};
-use std::mem;
 use std::path::PathBuf;
 
 pub struct Canvas {
@@ -262,18 +261,3 @@ pub fn new() -> Canvas {
     }
 }
 
-#[allow(dead_code)]
-struct TermSize {
-    height: c_ushort,
-    width: c_ushort,
-    a: c_ushort,
-    b: c_ushort,
-}
-
-pub fn term_size() -> (usize, usize) {
-    unsafe {
-        let mut sz: TermSize = mem::zeroed();
-        ioctl(STDOUT_FILENO, TIOCGWINSZ.into(), &mut sz as *mut _);
-        (sz.height as usize, sz.width as usize)
-    }
-}
