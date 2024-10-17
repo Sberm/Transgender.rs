@@ -1,6 +1,6 @@
 extern crate libc;
 
-use self::libc::{tcgetattr, tcsetattr, termios, ECHO, ICANON, ISIG, STDIN_FILENO, TCSAFLUSH};
+use self::libc::{tcgetattr, tcsetattr, termios, ECHO, ICANON, ISIG, STDIN_FILENO, TCSAFLUSH, c_ushort, ioctl, STDOUT_FILENO, TIOCGWINSZ};
 use crate::ops::code;
 use std::fs::File;
 use std::io::{self, stdin, BufRead, Read, Write};
@@ -8,6 +8,22 @@ use std::mem;
 use std::path::Path;
 use std::thread::sleep;
 use std::time::Duration;
+
+#[allow(dead_code)]
+struct TermSize {
+    height: c_ushort,
+    width: c_ushort,
+    a: c_ushort,
+    b: c_ushort,
+}
+
+pub fn term_size() -> (usize, usize) {
+    unsafe {
+        let mut sz: TermSize = mem::zeroed();
+        ioctl(STDOUT_FILENO, TIOCGWINSZ.into(), &mut sz as *mut _);
+        (sz.height as usize, sz.width as usize)
+    }
+}
 
 #[allow(dead_code)]
 pub fn slp(i: u64) {
