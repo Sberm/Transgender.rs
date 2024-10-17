@@ -1,6 +1,6 @@
-use crate::canvas;
 use crate::ops::{code, consts, Mode, Ops};
 use crate::util;
+use crate::canvas;
 use std::env::var;
 use std::fs::read_dir;
 use std::io::{stdin, Read};
@@ -177,7 +177,7 @@ impl Browser {
             }
             if flag == true {
                 self.cursor = i;
-                let (h, _) = canvas::term_size();
+                let (h, _) = util::term_size();
                 self.window_start = if self.cursor as isize - h as isize / 2 > 0 {
                     self.cursor - h / 2
                 } else {
@@ -205,7 +205,7 @@ impl Browser {
                 }
                 if flag == true {
                     self.cursor = i;
-                    let (h, _) = canvas::term_size();
+                    let (h, _) = util::term_size();
                     self.window_start = if self.cursor as isize - h as isize / 2 > 0 {
                         self.cursor - h / 2
                     } else {
@@ -288,7 +288,7 @@ impl Browser {
 
     fn bottom(&mut self) {
         self.cursor = self.current_dir.len() - 1;
-        let (h, _) = canvas::term_size();
+        let (h, _) = util::term_size();
         self.window_start = if self.current_dir.len() as isize - h as isize + 1 > 0 {
             self.current_dir.len() - h
         } else {
@@ -321,7 +321,7 @@ impl Browser {
             l - 1
         };
 
-        let (h, _) = canvas::term_size();
+        let (h, _) = util::term_size();
 
         if self.cursor as isize > (h - 1) as isize && self.cursor > self.window_start + h - 1 {
             self.window_start += 1;
@@ -362,7 +362,7 @@ impl Browser {
             for dir in &self.current_dir {
                 if dir.as_str() == dir_to_restore {
                     self.cursor = i;
-                    let (h, _) = canvas::term_size();
+                    let (h, _) = util::term_size();
                     if self.cursor > self.window_start + h - 1 {
                         self.window_start = self.cursor - h + 1;
                     }
