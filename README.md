@@ -114,9 +114,10 @@ with bad designs that irritate its users.
 <br/>
 
 ### Todo:
-- [ ] Read utf-8 input
 
 - [ ] More tests
+
+- [x] Read utf-8 input
 
 - [x] Better full-width character handling
 
