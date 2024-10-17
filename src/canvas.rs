@@ -1,8 +1,8 @@
 extern crate libc;
 
 use crate::ops::{consts, Mode};
-use crate::util::term_size;
 use crate::utf8;
+use crate::util;
 use std::io::{self, Write};
 use std::path::PathBuf;
 
@@ -29,7 +29,7 @@ fn csi(s: &str) -> String {
 }
 
 impl Canvas {
-    fn is_fullwidth(&self, c: usize) -> bool {
+    fn is_wide(&self, c: usize) -> bool {
         let mut l = 0;
         let mut r = utf8::UTF8_TBL.len() - 1;
 
@@ -93,7 +93,7 @@ impl Canvas {
         mode: Mode,
         search_txt: &Vec<char>,
     ) {
-        let (h, w) = term_size();
+        let (h, w) = util::term_size();
         if self.height != h || self.width != w {
             self.height = h;
             self.width = w;
@@ -103,12 +103,29 @@ impl Canvas {
         let mut str_to_draw = String::from("");
 
         if matches!(mode, Mode::SEARCH) {
-            // goto bottom line
+            /* Goto bottom line */
             str_to_draw.push_str(&csi(&format!("{}H", self.height)));
             str_to_draw.push_str(&csi("0K"));
             str_to_draw.push_str("/");
-            str_to_draw.push_str(&search_txt.iter().collect::<String>());
-            str_to_draw.push_str(&csi("1H"));
+
+            /* Make sure bottom line doesn't overflow */
+            let mut display_len: usize = 0;
+            let mut to_slice: usize = 0;
+
+            for c in search_txt {
+                if self.is_wide(c.clone() as usize) {
+                    display_len += 2;
+                } else {
+                    display_len += 1;
+                }
+                if display_len > self.width - 1 {
+                    break;
+                }
+                to_slice += 1;
+            }
+
+            str_to_draw.push_str(&search_txt[0..to_slice].iter().collect::<String>());
+
             print!("{}", str_to_draw);
             let _ = io::stdout().flush();
             return;
@@ -197,7 +214,7 @@ impl Canvas {
                 if j >= self.width {
                     break;
                 }
-                if self.is_fullwidth(self.pixels[i][j] as usize) {
+                if self.is_wide(self.pixels[i][j] as usize) {
                     font_len += 2;
                 } else {
                     font_len += 1;
@@ -260,4 +277,3 @@ pub fn new() -> Canvas {
         pixels: Vec::new(),
     }
 }
-
