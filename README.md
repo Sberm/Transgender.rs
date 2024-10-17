@@ -116,6 +116,8 @@ with bad designs that irritate its users.
 ### Todo:
 - [ ] Read utf-8 input
 
-- [ ] Better full-width character handling
+- [ ] More tests
+
+- [x] Better full-width character handling
 
 - [x] Config file to change text editor(default to vi)
