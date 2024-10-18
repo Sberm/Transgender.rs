@@ -1452,9 +1452,10 @@ pub const UTF8_TBL: [U8Range; 308] = [
         is_wide: true,
     },
     U8Range {
+        // Emojis
         l: 0x1F600,
         r: 0x1F64F,
-        is_wide: false,
+        is_wide: true,
     },
     U8Range {
         l: 0x1F650,
