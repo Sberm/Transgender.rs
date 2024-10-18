@@ -7,7 +7,7 @@ strip = true        # Strip symbols from binary*
 
 [package]
 name = "transgender"
-version = "0.1.0"
+version = "1.2.3"
 edition = "2021"
 
 [dependencies]
