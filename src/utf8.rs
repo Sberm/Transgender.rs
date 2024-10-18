@@ -36,10 +36,10 @@ pub const UTF8_TBL: [U8Range; 308] = [
         is_wide: false,
     },
     U8Range {
-        // problem
+        // Combining Diacritical Marks (problem: some are even 3-character-wide)
         l: 0x0300,
         r: 0x036F,
-        is_wide: false,
+        is_wide: true,
     },
     U8Range {
         l: 0x0370,
@@ -47,12 +47,12 @@ pub const UTF8_TBL: [U8Range; 308] = [
         is_wide: false,
     },
     U8Range {
+        // Cyrillic (problem: most are non-wide, only one or two are wide)
         l: 0x0400,
         r: 0x04FF,
         is_wide: false,
     },
     U8Range {
-        // problem
         l: 0x0500,
         r: 0x052F,
         is_wide: false,
@@ -68,11 +68,13 @@ pub const UTF8_TBL: [U8Range; 308] = [
         is_wide: false,
     },
     U8Range {
+        // Arabic (problem: most are non-wide, only one or two are wide)
         l: 0x0600,
         r: 0x06FF,
         is_wide: false,
     },
     U8Range {
+        // Syriac (problem: most are non-wide, only one or two are wide)
         l: 0x0700,
         r: 0x074F,
         is_wide: false,
@@ -83,21 +85,25 @@ pub const UTF8_TBL: [U8Range; 308] = [
         is_wide: false,
     },
     U8Range {
+        // Thaana (problem: most are non-wide, only one or two are wide)
         l: 0x0780,
         r: 0x07BF,
         is_wide: false,
     },
     U8Range {
+        // NKo (problem: most are non-wide, only one or two are wide)
         l: 0x07C0,
         r: 0x07FF,
         is_wide: false,
     },
     U8Range {
+        // Samaritan (problem: most are non-wide, only one or two are wide)
         l: 0x0800,
         r: 0x083F,
         is_wide: false,
     },
     U8Range {
+        // Mandaic (problem: most are non-wide, only one or two are wide)
         l: 0x0840,
         r: 0x085F,
         is_wide: false,
@@ -123,6 +129,7 @@ pub const UTF8_TBL: [U8Range; 308] = [
         is_wide: false,
     },
     U8Range {
+        // Gurmukhi (problem: most are non-wide, only one or two are wide)
         l: 0x0A00,
         r: 0x0A7F,
         is_wide: false,
@@ -143,11 +150,13 @@ pub const UTF8_TBL: [U8Range; 308] = [
         is_wide: false,
     },
     U8Range {
+        // Telugu (problem: most are non-wide, only one or two are wide)
         l: 0x0C00,
         r: 0x0C7F,
         is_wide: false,
     },
     U8Range {
+        // Kannada (problem: most are non-wide, only one or two are wide)
         l: 0x0C80,
         r: 0x0CFF,
         is_wide: false,
@@ -158,21 +167,25 @@ pub const UTF8_TBL: [U8Range; 308] = [
         is_wide: false,
     },
     U8Range {
+        // Sinhala (problem: most are non-wide, only one or two are wide)
         l: 0x0D80,
         r: 0x0DFF,
         is_wide: false,
     },
     U8Range {
+        // Thai (problem: most are non-wide, only one or two are wide)
         l: 0x0E00,
         r: 0x0E7F,
         is_wide: false,
     },
     U8Range {
+        // Lao (problem: most are non-wide, only one or two are wide)
         l: 0x0E80,
         r: 0x0EFF,
         is_wide: false,
     },
     U8Range {
+        // Tibetan (problem: most are non-wide, only one or two are wide)
         l: 0x0F00,
         r: 0x0FFF,
         is_wide: false,
@@ -188,9 +201,10 @@ pub const UTF8_TBL: [U8Range; 308] = [
         is_wide: false,
     },
     U8Range {
+        // Hangul Jamo
         l: 0x1100,
         r: 0x11FF,
-        is_wide: false,
+        is_wide: true,
     },
     U8Range {
         l: 0x1200,
@@ -223,6 +237,7 @@ pub const UTF8_TBL: [U8Range; 308] = [
         is_wide: false,
     },
     U8Range {
+        // Tagalog (problem: most are non-wide, only one or two are wide)
         l: 0x1700,
         r: 0x171F,
         is_wide: false,
@@ -238,6 +253,7 @@ pub const UTF8_TBL: [U8Range; 308] = [
         is_wide: false,
     },
     U8Range {
+        // Tagbanwa (problem: most are non-wide, only one or two are wide)
         l: 0x1760,
         r: 0x177F,
         is_wide: false,
@@ -248,6 +264,7 @@ pub const UTF8_TBL: [U8Range; 308] = [
         is_wide: false,
     },
     U8Range {
+        // Mongolian (problem: most are non-wide, only one or two are wide)
         l: 0x1800,
         r: 0x18AF,
         is_wide: false,
@@ -283,14 +300,16 @@ pub const UTF8_TBL: [U8Range; 308] = [
         is_wide: false,
     },
     U8Range {
+        // Tai Tham (problem: not all wide)
         l: 0x1A20,
         r: 0x1AAF,
-        is_wide: false,
+        is_wide: true,
     },
     U8Range {
+        // Combining Diacritical Marks Extended (problem: not all wide (but only one not wide))
         l: 0x1AB0,
         r: 0x1AFF,
-        is_wide: false,
+        is_wide: true,
     },
     U8Range {
         l: 0x1B00,
@@ -333,9 +352,10 @@ pub const UTF8_TBL: [U8Range; 308] = [
         is_wide: false,
     },
     U8Range {
+        // Vedic Extensions (problem: not all wide)
         l: 0x1CD0,
         r: 0x1CFF,
-        is_wide: false,
+        is_wide: true,
     },
     U8Range {
         l: 0x1D00,
@@ -348,9 +368,10 @@ pub const UTF8_TBL: [U8Range; 308] = [
         is_wide: false,
     },
     U8Range {
+        // Combining Diacritical Marks Supplement
         l: 0x1DC0,
         r: 0x1DFF,
-        is_wide: false,
+        is_wide: true,
     },
     U8Range {
         l: 0x1E00,
@@ -378,9 +399,10 @@ pub const UTF8_TBL: [U8Range; 308] = [
         is_wide: false,
     },
     U8Range {
+        // Combining Diacritical Marks for Symbols (problem: not all wide)
         l: 0x20D0,
         r: 0x20FF,
-        is_wide: false,
+        is_wide: true,
     },
     U8Range {
         l: 0x2100,
@@ -403,9 +425,10 @@ pub const UTF8_TBL: [U8Range; 308] = [
         is_wide: false,
     },
     U8Range {
+        // Miscellaneous Technical (problem: emojis in, not all wide)
         l: 0x2300,
         r: 0x23FF,
-        is_wide: false,
+        is_wide: true,
     },
     U8Range {
         l: 0x2400,
@@ -433,19 +456,22 @@ pub const UTF8_TBL: [U8Range; 308] = [
         is_wide: false,
     },
     U8Range {
+        // Geometric Shapes (problem: not all wide)
         l: 0x25A0,
         r: 0x25FF,
-        is_wide: false,
+        is_wide: true,
     },
     U8Range {
+        // Miscellaneous Symbols (problem: emojis in, not all wide)
         l: 0x2600,
         r: 0x26FF,
-        is_wide: false,
+        is_wide: true,
     },
     U8Range {
+        // Dingbats (problem: emojis in, not all wide)
         l: 0x2700,
         r: 0x27BF,
-        is_wide: false,
+        is_wide: true,
     },
     U8Range {
         l: 0x27C0,
@@ -478,9 +504,10 @@ pub const UTF8_TBL: [U8Range; 308] = [
         is_wide: false,
     },
     U8Range {
+        // Miscellaneous Symbols and Arrows (problem: emojis in, some are not wide)
         l: 0x2B00,
         r: 0x2BFF,
-        is_wide: false,
+        is_wide: true,
     },
     U8Range {
         l: 0x2C00,
@@ -513,9 +540,10 @@ pub const UTF8_TBL: [U8Range; 308] = [
         is_wide: false,
     },
     U8Range {
+        // Cyrillic Extended-A
         l: 0x2DE0,
         r: 0x2DFF,
-        is_wide: false,
+        is_wide: true,
     },
     U8Range {
         l: 0x2E00,
@@ -523,76 +551,91 @@ pub const UTF8_TBL: [U8Range; 308] = [
         is_wide: false,
     },
     U8Range {
+        // CJK Radicals Supplement
         l: 0x2E80,
         r: 0x2EFF,
-        is_wide: false,
+        is_wide: true,
     },
     U8Range {
+        // Kangxi Radicals
         l: 0x2F00,
         r: 0x2FDF,
-        is_wide: false,
+        is_wide: true,
     },
     U8Range {
+        // Ideographic Description Characters
         l: 0x2FF0,
         r: 0x2FFF,
-        is_wide: false,
+        is_wide: true,
     },
     U8Range {
+        // CJK Symbols and Punctuation
         l: 0x3000,
         r: 0x303F,
-        is_wide: false,
+        is_wide: true,
     },
     U8Range {
+        // Hiragana
         l: 0x3040,
         r: 0x309F,
-        is_wide: false,
+        is_wide: true,
     },
     U8Range {
+        // Katakana
         l: 0x30A0,
         r: 0x30FF,
-        is_wide: false,
+        is_wide: true,
     },
     U8Range {
+        // Bopomofo
         l: 0x3100,
         r: 0x312F,
-        is_wide: false,
+        is_wide: true,
     },
     U8Range {
+        // Hangul Compatibility Jamo
         l: 0x3130,
         r: 0x318F,
-        is_wide: false,
+        is_wide: true,
     },
     U8Range {
+        // Kanbun
         l: 0x3190,
         r: 0x319F,
-        is_wide: false,
+        is_wide: true,
     },
     U8Range {
+        // Bopomofo Extended
         l: 0x31A0,
         r: 0x31BF,
-        is_wide: false,
+        is_wide: true,
     },
     U8Range {
+        // CJK Strokes
         l: 0x31C0,
         r: 0x31EF,
-        is_wide: false,
+        is_wide: true,
     },
     U8Range {
+        // Katakana Phonetic Extensions
         l: 0x31F0,
         r: 0x31FF,
-        is_wide: false,
+        is_wide: true,
     },
     U8Range {
+        // Enclosed CJK Letters and Months
         l: 0x3200,
         r: 0x32FF,
-        is_wide: false,
+        is_wide: true,
     },
     U8Range {
+        // CJK Compatibility
         l: 0x3300,
         r: 0x33FF,
-        is_wide: false,
+        is_wide: true,
     },
     U8Range {
+        // CJK Unified Ideographs Extension A
         l: 0x3400,
         r: 0x4DBF,
         is_wide: true,
@@ -609,6 +652,7 @@ pub const UTF8_TBL: [U8Range; 308] = [
         is_wide: true,
     },
     U8Range {
+        // Yi Syllables
         l: 0xA000,
         r: 0xA48F,
         is_wide: true,
@@ -685,9 +729,10 @@ pub const UTF8_TBL: [U8Range; 308] = [
         is_wide: false,
     },
     U8Range {
+        // Hangul Jamo Extended-A
         l: 0xA960,
         r: 0xA97F,
-        is_wide: false,
+        is_wide: true,
     },
     U8Range {
         l: 0xA980,
@@ -740,9 +785,10 @@ pub const UTF8_TBL: [U8Range; 308] = [
         is_wide: false,
     },
     U8Range {
+        // Hangul Syllables
         l: 0xAC00,
         r: 0xD7AF,
-        is_wide: false,
+        is_wide: true,
     },
     U8Range {
         l: 0xD7B0,
@@ -750,7 +796,6 @@ pub const UTF8_TBL: [U8Range; 308] = [
         is_wide: false,
     },
     U8Range {
-        // Korean
         l: 0xD800,
         r: 0xDB7F,
         is_wide: false,
@@ -771,9 +816,10 @@ pub const UTF8_TBL: [U8Range; 308] = [
         is_wide: false,
     },
     U8Range {
+        // CJK Compatibility Ideographs
         l: 0xF900,
         r: 0xFAFF,
-        is_wide: false,
+        is_wide: true,
     },
     U8Range {
         l: 0xFB00,
@@ -791,9 +837,10 @@ pub const UTF8_TBL: [U8Range; 308] = [
         is_wide: false,
     },
     U8Range {
+        // Vertical Forms
         l: 0xFE10,
         r: 0xFE1F,
-        is_wide: false,
+        is_wide: true,
     },
     U8Range {
         l: 0xFE20,
@@ -807,9 +854,10 @@ pub const UTF8_TBL: [U8Range; 308] = [
         is_wide: true,
     },
     U8Range {
+        // Small Form Variants
         l: 0xFE50,
         r: 0xFE6F,
-        is_wide: false,
+        is_wide: true,
     },
     U8Range {
         l: 0xFE70,
@@ -1223,7 +1271,7 @@ pub const UTF8_TBL: [U8Range; 308] = [
         is_wide: false,
     },
     U8Range {
-        // Cuneiform, problem (can take 1 block, but needs 3 blocks to normally display)
+        // Cuneiform (may need 3 blocks to display)
         l: 0x12000,
         r: 0x123FF,
         is_wide: false,
@@ -1289,10 +1337,10 @@ pub const UTF8_TBL: [U8Range; 308] = [
         is_wide: false,
     },
     U8Range {
-        // Tangut
+        // Tangut (didn't see the symbols)
         l: 0x17000,
         r: 0x187FF,
-        is_wide: false,
+        is_wide: true,
     },
     U8Range {
         // Tangut Components
@@ -1306,14 +1354,16 @@ pub const UTF8_TBL: [U8Range; 308] = [
         is_wide: false,
     },
     U8Range {
+        // Tangut Supplement
         l: 0x18D00,
         r: 0x18D8F,
-        is_wide: false,
+        is_wide: true,
     },
     U8Range {
+        // Kana Supplement
         l: 0x1B000,
         r: 0x1B0FF,
-        is_wide: false,
+        is_wide: true,
     },
     U8Range {
         l: 0x1B100,
@@ -1436,14 +1486,16 @@ pub const UTF8_TBL: [U8Range; 308] = [
         is_wide: false,
     },
     U8Range {
+        // Problem: part of them are emojis, but some of them are half-width, make them all wide here
         l: 0x1F100,
         r: 0x1F1FF,
-        is_wide: false,
+        is_wide: true,
     },
     U8Range {
+        // Enclosed Ideographic Supplement
         l: 0x1F200,
         r: 0x1F2FF,
-        is_wide: false,
+        is_wide: true,
     },
     U8Range {
         // Emojis (Miscellaneous Symbols and Pictographs)
@@ -1463,9 +1515,10 @@ pub const UTF8_TBL: [U8Range; 308] = [
         is_wide: false,
     },
     U8Range {
+        // Emojis (Transport and Map Symbols)
         l: 0x1F680,
         r: 0x1F6FF,
-        is_wide: false,
+        is_wide: true,
     },
     U8Range {
         l: 0x1F700,
@@ -1483,7 +1536,7 @@ pub const UTF8_TBL: [U8Range; 308] = [
         is_wide: false,
     },
     U8Range {
-        // CJK Compatibility Ideographs
+        // Emojis (Supplemental Symbols and Pictographs)
         l: 0x1F900,
         r: 0x1F9FF,
         is_wide: true,
@@ -1494,9 +1547,10 @@ pub const UTF8_TBL: [U8Range; 308] = [
         is_wide: false,
     },
     U8Range {
+        // Symbols and Pictographs Extended-A
         l: 0x1FA70,
         r: 0x1FAFF,
-        is_wide: false,
+        is_wide: true,
     },
     U8Range {
         l: 0x1FB00,
@@ -1525,7 +1579,7 @@ pub const UTF8_TBL: [U8Range; 308] = [
         is_wide: true,
     },
     U8Range {
-        // F
+        // CJK Ex F
         l: 0x2CEB0,
         r: 0x2EBEF,
         is_wide: true,
