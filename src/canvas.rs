@@ -39,6 +39,26 @@ fn csi(s: &str) -> String {
 }
 
 impl Canvas {
+    fn bottom_line_slice(&self, s: &str) -> usize {
+        /* Make sure bottom line doesn't overflow */
+        let mut display_len: usize = 0;
+        let mut slice_to: usize = 0;
+
+        for c in s.chars() {
+            if self.is_wide(c.clone() as usize) {
+                display_len += 2;
+            } else {
+                display_len += 1;
+            }
+            if display_len > self.width - 1 {
+                break;
+            }
+            slice_to += 1;
+        }
+
+        slice_to
+    }
+
     fn is_wide(&self, c: usize) -> bool {
         let mut l = 0;
         let mut r = utf8::UTF8_TBL.len() - 1;
@@ -105,27 +125,14 @@ impl Canvas {
         str_to_draw.push_str(&csi("0K"));
 
         if matches!(mode, Mode::SEARCH) {
+            let search_txt_str = search_txt.into_iter().collect::<String>();
+
             str_to_draw.push_str("/");
-
-            /* Make sure bottom line doesn't overflow */
-            let mut display_len: usize = 0;
-            let mut to_slice: usize = 0;
-
-            for c in search_txt {
-                if self.is_wide(c.clone() as usize) {
-                    display_len += 2;
-                } else {
-                    display_len += 1;
-                }
-                if display_len > self.width - 1 {
-                    break;
-                }
-                to_slice += 1;
-            }
-
-            str_to_draw.push_str(&search_txt[0..to_slice].iter().collect::<String>());
+            str_to_draw.push_str(&search_txt.iter().take(self.bottom_line_slice(&search_txt_str)).collect::<String>());
         } else {
-            str_to_draw.push_str(current_path);
+            let current_path_sliced = current_path.chars().take(self.bottom_line_slice(current_path)).collect::<String>();
+
+            str_to_draw.push_str(&current_path_sliced);
         }
     }
 
