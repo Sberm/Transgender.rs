@@ -3,6 +3,7 @@ note*
 
 *.png
 !trans-img.png
+!trans-img-dark-theme.png
 
 # mac
 .DS_Store

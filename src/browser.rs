@@ -1,7 +1,6 @@
 use crate::canvas;
 use crate::ops::{code, consts, Mode, Ops};
 use crate::util;
-use std::env::var;
 use std::fs::read_dir;
 use std::io::{stdin, Read};
 use std::path::PathBuf;
@@ -459,25 +458,6 @@ impl Browser {
     }
 }
 
-fn get_editor() -> String {
-    if let Ok(home_dir) = var(consts::HOME_VAR) {
-        if let Ok(lines) = util::read_lines(&format!("{}/{}", home_dir, consts::CONFIG_FILE)) {
-            for line in lines.flatten() {
-                let trimmed = line.replace(" ", "");
-
-                let kv = trimmed.split("=").collect::<Vec<&str>>();
-                if kv.len() != 2 {
-                    break;
-                }
-                if kv[0].eq(consts::EDITOR_KEY) {
-                    return String::from(kv[1]);
-                }
-            }
-        }
-    }
-    return String::from(consts::EDITOR);
-}
-
 pub fn new() -> Browser {
     let mut browser = Browser {
         cursor: 0,
@@ -491,7 +471,7 @@ pub fn new() -> Browser {
         mode: Mode::NORMAL,
         search_txt: Vec::new(),
         ops: Ops {
-            editor: get_editor(),
+            editor: util::get_editor(),
         },
     };
 
