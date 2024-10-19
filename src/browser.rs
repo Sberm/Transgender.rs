@@ -2,10 +2,8 @@ use crate::canvas;
 use crate::ops::{code, consts, Mode, Ops};
 use crate::util;
 use std::fs::read_dir;
-use std::io::{stdin, Read};
 use std::path::PathBuf;
 use std::process::{exit, Command};
-use std::str::from_utf8;
 use std::vec::Vec;
 
 pub struct Browser {
@@ -218,35 +216,9 @@ impl Browser {
     }
 
     fn search(&mut self) {
-        let mut c_bytes = [0u8; 4];
-        let mut bytes_cnt: usize = 0;
-        stdin()
-            .read(&mut c_bytes[0..1])
-            .expect("Failed to read the UTF8 prefix");
-
-        if c_bytes[0] & 0b10000000 == 0 {
-            bytes_cnt = 1;
-        } else if c_bytes[0] & 0b11000000 == 0b11000000 && c_bytes[0] & 0b00100000 == 0 {
-            bytes_cnt = 2;
-            stdin()
-                .read(&mut c_bytes[1..2])
-                .expect("Failed to read 1 byte for UTF8 char");
-        } else if c_bytes[0] & 0b11100000 == 0b11100000 && c_bytes[0] & 0b00010000 == 0 {
-            bytes_cnt = 3;
-            stdin()
-                .read(&mut c_bytes[1..3])
-                .expect("Failed to read 2 bytes for UTF8 char");
-        } else if c_bytes[0] & 0b11110000 == 0b11110000 && c_bytes[0] & 0b00001000 == 0 {
-            bytes_cnt = 4;
-            stdin()
-                .read(&mut c_bytes[1..])
-                .expect("Failed to read 3 bytes for UTF8 char");
-        }
-
-        let s = if bytes_cnt != 0 {
-            from_utf8(&c_bytes[0..bytes_cnt]).expect("Failed to convert bytes string to &str")
-        } else {
-            "�"
+        let (s, is_ascii) = match util::read_utf8() {
+            Ok((s, is_ascii)) => (s, is_ascii),
+            Err(_) => (String::from("�"), false),
         };
 
         let rc = s
@@ -254,7 +226,7 @@ impl Browser {
             .nth(0)
             .expect("Failed to get the first & only character");
 
-        if bytes_cnt == 1 {
+        if is_ascii {
             /* esc */
             if rc as u8 == 27 {
                 self.mode = Mode::NORMAL;
@@ -325,7 +297,12 @@ impl Browser {
 
         let (h, _) = util::term_size();
 
-        if self.cursor as isize > (h - 1) as isize && self.cursor > self.window_start + h - 1 {
+        /* So the cursor won't be covered by the bottom line (TODO: But trans still draws that line in Canvas) */
+        let display_height = h - 1;
+
+        if self.cursor as isize > (display_height - 1) as isize
+            && self.cursor > self.window_start + display_height - 1
+        {
             self.window_start += 1;
         }
     }
