@@ -39,6 +39,26 @@ fn csi(s: &str) -> String {
 }
 
 impl Canvas {
+    fn bottom_line_slice(&self, s: &str) -> usize {
+        /* Make sure bottom line doesn't overflow */
+        let mut display_len: usize = 0;
+        let mut slice_to: usize = 0;
+
+        for c in s.chars() {
+            if self.is_wide(c.clone() as usize) {
+                display_len += 2;
+            } else {
+                display_len += 1;
+            }
+            if display_len > self.width - 1 {
+                break;
+            }
+            slice_to += 1;
+        }
+
+        slice_to
+    }
+
     fn is_wide(&self, c: usize) -> bool {
         let mut l = 0;
         let mut r = utf8::UTF8_TBL.len() - 1;
@@ -93,6 +113,29 @@ impl Canvas {
         }
     }
 
+    fn draw_bottom_line(
+        &self,
+        str_to_draw: &mut String,
+        mode: Mode,
+        current_path: &str,
+        search_txt: &Vec<char>,
+    ) {
+        /* Goto bottom line */
+        str_to_draw.push_str(&csi(&format!("{}H", self.height)));
+        str_to_draw.push_str(&csi("0K"));
+
+        if matches!(mode, Mode::SEARCH) {
+            let search_txt_str = search_txt.into_iter().collect::<String>();
+
+            str_to_draw.push_str("/");
+            str_to_draw.push_str(&search_txt.iter().take(self.bottom_line_slice(&search_txt_str)).collect::<String>());
+        } else {
+            let current_path_sliced = current_path.chars().take(self.bottom_line_slice(current_path)).collect::<String>();
+
+            str_to_draw.push_str(&current_path_sliced);
+        }
+    }
+
     pub fn draw(
         &mut self,
         cursor: usize,
@@ -111,39 +154,11 @@ impl Canvas {
         }
 
         let mut str_to_draw = String::from("");
-
-        if matches!(mode, Mode::SEARCH) {
-            /* Goto bottom line */
-            str_to_draw.push_str(&csi(&format!("{}H", self.height)));
-            str_to_draw.push_str(&csi("0K"));
-            str_to_draw.push_str("/");
-
-            /* Make sure bottom line doesn't overflow */
-            let mut display_len: usize = 0;
-            let mut to_slice: usize = 0;
-
-            for c in search_txt {
-                if self.is_wide(c.clone() as usize) {
-                    display_len += 2;
-                } else {
-                    display_len += 1;
-                }
-                if display_len > self.width - 1 {
-                    break;
-                }
-                to_slice += 1;
-            }
-
-            str_to_draw.push_str(&search_txt[0..to_slice].iter().collect::<String>());
-
-            print!("{}", str_to_draw);
-            let _ = io::stdout().flush();
-            return;
-        }
+        str_to_draw.push_str(&csi("1H"));
 
         /* write pixel */
-        let w_t: usize = self.height - 1;
-        let w_b: usize = 0;
+        let write_top: usize = self.height - 1;
+        let write_bottom: usize = 0;
 
         let l_w_l: usize = 0;
         let l_w_r: usize = (self.width / 10 * 6 - 1) as usize;
@@ -174,14 +189,14 @@ impl Canvas {
         }
 
         /* left side */
-        for i in w_b..=w_t {
+        for i in write_bottom..=write_top {
             let c_a = current_dir[dir_i].chars().collect::<Vec<char>>();
             ch_i = 0;
             for j in l_w_l..l_w_r {
                 if ch_i >= c_a.len() {
                     break;
                 }
-                self.set(w_t - i, j, c_a[ch_i]);
+                self.set(write_top - i, j, c_a[ch_i]);
                 ch_i += 1;
             }
             dir_i += 1;
@@ -193,7 +208,7 @@ impl Canvas {
         /* right side(preview) */
         dir_i = 0;
 
-        for i in w_b..=w_t {
+        for i in write_bottom..=write_top {
             if dir_i >= preview_dir.len() {
                 break;
             }
@@ -203,7 +218,7 @@ impl Canvas {
                 if ch_i >= c_a.len() {
                     break;
                 }
-                self.set(w_t - i, j, c_a[ch_i]);
+                self.set(write_top - i, j, c_a[ch_i]);
                 ch_i += 1;
             }
             dir_i += 1;
@@ -265,7 +280,13 @@ impl Canvas {
             do_preview = false;
         }
 
-        str_to_draw.push_str(&csi("1H"));
+        /* draw bottom line after drawing the directories */
+        self.draw_bottom_line(
+            &mut str_to_draw,
+            mode,
+            &current_path.to_str().unwrap().to_string(),
+            search_txt,
+        );
 
         print!("{}", str_to_draw);
         let _ = io::stdout().flush();
