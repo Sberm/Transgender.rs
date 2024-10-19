@@ -93,29 +93,18 @@ impl Canvas {
         }
     }
 
-    pub fn draw(
-        &mut self,
-        cursor: usize,
-        current_dir: &Vec<String>,
-        preview_dir: &Vec<String>,
-        window_start: usize,
-        current_path: &PathBuf,
+    fn draw_bottom_line(
+        &self,
+        str_to_draw: &mut String,
         mode: Mode,
+        current_path: &str,
         search_txt: &Vec<char>,
     ) {
-        let (h, w) = util::term_size();
-        if self.height != h || self.width != w {
-            self.height = h;
-            self.width = w;
-            self.pixels = vec![vec![' '; self.width]; self.height];
-        }
-
-        let mut str_to_draw = String::from("");
+        /* Goto bottom line */
+        str_to_draw.push_str(&csi(&format!("{}H", self.height)));
+        str_to_draw.push_str(&csi("0K"));
 
         if matches!(mode, Mode::SEARCH) {
-            /* Goto bottom line */
-            str_to_draw.push_str(&csi(&format!("{}H", self.height)));
-            str_to_draw.push_str(&csi("0K"));
             str_to_draw.push_str("/");
 
             /* Make sure bottom line doesn't overflow */
@@ -135,15 +124,34 @@ impl Canvas {
             }
 
             str_to_draw.push_str(&search_txt[0..to_slice].iter().collect::<String>());
+        } else {
+            str_to_draw.push_str(current_path);
+        }
+    }
 
-            print!("{}", str_to_draw);
-            let _ = io::stdout().flush();
-            return;
+    pub fn draw(
+        &mut self,
+        cursor: usize,
+        current_dir: &Vec<String>,
+        preview_dir: &Vec<String>,
+        window_start: usize,
+        current_path: &PathBuf,
+        mode: Mode,
+        search_txt: &Vec<char>,
+    ) {
+        let (h, w) = util::term_size();
+        if self.height != h || self.width != w {
+            self.height = h;
+            self.width = w;
+            self.pixels = vec![vec![' '; self.width]; self.height];
         }
 
+        let mut str_to_draw = String::from("");
+        str_to_draw.push_str(&csi("1H"));
+
         /* write pixel */
-        let w_t: usize = self.height - 1;
-        let w_b: usize = 0;
+        let write_top: usize = self.height - 1;
+        let write_bottom: usize = 0;
 
         let l_w_l: usize = 0;
         let l_w_r: usize = (self.width / 10 * 6 - 1) as usize;
@@ -174,14 +182,14 @@ impl Canvas {
         }
 
         /* left side */
-        for i in w_b..=w_t {
+        for i in write_bottom..=write_top {
             let c_a = current_dir[dir_i].chars().collect::<Vec<char>>();
             ch_i = 0;
             for j in l_w_l..l_w_r {
                 if ch_i >= c_a.len() {
                     break;
                 }
-                self.set(w_t - i, j, c_a[ch_i]);
+                self.set(write_top - i, j, c_a[ch_i]);
                 ch_i += 1;
             }
             dir_i += 1;
@@ -193,7 +201,7 @@ impl Canvas {
         /* right side(preview) */
         dir_i = 0;
 
-        for i in w_b..=w_t {
+        for i in write_bottom..=write_top {
             if dir_i >= preview_dir.len() {
                 break;
             }
@@ -203,7 +211,7 @@ impl Canvas {
                 if ch_i >= c_a.len() {
                     break;
                 }
-                self.set(w_t - i, j, c_a[ch_i]);
+                self.set(write_top - i, j, c_a[ch_i]);
                 ch_i += 1;
             }
             dir_i += 1;
@@ -265,7 +273,13 @@ impl Canvas {
             do_preview = false;
         }
 
-        str_to_draw.push_str(&csi("1H"));
+        /* draw bottom line after drawing the directories */
+        self.draw_bottom_line(
+            &mut str_to_draw,
+            mode,
+            &current_path.to_str().unwrap().to_string(),
+            search_txt,
+        );
 
         print!("{}", str_to_draw);
         let _ = io::stdout().flush();
