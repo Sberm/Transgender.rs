@@ -297,7 +297,12 @@ impl Browser {
 
         let (h, _) = util::term_size();
 
-        if self.cursor as isize > (h - 1) as isize && self.cursor > self.window_start + h - 1 {
+        /* So the cursor won't be covered by the bottom line (TODO: But trans still draws that line in Canvas) */
+        let display_height = h - 1;
+
+        if self.cursor as isize > (display_height - 1) as isize
+            && self.cursor > self.window_start + display_height - 1
+        {
             self.window_start += 1;
         }
     }
