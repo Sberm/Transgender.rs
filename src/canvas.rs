@@ -1,6 +1,6 @@
 extern crate libc;
 
-use crate::ops::{consts, Mode};
+use crate::ops::{consts, Mode, Theme};
 use crate::utf8;
 use crate::util;
 use std::io::{self, Write};
@@ -10,6 +10,11 @@ pub struct Canvas {
     pub height: usize,
     pub width: usize,
     pixels: Vec<Vec<char>>,
+    highlight: String,
+    highlight_dir: String,
+    highlight_bg: String,
+    normal: String,
+    normal_bg: String,
 }
 
 impl Clone for Canvas {
@@ -18,6 +23,11 @@ impl Clone for Canvas {
             height: self.height,
             width: self.width,
             pixels: Vec::new(),
+            highlight: String::new(),
+            highlight_dir: String::new(),
+            highlight_bg: String::new(),
+            normal: String::new(),
+            normal_bg: String::new(),
         }
     }
 }
@@ -66,20 +76,20 @@ impl Canvas {
         is_dir: bool,
     ) {
         if i == 0 && j == 0 {
-            str_to_draw.push_str(&consts::NORMAL);
-            str_to_draw.push_str(&consts::NORMAL_BG);
+            str_to_draw.push_str(&self.normal);
+            str_to_draw.push_str(&self.normal_bg);
         }
 
         if i == cursor && j == 0 {
             if is_dir {
-                str_to_draw.push_str(&consts::HIGHLIGHT_DIR);
+                str_to_draw.push_str(&self.highlight_dir);
             } else {
-                str_to_draw.push_str(&consts::HIGHLIGHT);
+                str_to_draw.push_str(&self.highlight);
             }
-            str_to_draw.push_str(&consts::HIGHLIGHT_BG);
+            str_to_draw.push_str(&self.highlight_bg);
         } else if i == cursor && j == r_w_l {
-            str_to_draw.push_str(&consts::NORMAL);
-            str_to_draw.push_str(&consts::NORMAL_BG);
+            str_to_draw.push_str(&self.normal);
+            str_to_draw.push_str(&self.normal_bg);
         }
     }
 
@@ -149,8 +159,8 @@ impl Canvas {
 
         /* no content */
         if current_dir.len() == 0 {
-            str_to_draw.push_str(&consts::NORMAL);
-            str_to_draw.push_str(&consts::NORMAL_BG);
+            str_to_draw.push_str(&self.normal);
+            str_to_draw.push_str(&self.normal_bg);
 
             for line in &self.pixels {
                 let tmp_s = line.iter().collect::<String>(); // Vec<char> -> String
@@ -271,9 +281,24 @@ impl Canvas {
 }
 
 pub fn new() -> Canvas {
-    Canvas {
+    let mut canvas = Canvas {
         height: 0,
         width: 0,
         pixels: Vec::new(),
+        highlight: String::from(consts::HIGHLIGHT_TRANS),
+        highlight_dir: String::from(consts::HIGHLIGHT_DIR_TRANS),
+        highlight_bg: String::from(consts::HIGHLIGHT_BG_TRANS),
+        normal: String::from(consts::NORMAL_TRANS),
+        normal_bg: String::from(consts::NORMAL_BG_TRANS),
+    };
+
+    if matches!(util::get_theme(), Theme::DARK) {
+        canvas.highlight = String::from(consts::HIGHLIGHT_DARK);
+        canvas.highlight_dir = String::from(consts::HIGHLIGHT_DIR_DARK);
+        canvas.highlight_bg = String::from(consts::HIGHLIGHT_BG_DARK);
+        canvas.normal = String::from(consts::NORMAL_DARK);
+        canvas.normal_bg = String::from(consts::NORMAL_BG_DARK);
     }
+
+    canvas
 }

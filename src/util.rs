@@ -4,7 +4,8 @@ use self::libc::{
     c_ushort, ioctl, tcgetattr, tcsetattr, termios, ECHO, ICANON, ISIG, STDIN_FILENO,
     STDOUT_FILENO, TCSAFLUSH, TIOCGWINSZ,
 };
-use crate::ops::code;
+use crate::ops::{code, consts, Theme};
+use std::env::var;
 use std::fs::File;
 use std::io::{self, stdin, BufRead, Read, Write};
 use std::mem;
@@ -145,7 +146,7 @@ pub fn process_input() -> u8 {
     }
 }
 
-pub fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
+fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
 where
     P: AsRef<Path>,
 {
@@ -155,4 +156,42 @@ where
 
 pub fn print_path(str_: &str) {
     eprintln!("\n{}", str_);
+}
+
+pub fn get_theme() -> Theme {
+    if let Ok(home_dir) = var(consts::HOME_VAR) {
+        if let Ok(lines) = read_lines(&format!("{}/{}", home_dir, consts::CONFIG_FILE)) {
+            for line in lines.flatten() {
+                let trimmed = line.replace(" ", "");
+
+                let kv = trimmed.split("=").collect::<Vec<&str>>();
+                if kv.len() != 2 {
+                    continue;
+                }
+                if kv[0].eq(consts::THEME_KEY) && kv[1].eq(consts::THEME_DARK) {
+                    return Theme::DARK;
+                }
+            }
+        }
+    }
+    return Theme::TRANS;
+}
+
+pub fn get_editor() -> String {
+    if let Ok(home_dir) = var(consts::HOME_VAR) {
+        if let Ok(lines) = read_lines(&format!("{}/{}", home_dir, consts::CONFIG_FILE)) {
+            for line in lines.flatten() {
+                let trimmed = line.replace(" ", "");
+
+                let kv = trimmed.split("=").collect::<Vec<&str>>();
+                if kv.len() != 2 {
+                    continue;
+                }
+                if kv[0].eq(consts::EDITOR_KEY) {
+                    return String::from(kv[1]);
+                }
+            }
+        }
+    }
+    return String::from(consts::EDITOR);
 }

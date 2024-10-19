@@ -77,18 +77,33 @@ located at
 ~/.tsrc
 ```
 
-**if `~/.tsrc` doesn't exist, user has to create one**
+**if `~/.tsrc` doesn't exist, you need to create one**
 
-currently only supports changing editor
+Supports changing the editor and the theme.
 
-change what's after equal sign to your favorite editor
-```
+Example of `~/.tsrc`:
+
+```tsrc
+# Set your preferred editor
 editor = emacs
+
+# Set your preferred theme
+theme = dark
 ```
 
-that will be the editor opened after hitting `o` or `ENTER` when cursor is on a file
+#### Editor
 
-the default editor is `vi`
+The specified editor will open when `o` or `ENTER` is pressed while the cursor is on a file.
+
+By default, the editor is set to `vi`.
+
+#### Theme
+
+Currently, there are only two themes available: `dark` and `trans`, the default theme is `trans`.
+
+Image of the `dark` theme:
+
+![](img/trans-img-dark-theme.png)
 
 <br/>
 
