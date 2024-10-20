@@ -482,7 +482,8 @@ impl Browser {
             exit(0);
         };
 
-        /* sometimes the editor enables cursor */
+        /* sometimes the editor exits alternate buffer, and enables cursor */
+        util::enter_albuf();
         util::hide_cursor();
     }
 
