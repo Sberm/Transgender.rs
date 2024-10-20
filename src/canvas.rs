@@ -128,9 +128,17 @@ impl Canvas {
             let search_txt_str = search_txt.into_iter().collect::<String>();
 
             str_to_draw.push_str("/");
-            str_to_draw.push_str(&search_txt.iter().take(self.bottom_line_slice(&search_txt_str)).collect::<String>());
+            str_to_draw.push_str(
+                &search_txt
+                    .iter()
+                    .take(self.bottom_line_slice(&search_txt_str))
+                    .collect::<String>(),
+            );
         } else {
-            let current_path_sliced = current_path.chars().take(self.bottom_line_slice(current_path)).collect::<String>();
+            let current_path_sliced = current_path
+                .chars()
+                .take(self.bottom_line_slice(current_path))
+                .collect::<String>();
 
             str_to_draw.push_str(&current_path_sliced);
         }
