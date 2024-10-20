@@ -267,15 +267,10 @@ impl Browser {
     }
 
     fn search(&mut self) {
-        let (s, is_ascii) = match util::read_utf8() {
-            Ok((s, is_ascii)) => (s, is_ascii),
-            Err(_) => (String::from("�"), false),
+        let (rc, is_ascii) = match util::read_utf8() {
+            Ok((rc, is_ascii)) => (rc, is_ascii),
+            Err(_) => ('�', false),
         };
-
-        let rc = s
-            .chars()
-            .nth(0)
-            .expect("Failed to get the first & only character");
 
         self.has_search_input = true;
 

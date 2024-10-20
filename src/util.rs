@@ -152,18 +152,18 @@ pub fn process_input() -> u8 {
     }
 
     match input {
-        107 => return code::UP, /* k */
-        106 => return code::DOWN, /* j */
-        104 => return code::LEFT, /* h */
-        108 => return code::RIGHT, /* l */
+        107 => return code::UP,          /* k */
+        106 => return code::DOWN,        /* j */
+        104 => return code::LEFT,        /* h */
+        108 => return code::RIGHT,       /* l */
         111 => return code::EXIT_CURSOR, /* o */
-        10 => return code::EXIT_CURSOR, /* Enter */
-        105 => return code::EXIT, /* i */
-        113 => return code::QUIT, /* q */
-        47 => return code::SEARCH, /* / */
-        71 => return code::BOTTOM, /* G */
-        110 => return code::NEXT_MATCH, /* n */
-        78 => return code::PREV_MATCH, /* N */
+        10 => return code::EXIT_CURSOR,  /* Enter */
+        105 => return code::EXIT,        /* i */
+        113 => return code::QUIT,        /* q */
+        47 => return code::SEARCH,       /* / */
+        71 => return code::BOTTOM,       /* G */
+        110 => return code::NEXT_MATCH,  /* n */
+        78 => return code::PREV_MATCH,   /* N */
         _ => return code::NOOP,
     }
 }
@@ -234,7 +234,7 @@ pub fn get_editor() -> String {
  * returns
  *  A tuple of char and bool
  */
-pub fn read_utf8() -> Result<(String, bool), ()> {
+pub fn read_utf8() -> Result<(char, bool), ()> {
     let mut c_bytes = [0u8; 4];
     let mut bytes_cnt: usize = 0;
 
@@ -267,5 +267,10 @@ pub fn read_utf8() -> Result<(String, bool), ()> {
         from_utf8(&c_bytes[0..bytes_cnt]).expect("Failed to convert bytes string to &str"),
     );
 
-    Ok((s, is_ascii))
+    let rc = s
+        .chars()
+        .nth(0)
+        .expect("Failed to get the first & only character");
+
+    Ok((rc, is_ascii))
 }
