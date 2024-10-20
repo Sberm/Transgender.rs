@@ -18,6 +18,7 @@ pub struct Browser {
     original_path: PathBuf,
     mode: Mode,
     search_txt: Vec<char>,
+    has_search_input: bool,
     ops: Ops,
 }
 
@@ -106,11 +107,16 @@ impl Browser {
                 }
                 code::SEARCH => {
                     self.search_txt = Vec::new();
+                    self.has_search_input = false;
                     self.mode = Mode::SEARCH;
                     util::set_search_cursor();
                 }
                 code::NEXT_MATCH => {
-                    self.next_match();
+                    self.next_match(if self.cursor + 1 < self.current_dir.len() {
+                        self.cursor + 1
+                    } else {
+                        0
+                    });
                 }
                 _ => {
                     continue;
@@ -163,29 +169,34 @@ impl Browser {
         };
     }
 
-    fn next_match(&mut self) {
-        let mut matches = false;
+    fn next_match(&mut self, start: usize) {
+        if self.has_search_input == false {
+            return;
+        }
+
+        let mut matched = false;
 
         if self.cursor >= self.current_dir.len() {
             return;
         }
 
-        let re = Regex::new(&self.search_txt.iter().collect::<String>()).expect("Failed to parse regex");
+        let re = match Regex::new(&self.search_txt.iter().collect::<String>()) {
+            Ok(re) => re,
+            Err(_) => Regex::new("^$").unwrap(),
+        };
 
-        for i in self.cursor + 1..self.current_dir.len() {
-            let cd = &self.current_dir[i];
-            if re.is_match(cd) {
+        for i in start..self.current_dir.len() {
+            if re.is_match(&self.current_dir[i]) {
                 self.set_cursor_pos(i);
-                matches = true;
+                matched = true;
                 break;
             }
         }
 
         /* start from 0 */
-        if matches == false {
-            for i in 0..self.cursor {
-                let cd = &self.current_dir[i];
-                if re.is_match(cd) {
+        if matched == false {
+            for i in 0..start {
+                if re.is_match(&self.current_dir[i]) {
                     self.set_cursor_pos(i);
                     break;
                 }
@@ -204,6 +215,8 @@ impl Browser {
             .nth(0)
             .expect("Failed to get the first & only character");
 
+        self.has_search_input = true;
+
         if is_ascii {
             /* esc */
             if rc as u8 == 27 {
@@ -217,14 +230,12 @@ impl Browser {
                 if self.search_txt.len() > 0 {
                     self.search_txt.pop().expect("search txt(pop) out of bound");
                 }
-                self.next_match();
                 return;
             }
 
             /* enter */
             if rc as u8 == 10 {
                 /* search */
-                //self.next_match();
                 self.mode = Mode::NORMAL;
                 util::reset_search_cursor();
                 return;
@@ -232,8 +243,7 @@ impl Browser {
         }
 
         self.search_txt.push(rc);
-        // TODO: Debounce
-        self.next_match();
+        self.next_match(self.cursor);
     }
 
     fn top(&mut self) {
@@ -428,6 +438,7 @@ pub fn new() -> Browser {
         original_path: PathBuf::from(""),
         mode: Mode::NORMAL,
         search_txt: Vec::new(),
+        has_search_input: false,
         ops: Ops {
             editor: util::get_editor(),
         },

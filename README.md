@@ -107,6 +107,12 @@ Image of the `dark` theme:
 
 <br/>
 
+### Search
+
+`trans` performs searches in a case-insensitive manner and is triggered with every keystroke.
+
+Checkout to `regex` branch if you want regex-powered search.
+
 ### uninstall
 
 if you want to uninstall Transgender
