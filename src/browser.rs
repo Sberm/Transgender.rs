@@ -180,6 +180,7 @@ impl Browser {
             return;
         }
 
+        /* Regex can be invalid while the user is typing */
         let re = match Regex::new(&self.search_txt.iter().collect::<String>()) {
             Ok(re) => re,
             Err(_) => Regex::new("^$").unwrap(),
