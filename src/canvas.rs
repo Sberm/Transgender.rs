@@ -180,17 +180,24 @@ impl Canvas {
 
         self.clear_pixels();
 
-        /* no content */
+        /* No files in directory */
         if current_dir.len() == 0 {
             str_to_draw.push_str(&self.normal);
             str_to_draw.push_str(&self.normal_bg);
 
+            /* Empty lines still need to be drawn */
             for line in &self.pixels {
-                let tmp_s = line.iter().collect::<String>(); // Vec<char> -> String
-                str_to_draw.push_str(&tmp_s); // concat
+                let tmp_s = line.iter().collect::<String>();
+                str_to_draw.push_str(&tmp_s);
             }
 
-            str_to_draw.push_str(&csi("1H"));
+            self.draw_bottom_line(
+                &mut str_to_draw,
+                mode,
+                &current_path.to_str().unwrap().to_string(),
+                search_txt,
+            );
+
             print!("{}", str_to_draw);
             let _ = io::stdout().flush();
             return;
