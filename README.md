@@ -109,9 +109,9 @@ Image of the `dark` theme:
 
 ### Search
 
-`trans` performs searches in a case-insensitive manner and is triggered with every keystroke.
+Now supports `**regular expression**`
 
-Checkout to `regex` branch if you want regex-powered search.
+`trans` performs a search whenever a key is pressed
 
 ### uninstall
 
