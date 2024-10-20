@@ -17,6 +17,7 @@ pub struct Browser {
     original_path: PathBuf,
     mode: Mode,
     search_txt: Vec<char>,
+    has_search_input: bool,
     ops: Ops,
 }
 
@@ -105,11 +106,16 @@ impl Browser {
                 }
                 code::SEARCH => {
                     self.search_txt = Vec::new();
+                    self.has_search_input = false;
                     self.mode = Mode::SEARCH;
                     util::set_search_cursor();
                 }
                 code::NEXT_MATCH => {
-                    self.next_match();
+                    self.next_match(if self.cursor + 1 < self.current_dir.len() {
+                        self.cursor + 1
+                    } else {
+                        0
+                    });
                 }
                 _ => {
                     continue;
@@ -152,63 +158,48 @@ impl Browser {
         ret
     }
 
-    fn next_match(&mut self) {
-        let mut flag = false;
+    fn brute_force_search(&self, s: &str) -> bool {
+        if self.search_txt.len() > s.len() {
+            return false;
+        }
+
+        return s.to_lowercase().contains(&self.search_txt.iter().collect::<String>().to_lowercase());
+    }
+
+    fn set_cursor_pos(&mut self, index: usize) {
+        self.cursor = index;
+        let (h, _) = util::term_size();
+        self.window_start = if self.cursor as isize - h as isize / 2 > 0 {
+            self.cursor - h / 2
+        } else {
+            0
+        };
+    }
+
+    fn next_match(&mut self, start: usize) {
+        if self.has_search_input == false {
+            return;
+        }
+
+        let mut matched = false;
 
         if self.cursor >= self.current_dir.len() {
             return;
         }
 
-        for i in self.cursor + 1..self.current_dir.len() {
-            let cd = &self.current_dir[i];
-            if self.search_txt.len() > cd.chars().collect::<String>().len() {
-                continue;
-            }
-            flag = true;
-            for (j, c) in self.search_txt.iter().enumerate() {
-                if j < cd.len() {
-                    if *c != cd.chars().nth(j).expect("current_dir string out of bound") {
-                        flag = false;
-                        break;
-                    }
-                }
-            }
-            if flag == true {
-                self.cursor = i;
-                let (h, _) = util::term_size();
-                self.window_start = if self.cursor as isize - h as isize / 2 > 0 {
-                    self.cursor - h / 2
-                } else {
-                    0
-                };
+        for i in start..self.current_dir.len() {
+            if self.brute_force_search(&self.current_dir[i]) {
+                matched = true;
+                self.set_cursor_pos(i);
                 break;
             }
         }
 
         /* start from 0 */
-        if flag == false {
-            for i in 0..self.cursor {
-                let cd = &self.current_dir[i];
-                flag = true;
-                if self.search_txt.len() > cd.chars().collect::<String>().len() {
-                    continue;
-                }
-                for (j, c) in self.search_txt.iter().enumerate() {
-                    if j < cd.len() {
-                        if *c != cd.chars().nth(j).expect("current_dir string out of bound") {
-                            flag = false;
-                            break;
-                        }
-                    }
-                }
-                if flag == true {
-                    self.cursor = i;
-                    let (h, _) = util::term_size();
-                    self.window_start = if self.cursor as isize - h as isize / 2 > 0 {
-                        self.cursor - h / 2
-                    } else {
-                        0
-                    };
+        if matched == false {
+            for i in 0..start {
+                if self.brute_force_search(&self.current_dir[i]) {
+                    self.set_cursor_pos(i);
                     break;
                 }
             }
@@ -225,6 +216,8 @@ impl Browser {
             .chars()
             .nth(0)
             .expect("Failed to get the first & only character");
+
+        self.has_search_input = true;
 
         if is_ascii {
             /* esc */
@@ -245,7 +238,6 @@ impl Browser {
             /* enter */
             if rc as u8 == 10 {
                 /* search */
-                self.next_match();
                 self.mode = Mode::NORMAL;
                 util::reset_search_cursor();
                 return;
@@ -253,6 +245,7 @@ impl Browser {
         }
 
         self.search_txt.push(rc);
+        self.next_match(self.cursor);
     }
 
     fn top(&mut self) {
@@ -447,6 +440,7 @@ pub fn new() -> Browser {
         original_path: PathBuf::from(""),
         mode: Mode::NORMAL,
         search_txt: Vec::new(),
+        has_search_input: false,
         ops: Ops {
             editor: util::get_editor(),
         },
