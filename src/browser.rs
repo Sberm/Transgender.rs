@@ -5,6 +5,7 @@ use std::fs::read_dir;
 use std::path::PathBuf;
 use std::process::{exit, Command};
 use std::vec::Vec;
+use regex::Regex;
 
 pub struct Browser {
     cursor: usize,
@@ -152,63 +153,40 @@ impl Browser {
         ret
     }
 
+    fn set_cursor_pos(&mut self, index: usize) {
+        self.cursor = index;
+        let (h, _) = util::term_size();
+        self.window_start = if self.cursor as isize - h as isize / 2 > 0 {
+            self.cursor - h / 2
+        } else {
+            0
+        };
+    }
+
     fn next_match(&mut self) {
-        let mut flag = false;
+        let mut matches = false;
 
         if self.cursor >= self.current_dir.len() {
             return;
         }
 
+        let re = Regex::new(&self.search_txt.iter().collect::<String>()).expect("Failed to parse regex");
+
         for i in self.cursor + 1..self.current_dir.len() {
             let cd = &self.current_dir[i];
-            if self.search_txt.len() > cd.chars().collect::<String>().len() {
-                continue;
-            }
-            flag = true;
-            for (j, c) in self.search_txt.iter().enumerate() {
-                if j < cd.len() {
-                    if *c != cd.chars().nth(j).expect("current_dir string out of bound") {
-                        flag = false;
-                        break;
-                    }
-                }
-            }
-            if flag == true {
-                self.cursor = i;
-                let (h, _) = util::term_size();
-                self.window_start = if self.cursor as isize - h as isize / 2 > 0 {
-                    self.cursor - h / 2
-                } else {
-                    0
-                };
+            if re.is_match(cd) {
+                self.set_cursor_pos(i);
+                matches = true;
                 break;
             }
         }
 
         /* start from 0 */
-        if flag == false {
+        if matches == false {
             for i in 0..self.cursor {
                 let cd = &self.current_dir[i];
-                flag = true;
-                if self.search_txt.len() > cd.chars().collect::<String>().len() {
-                    continue;
-                }
-                for (j, c) in self.search_txt.iter().enumerate() {
-                    if j < cd.len() {
-                        if *c != cd.chars().nth(j).expect("current_dir string out of bound") {
-                            flag = false;
-                            break;
-                        }
-                    }
-                }
-                if flag == true {
-                    self.cursor = i;
-                    let (h, _) = util::term_size();
-                    self.window_start = if self.cursor as isize - h as isize / 2 > 0 {
-                        self.cursor - h / 2
-                    } else {
-                        0
-                    };
+                if re.is_match(cd) {
+                    self.set_cursor_pos(i);
                     break;
                 }
             }
@@ -239,13 +217,14 @@ impl Browser {
                 if self.search_txt.len() > 0 {
                     self.search_txt.pop().expect("search txt(pop) out of bound");
                 }
+                self.next_match();
                 return;
             }
 
             /* enter */
             if rc as u8 == 10 {
                 /* search */
-                self.next_match();
+                //self.next_match();
                 self.mode = Mode::NORMAL;
                 util::reset_search_cursor();
                 return;
@@ -253,6 +232,8 @@ impl Browser {
         }
 
         self.search_txt.push(rc);
+        // TODO: Debounce
+        self.next_match();
     }
 
     fn top(&mut self) {
