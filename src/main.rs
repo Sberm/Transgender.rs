@@ -13,7 +13,7 @@ fn main() {
     /* -v */
     let args: Vec<String> = env::args().collect();
     if args.len() > 1 && (args[1].eq("-v") || args[1].eq("--version")) {
-        println!("\n  Transgender.rs\n\n    Vanilla trans\n");
+        println!("\n  Transgender.rs\n\n    Regex-powered trans\n");
         exit(0);
     }
 
