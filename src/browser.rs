@@ -460,8 +460,6 @@ impl Browser {
         let mut dir = self.current_path.clone();
         dir.push(&self.current_dir[self.cursor]);
 
-        util::exit_albuf();
-
         if dir.is_dir() == false {
             if let Ok(_) = Command::new(&self.editor)
                 .arg(dir.to_str().unwrap())
@@ -478,11 +476,14 @@ impl Browser {
                     ));
             }
         } else {
+            util::exit_albuf();
             util::print_path(dir.to_str().unwrap());
+
             exit(0);
         };
 
-        util::enter_albuf();
+        /* sometimes the editor enables cursor */
+        util::hide_cursor();
     }
 
     fn quit(&self) {
