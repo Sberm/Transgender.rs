@@ -143,6 +143,7 @@ pub fn process_input() -> u8 {
         47 => return code::SEARCH, /* / */
         71 => return code::BOTTOM, /* G */
         110 => return code::NEXT_MATCH,
+        78 => return code::PREV_MATCH,
         _ => return code::NOOP,
     }
 }
