@@ -3,6 +3,9 @@ pub enum Theme {
     DARK,
 }
 
+/*
+ * All the constant
+ */
 pub mod consts {
     pub const HOME_VAR: &str = "HOME";
     pub const CONFIG_FILE: &str = ".tsrc";
@@ -27,6 +30,9 @@ pub mod consts {
     pub const NORMAL_BG_DARK: &str = "\x1b[48;5;0m";
 }
 
+/*
+ * File browser operation code
+ */
 pub mod code {
     pub const NOOP: u8 = 0;
     pub const UP: u8 = 1;

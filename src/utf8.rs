@@ -1,3 +1,6 @@
+/*
+ * Table of UTF8 blocks
+ */
 pub struct U8Range {
     pub l: usize,
     pub r: usize,
