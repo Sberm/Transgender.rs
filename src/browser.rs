@@ -7,6 +7,9 @@ use std::path::PathBuf;
 use std::process::{exit, Command};
 use std::vec::Vec;
 
+/*
+ * Directory browser
+ */
 pub struct Browser {
     cursor: usize,
     window_start: usize,
@@ -23,6 +26,9 @@ pub struct Browser {
 }
 
 impl Browser {
+    /*
+     *  Construct past directory stack according to the current path
+     */
     pub fn init(&mut self) {
         self.read_to_current_dir(&String::from("."));
         let mut srcdir = PathBuf::from(".")
@@ -61,6 +67,9 @@ impl Browser {
         self.top();
     }
 
+    /*
+     *  Window display update loop
+     */
     pub fn start_loop(&mut self, canvas: &mut canvas::Canvas) {
         loop {
             let preview_dir = self.get_preview();
@@ -138,6 +147,12 @@ impl Browser {
         }
     }
 
+    /*
+     *  Get directory content preview window
+     *
+     * returns
+     *  preview window
+     */
     fn get_preview(&self) -> Vec<String> {
         let mut ret: Vec<String> = Vec::new();
 
@@ -172,6 +187,9 @@ impl Browser {
         ret
     }
 
+    /*
+     *  Set cursor position, centered in the window
+     */
     fn set_cursor_pos(&mut self, index: usize) {
         self.cursor = index;
         let (h, _) = util::term_size();
@@ -182,6 +200,9 @@ impl Browser {
         };
     }
 
+    /*
+     *  Next search match, can be a reversed search
+     */
     fn next_match(&mut self, start: usize, rev: bool) {
         if self.has_search_input == false {
             return;
@@ -395,6 +416,9 @@ impl Browser {
         self.top();
     }
 
+    /*
+     *  Read the file and directory names in the current directory
+     */
     fn read_to_current_dir(&mut self, path: &String) {
         self.current_dir.clear();
 
@@ -415,12 +439,20 @@ impl Browser {
         }
     }
 
+    /*
+     * Goto the directory in the left side window, while quitting trans
+     */
     fn exit_cur_dir(&self) {
         util::exit_albuf();
         util::print_path(&self.current_path.to_str().unwrap());
         exit(0);
     }
 
+    /*
+     * Goto the directory under the cursor, while quitting trans
+     *  or
+     * Open the file under the cursor with a text editor
+     */
     fn exit_under_cursor(&self) {
         let mut dir = self.current_path.clone();
         dir.push(&self.current_dir[self.cursor]);
