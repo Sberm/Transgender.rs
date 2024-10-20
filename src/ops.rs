@@ -62,7 +62,3 @@ pub enum Mode {
     NORMAL,
     SEARCH,
 }
-
-pub struct Ops {
-    pub editor: String,
-}

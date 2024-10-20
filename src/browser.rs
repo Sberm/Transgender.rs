@@ -7,7 +7,7 @@
 ╚════════════════════════════════════════════════════════════════════════*/
 
 use crate::canvas;
-use crate::ops::{code, consts, Mode, Ops};
+use crate::ops::{code, consts, Mode};
 use crate::util;
 use regex::Regex;
 use std::fs::read_dir;
@@ -30,7 +30,7 @@ pub struct Browser {
     mode: Mode,
     search_txt: Vec<char>,
     has_search_input: bool,
-    ops: Ops,
+    editor: String,
 }
 
 impl Browser {
@@ -463,7 +463,7 @@ impl Browser {
         util::exit_albuf();
 
         if dir.is_dir() == false {
-            if let Ok(_) = Command::new(&self.ops.editor)
+            if let Ok(_) = Command::new(&self.editor)
                 .arg(dir.to_str().unwrap())
                 .status()
             {
@@ -507,9 +507,7 @@ pub fn new() -> Browser {
         mode: Mode::NORMAL,
         search_txt: Vec::new(),
         has_search_input: false,
-        ops: Ops {
-            editor: util::get_editor(),
-        },
+        editor: util::get_editor(),
     };
 
     browser.init();
