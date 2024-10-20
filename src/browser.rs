@@ -5,6 +5,7 @@ use std::fs::read_dir;
 use std::path::PathBuf;
 use std::process::{exit, Command};
 use std::vec::Vec;
+use regex::Regex;
 
 pub struct Browser {
     cursor: usize,
@@ -158,14 +159,6 @@ impl Browser {
         ret
     }
 
-    fn brute_force_search(&self, s: &str) -> bool {
-        if self.search_txt.len() > s.len() {
-            return false;
-        }
-
-        return s.to_lowercase().contains(&self.search_txt.iter().collect::<String>().to_lowercase());
-    }
-
     fn set_cursor_pos(&mut self, index: usize) {
         self.cursor = index;
         let (h, _) = util::term_size();
@@ -187,10 +180,16 @@ impl Browser {
             return;
         }
 
+        /* Regex can be invalid while the user is typing */
+        let re = match Regex::new(&self.search_txt.iter().collect::<String>()) {
+            Ok(re) => re,
+            Err(_) => Regex::new("^$").unwrap(),
+        };
+
         for i in start..self.current_dir.len() {
-            if self.brute_force_search(&self.current_dir[i]) {
-                matched = true;
+            if re.is_match(&self.current_dir[i]) {
                 self.set_cursor_pos(i);
+                matched = true;
                 break;
             }
         }
@@ -198,7 +197,7 @@ impl Browser {
         /* start from 0 */
         if matched == false {
             for i in 0..start {
-                if self.brute_force_search(&self.current_dir[i]) {
+                if re.is_match(&self.current_dir[i]) {
                     self.set_cursor_pos(i);
                     break;
                 }
