@@ -40,6 +40,7 @@ pub mod code {
     pub const BOTTOM: u8 = 9;
     pub const SEARCH: u8 = 10;
     pub const NEXT_MATCH: u8 = 11;
+    pub const PREV_MATCH: u8 = 12;
 }
 
 #[derive(Copy, Clone)]

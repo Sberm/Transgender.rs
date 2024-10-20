@@ -112,11 +112,24 @@ impl Browser {
                     util::set_search_cursor();
                 }
                 code::NEXT_MATCH => {
-                    self.next_match(if self.cursor + 1 < self.current_dir.len() {
-                        self.cursor + 1
-                    } else {
-                        0
-                    });
+                    self.next_match(
+                        if self.cursor + 1 < self.current_dir.len() {
+                            self.cursor + 1
+                        } else {
+                            0
+                        },
+                        false,
+                    );
+                }
+                code::PREV_MATCH => {
+                    self.next_match(
+                        if self.cursor as isize - 1 >= 0 {
+                            self.cursor - 1
+                        } else {
+                            self.current_dir.len() - 1
+                        },
+                        true,
+                    );
                 }
                 _ => {
                     continue;
@@ -169,7 +182,7 @@ impl Browser {
         };
     }
 
-    fn next_match(&mut self, start: usize) {
+    fn next_match(&mut self, start: usize, rev: bool) {
         if self.has_search_input == false {
             return;
         }
@@ -186,20 +199,39 @@ impl Browser {
             Err(_) => Regex::new("^$").unwrap(),
         };
 
-        for i in start..self.current_dir.len() {
-            if re.is_match(&self.current_dir[i]) {
-                self.set_cursor_pos(i);
-                matched = true;
-                break;
+        if rev == false {
+            for i in start..self.current_dir.len() {
+                if re.is_match(&self.current_dir[i]) {
+                    self.set_cursor_pos(i);
+                    matched = true;
+                    break;
+                }
+            }
+        } else {
+            for i in (0..start).rev() {
+                if re.is_match(&self.current_dir[i]) {
+                    self.set_cursor_pos(i);
+                    matched = true;
+                    break;
+                }
             }
         }
 
         /* start from 0 */
         if matched == false {
-            for i in 0..start {
-                if re.is_match(&self.current_dir[i]) {
-                    self.set_cursor_pos(i);
-                    break;
+            if rev == false {
+                for i in 0..start {
+                    if re.is_match(&self.current_dir[i]) {
+                        self.set_cursor_pos(i);
+                        break;
+                    }
+                }
+            } else {
+                for i in (start..self.current_dir.len()).rev() {
+                    if re.is_match(&self.current_dir[i]) {
+                        self.set_cursor_pos(i);
+                        break;
+                    }
                 }
             }
         }
@@ -244,7 +276,7 @@ impl Browser {
         }
 
         self.search_txt.push(rc);
-        self.next_match(self.cursor);
+        self.next_match(self.cursor, false);
     }
 
     fn top(&mut self) {
