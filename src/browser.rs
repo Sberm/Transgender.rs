@@ -1,11 +1,11 @@
 use crate::canvas;
 use crate::ops::{code, consts, Mode, Ops};
 use crate::util;
+use regex::Regex;
 use std::fs::read_dir;
 use std::path::PathBuf;
 use std::process::{exit, Command};
 use std::vec::Vec;
-use regex::Regex;
 
 pub struct Browser {
     cursor: usize,
