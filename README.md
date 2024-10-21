@@ -113,6 +113,8 @@ Now supports `**regular expression**`
 
 `trans` performs a search whenever a key is pressed
 
+<br/>
+
 ### uninstall
 
 if you want to uninstall Transgender
