@@ -9,7 +9,7 @@
 use crate::canvas;
 use crate::ops::{code, consts, Mode};
 use crate::util;
-use regex::Regex;
+use regex::RegexBuilder;
 use std::fs::read_dir;
 use std::path::PathBuf;
 use std::process::{exit, Command};
@@ -217,15 +217,38 @@ impl Browser {
         }
 
         let mut matched = false;
+        let mut case_insensitive = true;
 
         if self.cursor >= self.current_dir.len() {
             return;
         }
 
+        let mut search: String = self.search_txt.iter().collect::<String>();
+
+        /* Check if the case sensitive '\C' is present at the bottom of the search text */
+        let len = self.search_txt.iter().count();
+        if len > 2 {
+            let last_two = self
+                .search_txt
+                .iter()
+                .skip(len - 2)
+                .take(2)
+                .collect::<String>();
+            if last_two.eq("\\C") {
+                search = self.search_txt.iter().take(len - 2).collect::<String>();
+                case_insensitive = false;
+            }
+        }
+
         /* Regex can be invalid while the user is typing */
-        let re = match Regex::new(&self.search_txt.iter().collect::<String>()) {
+        let re = match RegexBuilder::new(&search)
+            .case_insensitive(case_insensitive)
+            .build()
+        {
             Ok(re) => re,
-            Err(_) => Regex::new("^$").unwrap(),
+            Err(_) => RegexBuilder::new("^$")
+                .build()
+                .expect("Failed to parse regex for ^$"),
         };
 
         if rev == false {
