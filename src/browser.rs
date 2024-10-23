@@ -407,20 +407,15 @@ impl Browser {
             .expect("Failed to do to_str()");
 
         /* 0 could be good, but it could be because it was pushed in beginning */
-        if self.cursor == 0 {
-            let mut i = 0;
-            for dir in &self.current_dir {
-                if dir.as_str() == dir_to_restore {
-                    self.cursor = i;
-                    let (h, _) = util::term_size();
-                    if self.cursor > self.window_start + h - 1 {
-                        self.window_start = self.cursor - h + 1;
-                    }
-                    break;
-                }
-                i += 1;
+        let mut index: usize = 0;
+        for (i, dir) in self.current_dir.iter().enumerate() {
+            if dir.eq(dir_to_restore) {
+                self.cursor = i;
+                index = i;
+                break;
             }
         }
+        self.set_cursor_pos(index);
     }
 
     fn right(&mut self) {
