@@ -31,8 +31,8 @@ make install
 
 paste this function to your shell configuration file, depends on what shell you use (`~/.bashrc`, `~/.bash_profile`, `source ~/.zshrc`, `~/.config/fish/config.fish`)
 ```
-function ts() {
-  cd $(transgender 3>&1 1>&2 2>&3 3>&- | tail -n 1)
+ts() {
+  cd "$(transgender 3>&1 1>&2 2>&3 3>&- | tail -n 1)"
 }
 ```
 
@@ -99,7 +99,8 @@ By default, the editor is set to `vi`.
 
 #### Theme
 
-Currently, there are only two themes available: `dark` and `trans`, the default theme is `trans`.
+Currently, there are only two themes available: `dark` and `trans`, the default
+theme is `trans`.
 
 Image of the `dark` theme:
 
@@ -109,9 +110,20 @@ Image of the `dark` theme:
 
 ### Search
 
-Now supports `**regular expression**`
+Now supports `>> regular expression <<`
 
-`trans` performs a search whenever a key is pressed
+`Trangender.rs` performs a search whenever a key is pressed
+
+Due to the use of the `regex` crate, the executable can be a bit bloated (
+~1MB). If you don't want regular expression feature, simply switch to the
+vanilla version by checking out to the vanilla branch and building
+`Transgender.rs`.
+
+```bash
+git checkout vanilla
+make
+make install
+```
 
 <br/>
 
