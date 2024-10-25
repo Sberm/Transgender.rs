@@ -234,7 +234,7 @@ pub fn get_editor() -> String {
  * returns
  *  A tuple of char and bool
  */
-pub fn read_utf8() -> Result<(char, bool), ()> {
+pub fn read_utf8() -> Option<(char, bool)> {
     let mut c_bytes = [0u8; 4];
     let mut bytes_cnt: usize = 0;
 
@@ -272,5 +272,5 @@ pub fn read_utf8() -> Result<(char, bool), ()> {
         .nth(0)
         .expect("Failed to get the first & only character");
 
-    Ok((rc, is_ascii))
+    Some((rc, is_ascii))
 }

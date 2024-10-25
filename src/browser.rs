@@ -11,11 +11,11 @@ use crate::ops::{code, consts, Mode};
 use crate::util;
 use regex::RegexBuilder;
 use std::fs::read_dir;
+use std::iter::Rev;
+use std::ops::Range;
 use std::path::PathBuf;
 use std::process::{exit, Command};
 use std::vec::Vec;
-use std::iter::Rev;
-use std::ops::Range;
 
 /*
  * Directory browser
@@ -302,8 +302,8 @@ impl Browser {
 
     fn search(&mut self) {
         let (rc, is_ascii) = match util::read_utf8() {
-            Ok((rc, is_ascii)) => (rc, is_ascii),
-            Err(_) => ('�', false),
+            Some((rc, is_ascii)) => (rc, is_ascii),
+            None => ('�', false),
         };
 
         self.has_search_input = true;
