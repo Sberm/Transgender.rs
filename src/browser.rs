@@ -14,6 +14,8 @@ use std::fs::read_dir;
 use std::path::PathBuf;
 use std::process::{exit, Command};
 use std::vec::Vec;
+use std::iter::Rev;
+use std::ops::Range;
 
 /*
  * Directory browser
@@ -31,6 +33,22 @@ pub struct Browser {
     search_txt: Vec<char>,
     has_search_input: bool,
     editor: String,
+}
+
+pub enum IterType {
+    Forward(Range<usize>),
+    Backward(Rev<Range<usize>>),
+}
+
+impl Iterator for IterType {
+    type Item = usize;
+
+    fn next(&mut self) -> Option<usize> {
+        match self {
+            IterType::Forward(range) => range.next(),
+            IterType::Backward(range) => range.next(),
+        }
+    }
 }
 
 impl Browser {
@@ -251,39 +269,32 @@ impl Browser {
                 .expect("Failed to parse regex for ^$"),
         };
 
-        if rev == false {
-            for i in start..self.current_dir.len() {
-                if re.is_match(&self.current_dir[i]) {
-                    self.set_cursor_pos(i);
-                    matched = true;
-                    break;
-                }
-            }
+        let it1 = if rev == false {
+            IterType::Forward(start..self.current_dir.len())
         } else {
-            for i in (0..start).rev() {
-                if re.is_match(&self.current_dir[i]) {
-                    self.set_cursor_pos(i);
-                    matched = true;
-                    break;
-                }
+            IterType::Backward((0..start).rev())
+        };
+
+        for i in it1 {
+            if re.is_match(&self.current_dir[i]) {
+                self.set_cursor_pos(i);
+                matched = true;
+                break;
             }
         }
 
         /* start from 0 */
         if matched == false {
-            if rev == false {
-                for i in 0..start {
-                    if re.is_match(&self.current_dir[i]) {
-                        self.set_cursor_pos(i);
-                        break;
-                    }
-                }
+            let it2 = if rev == false {
+                IterType::Forward(0..start)
             } else {
-                for i in (start..self.current_dir.len()).rev() {
-                    if re.is_match(&self.current_dir[i]) {
-                        self.set_cursor_pos(i);
-                        break;
-                    }
+                IterType::Backward((start..self.current_dir.len()).rev())
+            };
+
+            for i in it2 {
+                if re.is_match(&self.current_dir[i]) {
+                    self.set_cursor_pos(i);
+                    break;
                 }
             }
         }
