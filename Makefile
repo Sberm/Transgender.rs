@@ -9,7 +9,7 @@ else
 endif
 
 all: 
-	$(call msg,TRANS,START-BUILDING)
+	$(call msg,TRANS,STARTS-BUILDING)
 	$(Q)cargo build --release
 	$(call msg,TRANS,BUILD-SUCCEED)
 
