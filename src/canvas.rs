@@ -239,7 +239,7 @@ impl Canvas {
         for i in write_bottom..=write_top {
             let c_a = current_dir[dir_i].chars().collect::<Vec<char>>();
             ch_i = 0;
-            for j in l_w_l..l_w_r {
+            for j in l_w_l..=l_w_r {
                 if ch_i >= c_a.len() {
                     break;
                 }
@@ -261,7 +261,7 @@ impl Canvas {
             }
             let c_a = preview_dir[dir_i].chars().collect::<Vec<char>>();
             ch_i = 0;
-            for j in r_w_l..r_w_r {
+            for j in r_w_l..=r_w_r {
                 if ch_i >= c_a.len() {
                     break;
                 }
@@ -277,7 +277,7 @@ impl Canvas {
 
         for i in 0..self.height {
             let mut j = 0;
-             /* Iterate the column, j is jumpable so make it a loop instead of a for */
+            /* Iterate the column, j is jumpable so make it a loop instead of a for */
             loop {
                 if j >= self.width {
                     break;
@@ -294,6 +294,23 @@ impl Canvas {
                  * character and update the preview window.
                  */
                 if font_len > l_w_r + 1 && !do_preview {
+                    /*
+                     * If the last character of this window is wide and that causes overflow,
+                     * discard it, insert a white space so it aligns.
+                     *
+                     * font_len == l_w_r + 2 means it has to be a wide character from the left
+                     * window that just subtly causes the overflow, but not because it's time to
+                     * preview the right window (for example, left window is exactly filled, and we
+                     * got one more wide character on the left, no space left to insert it so it's
+                     * time to switch to preview)
+                     */
+                    if j <= l_w_r
+                        && font_len == l_w_r + 2
+                        && self.is_wide(self.pixels[i][j] as usize)
+                    {
+                        str_to_draw.push(' ');
+                    }
+
                     j = r_w_l;
                     font_len = 0;
                     do_preview = true;
@@ -301,6 +318,10 @@ impl Canvas {
                 }
 
                 if do_preview && font_len > preview_width {
+                    // Same last wide character discard filling logic as above
+                    if font_len == preview_width + 1 && self.is_wide(self.pixels[i][j] as usize) {
+                        str_to_draw.push(' ');
+                    }
                     break;
                 }
 
