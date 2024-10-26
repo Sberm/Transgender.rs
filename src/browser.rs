@@ -343,13 +343,7 @@ impl Browser {
     }
 
     fn bottom(&mut self) {
-        self.cursor = self.current_dir.len() - 1;
-        let (h, _) = util::term_size();
-        self.window_start = if self.current_dir.len() as isize - h as isize + 1 > 0 {
-            self.current_dir.len() - h
-        } else {
-            0
-        };
+        self.set_cursor_pos(self.current_dir.len() - 1);
     }
 
     fn up(&mut self) {
