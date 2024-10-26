@@ -271,28 +271,29 @@ impl Canvas {
             dir_i += 1;
         }
 
-        let mut i: usize = 0;
-        let mut j: usize;
         let mut font_len: usize = 0;
         let mut do_preview: bool = false;
         let mut is_dir: bool = false;
 
-        loop {
-            if i >= self.height {
-                break;
-            }
-            j = 0;
+        for i in 0..self.height {
+            let mut j = 0;
+             /* Iterate the column, j is jumpable so make it a loop instead of a for */
             loop {
                 if j >= self.width {
                     break;
                 }
+
                 if self.is_wide(self.pixels[i][j] as usize) {
                     font_len += 2;
                 } else {
                     font_len += 1;
                 }
 
-                if font_len - 1 > l_w_r && !do_preview {
+                /*
+                 * If the font_len reaches over the capcity of the left side window, discard this
+                 * character and update the preview window.
+                 */
+                if font_len > l_w_r + 1 && !do_preview {
                     j = r_w_l;
                     font_len = 0;
                     do_preview = true;
@@ -319,11 +320,9 @@ impl Canvas {
                 );
                 str_to_draw.push(self.pixels[i][j]);
                 is_dir = false;
-
                 j += 1;
             }
             font_len = 0;
-            i += 1;
             do_preview = false;
         }
 
