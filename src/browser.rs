@@ -216,7 +216,7 @@ impl Browser {
     /*
      *  Set cursor position, centered in the window
      */
-    fn set_cursor_pos(&mut self, index: usize) {
+    fn set_cursor_pos_centered(&mut self, index: usize) {
         self.cursor = index;
         let (h, _) = util::term_size();
         self.window_start = if self.cursor as isize - h as isize / 2 > 0 {
@@ -277,7 +277,7 @@ impl Browser {
 
         for i in it1 {
             if re.is_match(&self.current_dir[i]) {
-                self.set_cursor_pos(i);
+                self.set_cursor_pos_centered(i);
                 matched = true;
                 break;
             }
@@ -293,7 +293,7 @@ impl Browser {
 
             for i in it2 {
                 if re.is_match(&self.current_dir[i]) {
-                    self.set_cursor_pos(i);
+                    self.set_cursor_pos_centered(i);
                     break;
                 }
             }
@@ -343,7 +343,7 @@ impl Browser {
     }
 
     fn bottom(&mut self) {
-        self.set_cursor_pos(self.current_dir.len() - 1);
+        self.set_cursor_pos_centered(self.current_dir.len() - 1);
     }
 
     fn up(&mut self) {
@@ -420,7 +420,7 @@ impl Browser {
                 break;
             }
         }
-        self.set_cursor_pos(index);
+        self.set_cursor_pos_centered(index);
     }
 
     fn right(&mut self) {
