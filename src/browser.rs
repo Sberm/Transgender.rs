@@ -17,13 +17,11 @@ use std::path::PathBuf;
 use std::process::{exit, Command};
 use std::vec::Vec;
 
-/*
- * Directory browser
- */
+/// Directory browser
 pub struct Browser {
     cursor: usize,
     window_start: usize,
-    current_dir: Vec<String>, /* String instead of PathBuf for display purposes */
+    current_dir: Vec<String>, // String instead of PathBuf for display purposes
     past_dir: Vec<PathBuf>,
     past_cursor: Vec<usize>,
     past_window_start: Vec<usize>,
@@ -52,9 +50,7 @@ impl Iterator for IterType {
 }
 
 impl Browser {
-    /*
-     *  Construct past directory stack according to the current path
-     */
+    /// Construct past directory stack according to the current path
     pub fn init(&mut self) {
         self.read_to_current_dir(&String::from("."));
         let mut srcdir = PathBuf::from(".")
@@ -93,9 +89,7 @@ impl Browser {
         self.top();
     }
 
-    /*
-     *  Window display update loop
-     */
+    /// Window display update loop
     pub fn start_loop(&mut self, canvas: &mut canvas::Canvas) {
         loop {
             let preview_dir = self.get_preview();
@@ -173,12 +167,7 @@ impl Browser {
         }
     }
 
-    /*
-     *  Get directory content preview window
-     *
-     * returns
-     *  preview window
-     */
+    ///  Get directory content preview window as a vector of strings
     fn get_preview(&self) -> Vec<String> {
         let mut ret: Vec<String> = Vec::new();
 
@@ -213,9 +202,7 @@ impl Browser {
         ret
     }
 
-    /*
-     *  Set cursor position, centered in the window
-     */
+    ///  Set cursor position, centered in the window
     fn set_cursor_pos_centered(&mut self, index: usize) {
         self.cursor = index;
         let (h, _) = util::term_size();
@@ -226,9 +213,7 @@ impl Browser {
         };
     }
 
-    /*
-     *  Next search match, can be a reversed search
-     */
+    /// Next search match, can be a reversed search
     fn next_match(&mut self, start: usize, rev: bool) {
         if self.has_search_input == false {
             return;
@@ -243,7 +228,7 @@ impl Browser {
 
         let mut search: String = self.search_txt.iter().collect::<String>();
 
-        /* Check if the case sensitive '\C' is present at the bottom of the search text */
+        // Check if the case sensitive '\C' is present at the bottom of the search text
         let len = self.search_txt.iter().count();
         if len > 2 {
             let last_two = self
@@ -258,7 +243,7 @@ impl Browser {
             }
         }
 
-        /* Regex can be invalid while the user is typing */
+        // Regex can be invalid while the user is typing
         let re = match RegexBuilder::new(&search)
             .case_insensitive(case_insensitive)
             .build()
@@ -283,7 +268,7 @@ impl Browser {
             }
         }
 
-        /* start from 0 */
+        // start from 0
         if matched == false {
             let it2 = if rev == false {
                 IterType::Forward(0..start)
@@ -309,14 +294,14 @@ impl Browser {
         self.has_search_input = true;
 
         if is_ascii {
-            /* esc */
+            // esc
             if rc as u8 == 27 {
                 self.mode = Mode::NORMAL;
                 util::reset_search_cursor();
                 return;
             }
 
-            /* backspace */
+            // backspace
             if rc as u8 == 127 {
                 if self.search_txt.len() > 0 {
                     self.search_txt.pop().expect("search txt(pop) out of bound");
@@ -324,9 +309,9 @@ impl Browser {
                 return;
             }
 
-            /* enter */
+            // enter
             if rc as u8 == 10 {
-                /* search */
+                // search
                 self.mode = Mode::NORMAL;
                 util::reset_search_cursor();
                 return;
@@ -373,7 +358,7 @@ impl Browser {
 
         let (h, _) = util::term_size();
 
-        /* So the cursor won't be covered by the bottom line (TODO: But trans still draws that line in Canvas) */
+        // So the cursor won't be covered by the bottom line (TODO: But trans still draws that line in Canvas)
         let display_height = h - 1;
 
         if self.cursor as isize > (display_height - 1) as isize
@@ -385,7 +370,7 @@ impl Browser {
 
     fn left(&mut self) {
         let current_path_tmp = self.current_path.clone();
-        /* root dir '/' */
+        // root dir '/'
         if current_path_tmp.file_name() == None {
             return;
         }
@@ -411,7 +396,7 @@ impl Browser {
             .to_str()
             .expect("Failed to do to_str()");
 
-        /* 0 could be good, but it could be because it was pushed in beginning */
+        // 0 could be good, but it could be because it was pushed in beginning
         let mut index: usize = 0;
         for (i, dir) in self.current_dir.iter().enumerate() {
             if dir.eq(dir_to_restore) {
@@ -442,9 +427,7 @@ impl Browser {
         self.top();
     }
 
-    /*
-     *  Read the file and directory names in the current directory
-     */
+    /// Read the file and directory names in the current directory
     fn read_to_current_dir(&mut self, path: &String) {
         self.current_dir.clear();
 
@@ -465,20 +448,16 @@ impl Browser {
         }
     }
 
-    /*
-     * Goto the directory in the left side window, while quitting trans
-     */
+    /// Goto the directory in the left side window, while quitting trans
     fn exit_cur_dir(&self) {
         util::exit_albuf();
         util::print_path(&self.current_path.to_str().unwrap());
         exit(0);
     }
 
-    /*
-     * Goto the directory under the cursor, while quitting trans
-     *  or
-     * Open the file under the cursor with a text editor
-     */
+    /// Goto the directory under the cursor, while quitting trans
+    ///  or
+    /// Open the file under the cursor with a text editor
     fn exit_under_cursor(&self) {
         let mut dir = self.current_path.clone();
         dir.push(&self.current_dir[self.cursor]);
@@ -505,7 +484,7 @@ impl Browser {
             exit(0);
         };
 
-        /* sometimes the editor exits alternate buffer, and enables cursor */
+        // sometimes the editor exits alternate buffer, and enables cursor
         util::enter_albuf();
         util::hide_cursor();
     }

@@ -6,9 +6,7 @@
 ║ above copyright notice and this permission notice appear in all copies ║
 ╚═══════════════════════════════════════════════════════════════════════*/
 
-/*
- * Table of UTF8 blocks
- */
+/// Table of UTF8 blocks
 pub struct U8Range {
     pub l: usize,
     pub r: usize,

@@ -18,7 +18,7 @@ fn main() {
     let mut canvas = canvas::new();
     let mut browser = browser::new();
 
-    /* -v */
+    // -v
     let args: Vec<String> = env::args().collect();
     if args.len() > 1 && (args[1].eq("-v") || args[1].eq("--version")) {
         println!("\n  Transgender.rs\n\n    Regex-powered trans\n");

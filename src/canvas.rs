@@ -47,14 +47,12 @@ fn csi(s: &str) -> String {
 }
 
 impl Canvas {
-    /*
-     * Get the index where the bottom line of text should be cropped
-     *
-     * returns
-     *  The index at which the bottom line's text content should be cropped
-     */
+    /// Get the index where the bottom line of text should be cropped
+    ///
+    /// returns
+    ///  The index at which the bottom line's text content should be cropped
     fn bottom_line_slice(&self, s: &str) -> usize {
-        /* Make sure the bottom line doesn't overflow */
+        // Make sure the bottom line doesn't overflow
         let mut display_len: usize = 0;
         let mut slice_to: usize = 0;
 
@@ -73,12 +71,10 @@ impl Canvas {
         slice_to
     }
 
-    /*
-     * Is it a full-width character that displays as two blocks in the terminal
-     *
-     * returns
-     *  whether this unicode character is full-width
-     */
+    /// Is it a full-width character that displays as two blocks in the terminal
+    ///
+    /// returns
+    ///  whether this unicode character is full-width
     fn is_wide(&self, c: usize) -> bool {
         let mut l = 0;
         let mut r = utf8::UTF8_TBL.len() - 1;
@@ -97,9 +93,7 @@ impl Canvas {
         return utf8::UTF8_TBL[l].is_wide;
     }
 
-    /*
-     * Clear the internel character array
-     */
+    /// Clear the internel character array
     fn clear_pixels(&mut self) {
         let c: char = ' ';
         for i in 0..self.height {
@@ -109,9 +103,7 @@ impl Canvas {
         }
     }
 
-    /*
-     * Check if trans needs to highlight this text, if so, highlight.
-     */
+    /// Check if trans needs to highlight this text, if so, highlight.
     fn check_insert_highlight(
         &self,
         str_to_draw: &mut String,
@@ -139,9 +131,7 @@ impl Canvas {
         }
     }
 
-    /*
-     * Draw file path or search text in the bottom line
-     */
+    /// Draw file path or search text in the bottom line
     fn draw_bottom_line(
         &self,
         str_to_draw: &mut String,
@@ -149,7 +139,7 @@ impl Canvas {
         current_path: &str,
         search_txt: &Vec<char>,
     ) {
-        /* Goto the bottom line */
+        // Goto the bottom line
         str_to_draw.push_str(&csi(&format!("{}H", self.height)));
         str_to_draw.push_str(&csi("0K"));
 
@@ -173,9 +163,7 @@ impl Canvas {
         }
     }
 
-    /*
-     * Core function to display the window
-     */
+    /// Core function to display the window
     pub fn draw(
         &mut self,
         cursor: usize,
@@ -196,7 +184,7 @@ impl Canvas {
         let mut str_to_draw = String::from("");
         str_to_draw.push_str(&csi("1H"));
 
-        /* Write pixel */
+        // Write pixel
         let write_top: usize = self.height - 1;
         let write_bottom: usize = 0;
 
@@ -212,12 +200,12 @@ impl Canvas {
 
         self.clear_pixels();
 
-        /* No files in directory */
+        // No files in directory
         if current_dir.len() == 0 {
             str_to_draw.push_str(&self.normal);
             str_to_draw.push_str(&self.normal_bg);
 
-            /* Empty lines still need to be drawn */
+            // Empty lines still need to be drawn
             for line in &self.pixels {
                 let tmp_s = line.iter().collect::<String>();
                 str_to_draw.push_str(&tmp_s);
@@ -235,7 +223,7 @@ impl Canvas {
             return;
         }
 
-        /* Left side */
+        // Left side
         for i in write_bottom..=write_top {
             let c_a = current_dir[dir_i].chars().collect::<Vec<char>>();
             ch_i = 0;
@@ -252,7 +240,7 @@ impl Canvas {
             }
         }
 
-        /* Right side preview window */
+        // Right side preview window
         dir_i = 0;
 
         for i in write_bottom..=write_top {
@@ -277,7 +265,7 @@ impl Canvas {
 
         for i in 0..self.height {
             let mut j = 0;
-            /* Iterate the column, j is jumpable so make it a loop instead of a for */
+            // Iterate the column, j is jumpable so make it a loop instead of a for
             loop {
                 if j >= self.width {
                     break;
@@ -289,21 +277,17 @@ impl Canvas {
                     font_len += 1;
                 }
 
-                /*
-                 * If the font_len reaches over the capcity of the left side window, discard this
-                 * character and update the preview window.
-                 */
+                //  If the font_len reaches over the capcity of the left side window, discard this
+                //  character and update the preview window.
                 if font_len > l_w_r + 1 && !do_preview {
-                    /*
-                     * If the last character of this window is wide and that causes overflow,
-                     * discard it, insert a white space so it aligns.
-                     *
-                     * font_len == l_w_r + 2 means it has to be a wide character from the left
-                     * window that just subtly causes the overflow, but not because it's time to
-                     * preview the right window (for example, left window is exactly filled, and we
-                     * got one more wide character on the left, no space left to insert it so it's
-                     * time to switch to preview)
-                     */
+                    // If the last character of this window is wide and that causes overflow,
+                    // discard it, insert a white space so it aligns.
+                    //
+                    // font_len == l_w_r + 2 means it has to be a wide character from the left
+                    // window that just subtly causes the overflow, but not because it's time to
+                    // preview the right window (for example, left window is exactly filled, and we
+                    // got one more wide character on the left, no space left to insert it so it's
+                    // time to switch to preview)
                     if j <= l_w_r
                         && font_len == l_w_r + 2
                         && self.is_wide(self.pixels[i][j] as usize)
@@ -347,7 +331,7 @@ impl Canvas {
             do_preview = false;
         }
 
-        /* Draw bottom line after drawing the directories */
+        // Draw bottom line after drawing the directories
         self.draw_bottom_line(
             &mut str_to_draw,
             mode,
@@ -359,9 +343,7 @@ impl Canvas {
         let _ = io::stdout().flush();
     }
 
-    /*
-     * Set the internel pixel (char) representation
-     */
+    /// Set the internel pixel (char) representation
     fn set(&mut self, i: usize, j: usize, c: char) {
         let i_to_write: i32 = self.height as i32 - 1 - i as i32;
         let j_to_write: usize = j;

@@ -11,9 +11,7 @@ pub enum Theme {
     DARK,
 }
 
-/*
- * All the constant
- */
+/// All the constant
 pub mod consts {
     pub const HOME_VAR: &str = "HOME";
     pub const CONFIG_FILE: &str = ".tsrc";
@@ -24,7 +22,7 @@ pub mod consts {
     pub const THEME_KEY: &str = "theme";
     pub const THEME_DARK: &str = "dark";
 
-    /* If BG of 0;{ID} is set, the color of the text itself cannot be changed */
+    // If BG of 0;{ID} is set, the color of the text itself cannot be changed
     pub const HIGHLIGHT_TRANS: &str = "\x1b[0;30m";
     pub const HIGHLIGHT_DIR_TRANS: &str = "\x1b[38;5;57m";
     pub const HIGHLIGHT_BG_TRANS: &str = "\x1b[48;5;175m";
@@ -38,9 +36,7 @@ pub mod consts {
     pub const NORMAL_BG_DARK: &str = "\x1b[48;5;0m";
 }
 
-/*
- * File browser operation code
- */
+/// File browser operation code
 pub mod code {
     pub const NOOP: u8 = 0;
     pub const UP: u8 = 1;
