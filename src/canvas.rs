@@ -9,8 +9,8 @@
 extern crate libc;
 
 use crate::ops::{consts, Mode, Theme};
-use crate::utf8;
 use crate::util;
+use crate::widechar_width::{WcLookupTable, WcWidth};
 use std::io::{self, Write};
 use std::path::PathBuf;
 
@@ -23,6 +23,7 @@ pub struct Canvas {
     highlight_bg: String,
     normal: String,
     normal_bg: String,
+    utf8_table: WcLookupTable,
 }
 
 impl Clone for Canvas {
@@ -36,6 +37,7 @@ impl Clone for Canvas {
             highlight_bg: String::new(),
             normal: String::new(),
             normal_bg: String::new(),
+            utf8_table: WcLookupTable::new(),
         }
     }
 }
@@ -57,11 +59,9 @@ impl Canvas {
         let mut slice_to: usize = 0;
 
         for c in s.chars() {
-            if self.is_wide(c.clone() as usize) {
-                display_len += 2;
-            } else {
-                display_len += 1;
-            }
+            let len = self.get_utf8_len(c);
+            display_len += len;
+
             if display_len > self.width - 1 {
                 break;
             }
@@ -75,22 +75,18 @@ impl Canvas {
     ///
     /// returns
     ///  whether this unicode character is full-width
-    fn is_wide(&self, c: usize) -> bool {
-        let mut l = 0;
-        let mut r = utf8::UTF8_TBL.len() - 1;
-
-        while l < r {
-            let m = (l + r) / 2;
-            if utf8::UTF8_TBL[m].l <= c && utf8::UTF8_TBL[m].r >= c {
-                return utf8::UTF8_TBL[m].is_wide;
-            } else if utf8::UTF8_TBL[m].l > c {
-                r = m - 1;
-            } else {
-                l = m + 1;
-            }
+    fn get_utf8_len(&self, c: char) -> usize {
+        match self.utf8_table.classify(c) {
+            WcWidth::One => return 1,
+            WcWidth::Two => return 2,
+            WcWidth::NonPrint => return 0,
+            WcWidth::Combining => return 0,
+            WcWidth::Ambiguous => return 1,
+            WcWidth::PrivateUse => return 0,
+            WcWidth::Unassigned => return 0,
+            WcWidth::WidenedIn9 => return 2,
+            WcWidth::NonCharacter => return 0,
         }
-
-        return utf8::UTF8_TBL[l].is_wide;
     }
 
     /// Clear the internel character array
@@ -271,11 +267,14 @@ impl Canvas {
                     break;
                 }
 
-                if self.is_wide(self.pixels[i][j] as usize) {
-                    font_len += 2;
-                } else {
-                    font_len += 1;
-                }
+                //if self.is_wide(self.pixels[i][j]) {
+                //font_len += 2;
+                //} else {
+                //font_len += 1;
+                //}
+
+                let len = self.get_utf8_len(self.pixels[i][j]);
+                font_len += len;
 
                 //  If the font_len reaches over the capcity of the left side window, discard this
                 //  character and update the preview window.
@@ -290,7 +289,7 @@ impl Canvas {
                     // time to switch to preview)
                     if j <= l_w_r
                         && font_len == l_w_r + 2
-                        && self.is_wide(self.pixels[i][j] as usize)
+                        && self.get_utf8_len(self.pixels[i][j]) > 1
                     {
                         str_to_draw.push(' ');
                     }
@@ -303,7 +302,7 @@ impl Canvas {
 
                 if do_preview && font_len > preview_width {
                     // Same last wide character discard filling logic as above
-                    if font_len == preview_width + 1 && self.is_wide(self.pixels[i][j] as usize) {
+                    if font_len == preview_width + 1 && self.get_utf8_len(self.pixels[i][j]) > 1 {
                         str_to_draw.push(' ');
                     }
                     break;
@@ -364,6 +363,7 @@ pub fn new() -> Canvas {
         highlight_bg: String::from(consts::HIGHLIGHT_BG_TRANS),
         normal: String::from(consts::NORMAL_TRANS),
         normal_bg: String::from(consts::NORMAL_BG_TRANS),
+        utf8_table: WcLookupTable::new(),
     };
 
     if matches!(util::get_theme(), Theme::DARK) {

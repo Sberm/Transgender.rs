@@ -9,8 +9,9 @@
 mod browser;
 mod canvas;
 mod ops;
-mod utf8;
 mod util;
+mod widechar_width;
+
 use std::env;
 use std::process::exit;
 
