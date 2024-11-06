@@ -8,7 +8,8 @@
 
 extern crate libc;
 
-use crate::ops::{consts, Mode, Theme};
+use crate::ops::Mode;
+use crate::theme;
 use crate::util;
 use crate::widechar_width::{WcLookupTable, WcWidth};
 use std::io::{self, Write};
@@ -18,11 +19,7 @@ pub struct Canvas {
     pub height: usize,
     pub width: usize,
     pixels: Vec<Vec<char>>,
-    highlight: String,
-    highlight_dir: String,
-    highlight_bg: String,
-    normal: String,
-    normal_bg: String,
+    theme: theme::Theme,
     utf8_table: WcLookupTable,
 }
 
@@ -32,11 +29,7 @@ impl Clone for Canvas {
             height: self.height,
             width: self.width,
             pixels: Vec::new(),
-            highlight: String::new(),
-            highlight_dir: String::new(),
-            highlight_bg: String::new(),
-            normal: String::new(),
-            normal_bg: String::new(),
+            theme: theme::Theme::default(),
             utf8_table: WcLookupTable::new(),
         }
     }
@@ -110,20 +103,20 @@ impl Canvas {
         is_dir: bool,
     ) {
         if i == 0 && j == 0 {
-            str_to_draw.push_str(&self.normal);
-            str_to_draw.push_str(&self.normal_bg);
+            str_to_draw.push_str(&self.theme.normal);
+            str_to_draw.push_str(&self.theme.normal_background);
         }
 
         if i == cursor && j == 0 {
             if is_dir {
-                str_to_draw.push_str(&self.highlight_dir);
+                str_to_draw.push_str(&self.theme.highlight_dir);
             } else {
-                str_to_draw.push_str(&self.highlight);
+                str_to_draw.push_str(&self.theme.highlight);
             }
-            str_to_draw.push_str(&self.highlight_bg);
+            str_to_draw.push_str(&self.theme.highlight_background);
         } else if i == cursor && j == r_w_l {
-            str_to_draw.push_str(&self.normal);
-            str_to_draw.push_str(&self.normal_bg);
+            str_to_draw.push_str(&self.theme.normal);
+            str_to_draw.push_str(&self.theme.normal_background);
         }
     }
 
@@ -198,8 +191,8 @@ impl Canvas {
 
         // No files in directory
         if current_dir.len() == 0 {
-            str_to_draw.push_str(&self.normal);
-            str_to_draw.push_str(&self.normal_bg);
+            str_to_draw.push_str(&self.theme.normal);
+            str_to_draw.push_str(&self.theme.normal_background);
 
             // Empty lines still need to be drawn
             for line in &self.pixels {
@@ -354,25 +347,11 @@ impl Canvas {
 }
 
 pub fn new() -> Canvas {
-    let mut canvas = Canvas {
+    Canvas {
         height: 0,
         width: 0,
         pixels: Vec::new(),
-        highlight: String::from(consts::HIGHLIGHT_TRANS),
-        highlight_dir: String::from(consts::HIGHLIGHT_DIR_TRANS),
-        highlight_bg: String::from(consts::HIGHLIGHT_BG_TRANS),
-        normal: String::from(consts::NORMAL_TRANS),
-        normal_bg: String::from(consts::NORMAL_BG_TRANS),
+        theme: theme::Theme::from(&util::get_theme()),
         utf8_table: WcLookupTable::new(),
-    };
-
-    if matches!(util::get_theme(), Theme::DARK) {
-        canvas.highlight = String::from(consts::HIGHLIGHT_DARK);
-        canvas.highlight_dir = String::from(consts::HIGHLIGHT_DIR_DARK);
-        canvas.highlight_bg = String::from(consts::HIGHLIGHT_BG_DARK);
-        canvas.normal = String::from(consts::NORMAL_DARK);
-        canvas.normal_bg = String::from(consts::NORMAL_BG_DARK);
     }
-
-    canvas
 }

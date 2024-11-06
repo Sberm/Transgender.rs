@@ -9,6 +9,7 @@
 mod browser;
 mod canvas;
 mod ops;
+mod theme;
 mod util;
 mod widechar_width;
 

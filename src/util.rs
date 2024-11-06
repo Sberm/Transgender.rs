@@ -12,7 +12,7 @@ use self::libc::{
     c_ushort, ioctl, tcgetattr, tcsetattr, termios, ECHO, ICANON, ISIG, STDIN_FILENO,
     STDOUT_FILENO, TCSAFLUSH, TIOCGWINSZ,
 };
-use crate::ops::{code, consts, Theme};
+use crate::ops::{code, consts};
 use std::env::var;
 use std::fs::File;
 use std::io::{self, stdin, BufRead, Read, Write};
@@ -178,7 +178,7 @@ pub fn print_path(str_: &str) {
     eprintln!("\n{}", str_);
 }
 
-pub fn get_theme() -> Theme {
+pub fn get_theme() -> String {
     if let Ok(home_dir) = var(consts::HOME_VAR) {
         if let Ok(lines) = read_lines(&format!("{}/{}", home_dir, consts::CONFIG_FILE)) {
             for line in lines.flatten() {
@@ -188,13 +188,13 @@ pub fn get_theme() -> Theme {
                 if kv.len() != 2 {
                     continue;
                 }
-                if kv[0].eq(consts::THEME_KEY) && kv[1].eq(consts::THEME_DARK) {
-                    return Theme::DARK;
+                if kv[0].eq(consts::THEME_KEY) {
+                    return String::from(kv[1]);
                 }
             }
         }
     }
-    return Theme::TRANS;
+    return String::new();
 }
 
 /// Read trans config file to get preferred editor
