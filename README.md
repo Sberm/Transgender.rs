@@ -106,6 +106,10 @@ Image of the `dark` theme:
 
 ![](img/trans-img-dark-theme.png)
 
+Other themes:
+
+* [Lucius](https://github.com/jonathanfilip/lucius)
+
 <br/>
 
 ### Search
