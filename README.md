@@ -108,7 +108,7 @@ Image of the `dark` theme:
 
 Other themes:
 
-* [Lucius](https://github.com/jonathanfilip/lucius)
+* [lucius](https://github.com/jonathanfilip/lucius)
 
 <br/>
 
