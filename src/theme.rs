@@ -17,7 +17,7 @@ impl Theme {
         let theme_table = ThemeTable::new();
 
         for t in theme_table.theme_entries.iter() {
-            if t.name == name {
+            if t.name == name.to_lowercase() {
                 return Theme {
                     highlight: t.color[0].clone(),
                     highlight_dir: t.color[1].clone(),

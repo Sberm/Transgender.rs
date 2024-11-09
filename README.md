@@ -159,7 +159,7 @@ with bad designs that irritate its users.
 
 ### Todo:
 
-- [ ] More tests
+- [ ] tests
 
 - [x] Read utf-8 input
 
