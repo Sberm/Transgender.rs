@@ -306,6 +306,8 @@ impl Canvas {
                     break;
                 }
 
+                // decide if we add the directory highlight, this applies to both the left side
+                // window and the right side preview window
                 let is_dir = if !do_preview {
                     if i >= current_dir.len() {
                         false
@@ -325,6 +327,7 @@ impl Canvas {
                     }
                 };
 
+                // checks both windows
                 self.check_insert_highlight(
                     &mut str_to_draw,
                     i,
@@ -333,6 +336,7 @@ impl Canvas {
                     r_w_l,
                     is_dir,
                 );
+
                 str_to_draw.push(self.pixels[i][j]);
                 j += 1;
             }
