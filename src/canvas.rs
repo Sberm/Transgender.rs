@@ -42,10 +42,7 @@ fn csi(s: &str) -> String {
 }
 
 impl Canvas {
-    /// Get the index where the bottom line of text should be cropped
-    ///
-    /// returns
-    ///  The index at which the bottom line's text content should be cropped
+    /// Get the index where the bottom line text should be cropped
     fn bottom_line_slice(&self, s: &str) -> usize {
         // Make sure the bottom line doesn't overflow
         let mut display_len: usize = 0;
@@ -64,10 +61,8 @@ impl Canvas {
         slice_to
     }
 
-    /// Is it a full-width character that displays as two blocks in the terminal
-    ///
-    /// returns
-    ///  whether this unicode character is full-width
+    /// return whether this character is a full-width character that displays as two blocks in the
+    /// terminal
     fn get_utf8_len(&self, c: char) -> usize {
         match self.utf8_table.classify(c) {
             WcWidth::One => return 1,
@@ -92,7 +87,7 @@ impl Canvas {
         }
     }
 
-    /// Check if trans needs to highlight this text, if so, highlight.
+    /// Check if trans needs to highlight this text, if so, highlight
     fn check_insert_highlight(
         &self,
         str_to_draw: &mut String,
