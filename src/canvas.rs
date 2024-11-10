@@ -102,21 +102,30 @@ impl Canvas {
         r_w_l: usize,
         is_dir: bool,
     ) {
+        if j != 0 && j != r_w_l {
+            return;
+        }
+
         if i == 0 && j == 0 {
             str_to_draw.push_str(&self.theme.normal);
             str_to_draw.push_str(&self.theme.normal_background);
         }
 
-        if i == cursor && j == 0 {
-            if is_dir {
-                str_to_draw.push_str(&self.theme.highlight_dir);
-            } else {
-                str_to_draw.push_str(&self.theme.highlight);
-            }
-            str_to_draw.push_str(&self.theme.highlight_background);
-        } else if i == cursor && j == r_w_l {
+        // This will be overwritten by highlight, if cursor is on it
+        if !is_dir {
             str_to_draw.push_str(&self.theme.normal);
+        }
+
+        if i == cursor && j == 0 {
+            str_to_draw.push_str(&self.theme.highlight);
+            str_to_draw.push_str(&self.theme.highlight_background);
+        } else {
             str_to_draw.push_str(&self.theme.normal_background);
+        }
+
+        // This is the opposite, cursor's highlight will be overwritten by directory color
+        if is_dir {
+            str_to_draw.push_str(&self.theme.highlight_dir);
         }
     }
 
@@ -131,6 +140,9 @@ impl Canvas {
         // Goto the bottom line
         str_to_draw.push_str(&csi(&format!("{}H", self.height)));
         str_to_draw.push_str(&csi("0K"));
+
+        str_to_draw.push_str(&self.theme.normal);
+        str_to_draw.push_str(&self.theme.normal_background);
 
         if matches!(mode, Mode::SEARCH) {
             let search_txt_str = search_txt.into_iter().collect::<String>();
@@ -250,7 +262,6 @@ impl Canvas {
 
         let mut font_len: usize = 0;
         let mut do_preview: bool = false;
-        let mut is_dir: bool = false;
 
         for i in 0..self.height {
             let mut j = 0;
@@ -295,11 +306,24 @@ impl Canvas {
                     break;
                 }
 
-                let mut tmp_path = current_path.clone();
-                tmp_path.push(&current_dir[cursor]);
-                if i + window_start == cursor && j == 0 && tmp_path.is_dir() == true {
-                    is_dir = true;
-                }
+                let is_dir = if !do_preview {
+                    if i >= current_dir.len() {
+                        false
+                    } else {
+                        let mut tmp_path = current_path.clone();
+                        tmp_path.push(&current_dir[i]);
+                        tmp_path.is_dir()
+                    }
+                } else {
+                    let mut tmp_path = current_path.clone();
+                    tmp_path.push(&current_dir[cursor]);
+                    if i >= preview_dir.len() {
+                        false
+                    } else {
+                        tmp_path.push(&preview_dir[i]);
+                        tmp_path.is_dir()
+                    }
+                };
 
                 self.check_insert_highlight(
                     &mut str_to_draw,
@@ -310,9 +334,9 @@ impl Canvas {
                     is_dir,
                 );
                 str_to_draw.push(self.pixels[i][j]);
-                is_dir = false;
                 j += 1;
             }
+
             font_len = 0;
             do_preview = false;
         }
