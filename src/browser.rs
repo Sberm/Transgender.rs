@@ -9,7 +9,7 @@
 use crate::canvas;
 use crate::ops::{code, consts, Mode};
 use crate::util;
-use regex::RegexBuilder;
+use regex_lite::RegexBuilder;
 use std::fs::read_dir;
 use std::iter::Rev;
 use std::ops::Range;
