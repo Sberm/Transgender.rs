@@ -316,11 +316,11 @@ impl Canvas {
                 // decide if we add the directory highlight, this applies to both the left side
                 // window and the right side preview window
                 let is_dir = if !do_preview {
-                    if i >= current_dir.len() {
+                    if i + window_start >= current_dir.len() {
                         false
                     } else {
                         let mut tmp_path = current_path.clone();
-                        tmp_path.push(&current_dir[i]);
+                        tmp_path.push(&current_dir[i + window_start]);
                         tmp_path.is_dir()
                     }
                 } else {
