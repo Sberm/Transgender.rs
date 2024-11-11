@@ -109,6 +109,8 @@ Image of the `dark` theme:
 Other themes:
 
 * [lucius](https://github.com/jonathanfilip/lucius)
+* [acme](https://github.com/ianyepan/acme-emacs-theme)
+* sakura
 
 <br/>
 
