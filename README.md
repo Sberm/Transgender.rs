@@ -110,7 +110,8 @@ Other themes:
 
 * [lucius](https://github.com/jonathanfilip/lucius)
 * [acme](https://github.com/ianyepan/acme-emacs-theme)
-* sakura
+* [sakura](https://imgur.com/a/5YhgVMG)
+* [vscode](https://github.com/Mofiqul/vscode.nvim)
 
 <br/>
 
