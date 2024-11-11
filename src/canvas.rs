@@ -43,22 +43,36 @@ fn csi(s: &str) -> String {
 
 impl Canvas {
     /// Get the index where the bottom line text should be cropped
-    fn bottom_line_slice(&self, s: &str) -> usize {
-        // Make sure the bottom line doesn't overflow
+    fn bottom_line_configure(
+        &self,
+        current_path: &str,
+        search_txt: &Vec<char>,
+        mode: Mode,
+    ) -> String {
+        let mut bottom_line = String::new();
+
+        if matches!(mode, Mode::SEARCH) {
+            bottom_line.push_str("/");
+            bottom_line.push_str(&search_txt.into_iter().collect::<String>());
+        } else {
+            bottom_line.push_str(current_path);
+        }
+
         let mut display_len: usize = 0;
         let mut slice_to: usize = 0;
 
-        for c in s.chars() {
+        for c in bottom_line.chars() {
             let len = self.get_utf8_len(c);
             display_len += len;
 
-            if display_len > self.width - 1 {
+            if display_len >= self.width {
                 break;
             }
+
             slice_to += 1;
         }
 
-        slice_to
+        bottom_line.chars().take(slice_to).collect::<String>()
     }
 
     /// return whether this character is a full-width character that displays as two blocks in the
@@ -139,23 +153,19 @@ impl Canvas {
         str_to_draw.push_str(&self.theme.normal);
         str_to_draw.push_str(&self.theme.normal_background);
 
+        str_to_draw.push_str(&self.theme.bottom_bar);
+        str_to_draw.push_str(&self.theme.bottom_bar_background);
+
+        // fill the bottom line with color
+        str_to_draw.push_str(&(0..self.width).map(|_| " ").collect::<String>());
+
+        str_to_draw.push_str(&csi(&format!("{}H", self.height)));
+        str_to_draw.push_str(&csi("0K"));
+        str_to_draw.push_str(&self.bottom_line_configure(current_path, search_txt, mode));
+
         if matches!(mode, Mode::SEARCH) {
-            let search_txt_str = search_txt.into_iter().collect::<String>();
-
-            str_to_draw.push_str("/");
-            str_to_draw.push_str(
-                &search_txt
-                    .iter()
-                    .take(self.bottom_line_slice(&search_txt_str))
-                    .collect::<String>(),
-            );
-        } else {
-            let current_path_sliced = current_path
-                .chars()
-                .take(self.bottom_line_slice(current_path))
-                .collect::<String>();
-
-            str_to_draw.push_str(&current_path_sliced);
+            // show cursor
+            str_to_draw.push_str(&csi("?25h"));
         }
     }
 
@@ -178,7 +188,9 @@ impl Canvas {
         }
 
         let mut str_to_draw = String::from("");
+
         str_to_draw.push_str(&csi("1H"));
+        str_to_draw.push_str(&csi("?25l")); // hide cursor
 
         // Write pixel
         let write_top: usize = self.height - 1;

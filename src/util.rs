@@ -32,19 +32,6 @@ pub fn show_cursor() {
     print!("\x1b[?25h"); // show cursor
 }
 
-pub fn set_search_cursor() {
-    let (h, _) = term_size();
-    print!("\x1b[{}H", h);
-    show_cursor();
-    let _ = io::stdout().flush();
-}
-
-pub fn reset_search_cursor() {
-    print!("\x1b[1H");
-    hide_cursor();
-    let _ = io::stdout().flush();
-}
-
 #[allow(dead_code)]
 struct TermSize {
     height: c_ushort,

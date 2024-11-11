@@ -138,7 +138,6 @@ impl Browser {
                     self.search_txt = Vec::new();
                     self.has_search_input = false;
                     self.mode = Mode::SEARCH;
-                    util::set_search_cursor();
                 }
                 code::NEXT_MATCH => {
                     self.next_match(
@@ -297,7 +296,6 @@ impl Browser {
             // esc
             if rc as u8 == 27 {
                 self.mode = Mode::NORMAL;
-                util::reset_search_cursor();
                 return;
             }
 
@@ -313,7 +311,6 @@ impl Browser {
             if rc as u8 == 10 {
                 // search
                 self.mode = Mode::NORMAL;
-                util::reset_search_cursor();
                 return;
             }
         }
