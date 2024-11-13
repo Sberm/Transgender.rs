@@ -262,7 +262,7 @@ impl Browser {
         let it1 = if rev == false {
             IterType::Forward(start..self.current_dir.len())
         } else {
-            IterType::Backward((0..start).rev())
+            IterType::Backward((0..start + 1).rev())
         };
 
         for i in it1 {
@@ -278,7 +278,7 @@ impl Browser {
             let it2 = if rev == false {
                 IterType::Forward(0..start)
             } else {
-                IterType::Backward((start..self.current_dir.len()).rev())
+                IterType::Backward((start + 1..self.current_dir.len()).rev())
             };
 
             for i in it2 {
