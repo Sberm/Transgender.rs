@@ -5,7 +5,7 @@
 [version-badge]: https://img.shields.io/github/v/release/sberm/Transgender.rs
 [version-url]: https://github.com/Sberm/Transgender.rs/releases
 
-A minimalistic TUI file explorer with **zero dependencies** except libc, written by a [ranger](https://github.com/ranger/ranger) hater.
+A minimalistic TUI file explorer with **minimal dependencies**, written by a [ranger](https://github.com/ranger/ranger) hater.
 
 Works on Linux & MacOS
 
