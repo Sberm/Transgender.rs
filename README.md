@@ -122,7 +122,7 @@ Now supports `>> regular expression <<`
 `Trangender.rs` performs a search whenever a key is pressed
 
 Due to the use of the `regex` crate, the executable can be a bit bloated (
-~1MB). If you don't want regular expression feature, simply switch to the
+~474KB). If you don't want regular expression feature, simply switch to the
 vanilla version by checking out to the vanilla branch and building
 `Transgender.rs`.
 
