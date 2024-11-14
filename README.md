@@ -97,15 +97,15 @@ By default, the editor is set to `vi`.
 
 #### Theme
 
-Currently, there are only two themes available: `dark` and `trans`, the default
-theme is `trans`.
+The default theme is `lucius`.
 
-Image of the `dark` theme:
+`dark` theme:
 
 ![](img/dark.jpg)
 
 Other themes:
 
+* [trans](https://imgur.com/a/m4dmLig)
 * [lucius](https://github.com/jonathanfilip/lucius)
 * [acme](https://github.com/ianyepan/acme-emacs-theme)
 * [sakura](https://imgur.com/a/5YhgVMG)
