@@ -22,7 +22,7 @@ impl Theme {
 
         // default
         for (i, t) in theme_table.theme_entries.iter().enumerate() {
-            if t.name == "trans" {
+            if t.name == "lucius" {
                 theme_i = i;
                 break;
             }
