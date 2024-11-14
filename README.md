@@ -5,13 +5,11 @@
 [version-badge]: https://img.shields.io/github/v/release/sberm/Transgender.rs
 [version-url]: https://github.com/Sberm/Transgender.rs/releases
 
-A minimalistic TUI file explorer with **minimal dependencies**, written by a [ranger](https://github.com/ranger/ranger) hater.
+A minimalistic TUI file explorer with **minimal dependencies**, written by a [ranger](https://github.com/ranger/ranger) hater, works on Linux & MacOS.
 
-Works on Linux & MacOS
+![](img/trans.jpg)
 
-![](img/trans-img.png)
-
-![](img/trans.gif)
+![](img/lucius.jpg)
 
 ## quick start
 
@@ -104,7 +102,7 @@ theme is `trans`.
 
 Image of the `dark` theme:
 
-![](img/trans-img-dark-theme.png)
+![](img/dark.jpg)
 
 Other themes:
 
