@@ -84,9 +84,9 @@ impl ThemeTable {
             theme_entries: vec![
                 __theme![
                     "trans",
-                    "\x1b[0;30m",
-                    "\x1b[38;5;127m",
-                    "\x1b[48;5;175m",
+                    "\x1b[0;37m",
+                    "\x1b[38;5;175m",
+                    "\x1b[48;5;24m",
                     "\x1b[0;37m",
                     "\x1b[48;5;31m",
                     "\x1b[38;5;0m",
