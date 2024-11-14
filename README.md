@@ -1,4 +1,4 @@
-# Transgender
+# Transgender.rs
 
 [![version][version-badge]][version-url]
 
