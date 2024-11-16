@@ -466,6 +466,9 @@ impl Browser {
         dir.push(&self.current_dir[self.cursor]);
 
         if dir.is_dir() == false {
+            // reduce color flicking (caused by bottom bar color)
+            util::reduce_flick();
+
             if let Ok(_) = Command::new(&self.editor)
                 .arg(dir.to_str().unwrap())
                 .status()

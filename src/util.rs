@@ -75,6 +75,11 @@ pub fn canonical_input() {
     }
 }
 
+pub fn reduce_flick() {
+    print!("\x1b[0;30m"); // use alternate buffer
+    let _ = io::stdout().flush();
+}
+
 pub fn enter_albuf() {
     raw_input();
     hide_cursor();
