@@ -212,7 +212,7 @@ pub fn get_editor() -> String {
     return String::from(consts::EDITOR);
 }
 
-///  Read a single utf8 char
+/// Read a single utf8 char
 ///
 /// returns
 ///  A tuple of char and bool
