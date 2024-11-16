@@ -1,10 +1,18 @@
+/*═══════════════════════════════════════════════════════════════════════╗
+║                          ©  Howard Chu                                 ║
+║                                                                        ║
+║ Permission to use, copy, modify, and/or distribute this software for   ║
+║ any purpose with or without fee is hereby granted, provided that the   ║
+║ above copyright notice and this permission notice appear in all copies ║
+╚═══════════════════════════════════════════════════════════════════════*/
+
 extern crate libc;
 
 use self::libc::{
     c_ushort, ioctl, tcgetattr, tcsetattr, termios, ECHO, ICANON, ISIG, STDIN_FILENO,
     STDOUT_FILENO, TCSAFLUSH, TIOCGWINSZ,
 };
-use crate::ops::{code, consts, Theme};
+use crate::ops::{code, consts};
 use std::env::var;
 use std::fs::File;
 use std::io::{self, stdin, BufRead, Read, Write};
@@ -16,25 +24,12 @@ use std::time::Duration;
 
 #[inline(always)]
 pub fn hide_cursor() {
-    print!("\x1b[?25l"); /* hide cursor */
+    print!("\x1b[?25l"); // hide cursor
 }
 
 #[inline(always)]
 pub fn show_cursor() {
-    print!("\x1b[?25h"); /* show cursor */
-}
-
-pub fn set_search_cursor() {
-    let (h, _) = term_size();
-    print!("\x1b[{}H", h);
-    show_cursor();
-    let _ = io::stdout().flush();
-}
-
-pub fn reset_search_cursor() {
-    print!("\x1b[1H");
-    hide_cursor();
-    let _ = io::stdout().flush();
+    print!("\x1b[?25h"); // show cursor
 }
 
 #[allow(dead_code)]
@@ -45,6 +40,10 @@ struct TermSize {
     b: c_ushort,
 }
 
+/// Get the height and width of the current terminal window
+///
+/// returns
+///  tuple of (height, width)
 pub fn term_size() -> (usize, usize) {
     unsafe {
         let mut sz: TermSize = mem::zeroed();
@@ -79,17 +78,21 @@ pub fn canonical_input() {
 pub fn enter_albuf() {
     raw_input();
     hide_cursor();
-    print!("\x1b[?1049h"); /* use alternate buffer */
+    print!("\x1b[?1049h"); // use alternate buffer
     let _ = io::stdout().flush();
 }
 
 pub fn exit_albuf() {
     canonical_input();
     show_cursor();
-    print!("\x1b[?1049l"); /* switch back to normal screen buffer */
+    print!("\x1b[?1049l"); // switch back to normal screen buffer
     let _ = io::stdout().flush();
 }
 
+/// Read a single ascii byte input
+///
+/// returns
+///  ascii byte
 fn read_input() -> isize {
     let mut stdin_handle = stdin().lock();
     let mut byte = [0_u8];
@@ -102,7 +105,7 @@ fn read_input() -> isize {
 pub fn process_input() -> u8 {
     let mut input = read_input();
 
-    /* arrow keys */
+    // arrow keys
     if input == 27 {
         input = read_input();
         if input == 91 {
@@ -123,7 +126,7 @@ pub fn process_input() -> u8 {
         }
     }
 
-    /* gg */
+    // gg
     if input == 103 {
         input = read_input();
         if input == 103 {
@@ -132,17 +135,18 @@ pub fn process_input() -> u8 {
     }
 
     match input {
-        107 => return code::UP,
-        106 => return code::DOWN,
-        104 => return code::LEFT,
-        108 => return code::RIGHT,
-        111 => return code::EXIT_CURSOR,
-        10 => return code::EXIT_CURSOR,
-        105 => return code::EXIT,
-        113 => return code::QUIT,
-        47 => return code::SEARCH, /* / */
-        71 => return code::BOTTOM, /* G */
-        110 => return code::NEXT_MATCH,
+        107 => return code::UP,          // k
+        106 => return code::DOWN,        // j
+        104 => return code::LEFT,        // h
+        108 => return code::RIGHT,       // l
+        111 => return code::EXIT_CURSOR, // o
+        10 => return code::EXIT_CURSOR,  // Enter
+        105 => return code::EXIT,        // i
+        113 => return code::QUIT,        // q
+        47 => return code::SEARCH,       // /
+        71 => return code::BOTTOM,       // G
+        110 => return code::NEXT_MATCH,  // n
+        78 => return code::PREV_MATCH,   // N
         _ => return code::NOOP,
     }
 }
@@ -155,11 +159,13 @@ where
     Ok(io::BufReader::new(file).lines())
 }
 
+/// Print path to stderr (although stdin and stdout are switched in ts shell function) for cd to
+/// consume.
 pub fn print_path(str_: &str) {
     eprintln!("\n{}", str_);
 }
 
-pub fn get_theme() -> Theme {
+pub fn get_theme() -> String {
     if let Ok(home_dir) = var(consts::HOME_VAR) {
         if let Ok(lines) = read_lines(&format!("{}/{}", home_dir, consts::CONFIG_FILE)) {
             for line in lines.flatten() {
@@ -169,15 +175,19 @@ pub fn get_theme() -> Theme {
                 if kv.len() != 2 {
                     continue;
                 }
-                if kv[0].eq(consts::THEME_KEY) && kv[1].eq(consts::THEME_DARK) {
-                    return Theme::DARK;
+                if kv[0].eq(consts::THEME_KEY) {
+                    return String::from(kv[1]);
                 }
             }
         }
     }
-    return Theme::TRANS;
+    return String::new();
 }
 
+/// Read trans config file to get preferred editor
+///
+/// returns
+///  editor name as a String
 pub fn get_editor() -> String {
     if let Ok(home_dir) = var(consts::HOME_VAR) {
         if let Ok(lines) = read_lines(&format!("{}/{}", home_dir, consts::CONFIG_FILE)) {
@@ -197,7 +207,11 @@ pub fn get_editor() -> String {
     return String::from(consts::EDITOR);
 }
 
-pub fn read_utf8() -> Result<(String, bool), ()> {
+///  Read a single utf8 char
+///
+/// returns
+///  A tuple of char and bool
+pub fn read_utf8() -> Option<(char, bool)> {
     let mut c_bytes = [0u8; 4];
     let mut bytes_cnt: usize = 0;
 
@@ -230,5 +244,10 @@ pub fn read_utf8() -> Result<(String, bool), ()> {
         from_utf8(&c_bytes[0..bytes_cnt]).expect("Failed to convert bytes string to &str"),
     );
 
-    Ok((s, is_ascii))
+    let rc = s
+        .chars()
+        .nth(0)
+        .expect("Failed to get the first & only character");
+
+    Some((rc, is_ascii))
 }

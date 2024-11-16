@@ -1,17 +1,15 @@
-# Transgender
+# Transgender.rs
 
 [![version][version-badge]][version-url]
 
 [version-badge]: https://img.shields.io/github/v/release/sberm/Transgender.rs
 [version-url]: https://github.com/Sberm/Transgender.rs/releases
 
-A minimalistic TUI file explorer with **zero dependencies** except libc, written by a [ranger](https://github.com/ranger/ranger) hater.
+A minimalistic TUI file explorer with **minimal dependencies**, written by a [ranger](https://github.com/ranger/ranger) hater, works on Linux & MacOS.
 
-Works on Linux & MacOS
+![](img/trans_.jpg)
 
-![](img/trans-img.png)
-
-![](img/trans.gif)
+![](img/lucius.jpg)
 
 ## quick start
 
@@ -29,10 +27,10 @@ make
 make install
 ```
 
-paste this function to your shell configuration file, depends on what shell you use (`~/.bashrc`, `~/.bash_profile`, `source ~/.zshrc`, `~/.config/fish/config.fish`)
+paste this shell script function into your shell configuration file, its location depends on which shell you use (`~/.bashrc`, `~/.bash_profile`, `source ~/.zshrc`, `~/.config/fish/config.fish`)
 ```
-function ts() {
-  cd $(transgender 3>&1 1>&2 2>&3 3>&- | tail -n 1)
+ts() {
+  cd "$(transgender 3>&1 1>&2 2>&3 3>&- | tail -n 1)"
 }
 ```
 
@@ -99,19 +97,40 @@ By default, the editor is set to `vi`.
 
 #### Theme
 
-Currently, there are only two themes available: `dark` and `trans`, the default theme is `trans`.
+Currently, there are only two themes available: `dark` and `trans`, the default
+theme is `trans`.
 
 Image of the `dark` theme:
 
-![](img/trans-img-dark-theme.png)
+![](img/dark.jpg)
+
+Other themes:
+
+* [lucius](https://github.com/jonathanfilip/lucius)
+* [acme](https://github.com/ianyepan/acme-emacs-theme)
+* [sakura](https://imgur.com/a/5YhgVMG)
+* [vscode](https://github.com/Mofiqul/vscode.nvim)
 
 <br/>
 
 ### Search
 
-`trans` performs searches in a case-insensitive manner and is triggered with every keystroke.
+Now supports `>> regular expression <<`
 
-Checkout to `regex` branch if you want regex-powered search.
+`Trangender.rs` performs a search whenever a key is pressed
+
+Due to the use of the `regex` crate, the executable can be a bit bloated (
+~474KB). If you don't want regular expression feature, simply switch to the
+vanilla version by checking out to the vanilla branch and building
+`Transgender.rs`.
+
+```bash
+git checkout vanilla
+make
+make install
+```
+
+<br/>
 
 ### uninstall
 
@@ -141,7 +160,7 @@ with bad designs that irritate its users.
 
 ### Todo:
 
-- [ ] More tests
+- [ ] tests
 
 - [x] Read utf-8 input
 

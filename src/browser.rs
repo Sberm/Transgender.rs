@@ -1,15 +1,26 @@
+/*═══════════════════════════════════════════════════════════════════════╗
+║                          ©  Howard Chu                                 ║
+║                                                                        ║
+║ Permission to use, copy, modify, and/or distribute this software for   ║
+║ any purpose with or without fee is hereby granted, provided that the   ║
+║ above copyright notice and this permission notice appear in all copies ║
+╚═══════════════════════════════════════════════════════════════════════*/
+
 use crate::canvas;
-use crate::ops::{code, consts, Mode, Ops};
+use crate::ops::{code, consts, Mode};
 use crate::util;
 use std::fs::read_dir;
+use std::iter::Rev;
+use std::ops::Range;
 use std::path::PathBuf;
 use std::process::{exit, Command};
 use std::vec::Vec;
 
+/// Directory browser
 pub struct Browser {
     cursor: usize,
     window_start: usize,
-    current_dir: Vec<String>, /* String instead of PathBuf for display purposes */
+    current_dir: Vec<String>, // String instead of PathBuf for display purposes
     past_dir: Vec<PathBuf>,
     past_cursor: Vec<usize>,
     past_window_start: Vec<usize>,
@@ -18,10 +29,27 @@ pub struct Browser {
     mode: Mode,
     search_txt: Vec<char>,
     has_search_input: bool,
-    ops: Ops,
+    editor: String,
+}
+
+pub enum IterType {
+    Forward(Range<usize>),
+    Backward(Rev<Range<usize>>),
+}
+
+impl Iterator for IterType {
+    type Item = usize;
+
+    fn next(&mut self) -> Option<usize> {
+        match self {
+            IterType::Forward(range) => range.next(),
+            IterType::Backward(range) => range.next(),
+        }
+    }
 }
 
 impl Browser {
+    /// Construct past directory stack according to the current path
     pub fn init(&mut self) {
         self.read_to_current_dir(&String::from("."));
         let mut srcdir = PathBuf::from(".")
@@ -60,6 +88,7 @@ impl Browser {
         self.top();
     }
 
+    /// Window display update loop
     pub fn start_loop(&mut self, canvas: &mut canvas::Canvas) {
         loop {
             let preview_dir = self.get_preview();
@@ -108,14 +137,26 @@ impl Browser {
                     self.search_txt = Vec::new();
                     self.has_search_input = false;
                     self.mode = Mode::SEARCH;
-                    util::set_search_cursor();
                 }
                 code::NEXT_MATCH => {
-                    self.next_match(if self.cursor + 1 < self.current_dir.len() {
-                        self.cursor + 1
-                    } else {
-                        0
-                    });
+                    self.next_match(
+                        if self.cursor + 1 < self.current_dir.len() {
+                            self.cursor + 1
+                        } else {
+                            0
+                        },
+                        false,
+                    );
+                }
+                code::PREV_MATCH => {
+                    self.next_match(
+                        if self.cursor as isize - 1 >= 0 {
+                            self.cursor - 1
+                        } else {
+                            self.current_dir.len() - 1
+                        },
+                        true,
+                    );
                 }
                 _ => {
                     continue;
@@ -124,6 +165,7 @@ impl Browser {
         }
     }
 
+    ///  Get directory content preview window as a vector of strings
     fn get_preview(&self) -> Vec<String> {
         let mut ret: Vec<String> = Vec::new();
 
@@ -158,15 +200,16 @@ impl Browser {
         ret
     }
 
-    fn brute_force_search(&self, s: &str) -> bool {
-        if self.search_txt.len() > s.len() {
-            return false;
+    fn brute_force_search(&self, to_search: &str, pattern: &str, case_insensitive: bool) -> bool {
+        if case_insensitive {
+            return to_search.to_lowercase().contains(&pattern.to_lowercase());
+        } else {
+            return to_search.contains(&pattern);
         }
-
-        return s.to_lowercase().contains(&self.search_txt.iter().collect::<String>().to_lowercase());
     }
 
-    fn set_cursor_pos(&mut self, index: usize) {
+    ///  Set cursor position, centered in the window
+    fn set_cursor_pos_centered(&mut self, index: usize) {
         self.cursor = index;
         let (h, _) = util::term_size();
         self.window_start = if self.cursor as isize - h as isize / 2 > 0 {
@@ -176,30 +219,67 @@ impl Browser {
         };
     }
 
-    fn next_match(&mut self, start: usize) {
+    /// Next search match, can be a reversed search
+    fn next_match(&mut self, start: usize, rev: bool) {
         if self.has_search_input == false {
             return;
         }
 
         let mut matched = false;
+        let mut case_insensitive = true;
 
         if self.cursor >= self.current_dir.len() {
             return;
         }
 
-        for i in start..self.current_dir.len() {
-            if self.brute_force_search(&self.current_dir[i]) {
+        let mut search: String = self.search_txt.iter().collect::<String>();
+
+        // Check if the case sensitive '\C' is present at the bottom of the search text
+        let len = self.search_txt.iter().count();
+
+        // TODO: support "/ok\\C" backslash escape
+        if len > 2 {
+            let last_two = self
+                .search_txt
+                .iter()
+                .skip(len - 2)
+                .take(2)
+                .collect::<String>();
+            if last_two.eq("\\C") {
+                search = self.search_txt.iter().take(len - 2).collect::<String>();
+                case_insensitive = false;
+            }
+            if last_two.eq("\\c") {
+                search = self.search_txt.iter().take(len - 2).collect::<String>();
+                case_insensitive = true;
+            }
+        }
+
+        let it1 = if rev == false {
+            IterType::Forward(start..self.current_dir.len())
+        } else {
+            IterType::Backward((0..start + 1).rev())
+        };
+
+        for i in it1 {
+            if self.brute_force_search(&self.current_dir[i], &search, case_insensitive) {
+                self.set_cursor_pos_centered(i);
                 matched = true;
-                self.set_cursor_pos(i);
                 break;
             }
         }
 
-        /* start from 0 */
+        // start from 0
         if matched == false {
-            for i in 0..start {
-                if self.brute_force_search(&self.current_dir[i]) {
-                    self.set_cursor_pos(i);
+            let it2 = if rev == false {
+                IterType::Forward(0..start)
+            } else {
+                IterType::Backward((start + 1..self.current_dir.len()).rev())
+            };
+
+            for i in it2 {
+                if self.brute_force_search(&self.current_dir[i], &search, case_insensitive) {
+                    self.set_cursor_pos_centered(i);
                     break;
                 }
             }
@@ -207,27 +287,21 @@ impl Browser {
     }
 
     fn search(&mut self) {
-        let (s, is_ascii) = match util::read_utf8() {
-            Ok((s, is_ascii)) => (s, is_ascii),
-            Err(_) => (String::from("�"), false),
+        let (rc, is_ascii) = match util::read_utf8() {
+            Some((rc, is_ascii)) => (rc, is_ascii),
+            None => ('�', false),
         };
-
-        let rc = s
-            .chars()
-            .nth(0)
-            .expect("Failed to get the first & only character");
 
         self.has_search_input = true;
 
         if is_ascii {
-            /* esc */
+            // esc
             if rc as u8 == 27 {
                 self.mode = Mode::NORMAL;
-                util::reset_search_cursor();
                 return;
             }
 
-            /* backspace */
+            // backspace
             if rc as u8 == 127 {
                 if self.search_txt.len() > 0 {
                     self.search_txt.pop().expect("search txt(pop) out of bound");
@@ -235,17 +309,16 @@ impl Browser {
                 return;
             }
 
-            /* enter */
+            // enter
             if rc as u8 == 10 {
-                /* search */
+                // search
                 self.mode = Mode::NORMAL;
-                util::reset_search_cursor();
                 return;
             }
         }
 
         self.search_txt.push(rc);
-        self.next_match(self.cursor);
+        self.next_match(self.cursor, false);
     }
 
     fn top(&mut self) {
@@ -254,13 +327,7 @@ impl Browser {
     }
 
     fn bottom(&mut self) {
-        self.cursor = self.current_dir.len() - 1;
-        let (h, _) = util::term_size();
-        self.window_start = if self.current_dir.len() as isize - h as isize + 1 > 0 {
-            self.current_dir.len() - h
-        } else {
-            0
-        };
+        self.set_cursor_pos_centered(self.current_dir.len() - 1);
     }
 
     fn up(&mut self) {
@@ -290,7 +357,7 @@ impl Browser {
 
         let (h, _) = util::term_size();
 
-        /* So the cursor won't be covered by the bottom line (TODO: But trans still draws that line in Canvas) */
+        // So the cursor won't be covered by the bottom line (TODO: But trans still draws that line in Canvas)
         let display_height = h - 1;
 
         if self.cursor as isize > (display_height - 1) as isize
@@ -302,7 +369,7 @@ impl Browser {
 
     fn left(&mut self) {
         let current_path_tmp = self.current_path.clone();
-        /* root dir '/' */
+        // root dir '/'
         if current_path_tmp.file_name() == None {
             return;
         }
@@ -328,21 +395,16 @@ impl Browser {
             .to_str()
             .expect("Failed to do to_str()");
 
-        /* 0 could be good, but it could be because it was pushed in beginning */
-        if self.cursor == 0 {
-            let mut i = 0;
-            for dir in &self.current_dir {
-                if dir.as_str() == dir_to_restore {
-                    self.cursor = i;
-                    let (h, _) = util::term_size();
-                    if self.cursor > self.window_start + h - 1 {
-                        self.window_start = self.cursor - h + 1;
-                    }
-                    break;
-                }
-                i += 1;
+        // 0 could be good, but it could be because it was pushed in beginning
+        let mut index: usize = 0;
+        for (i, dir) in self.current_dir.iter().enumerate() {
+            if dir.eq(dir_to_restore) {
+                self.cursor = i;
+                index = i;
+                break;
             }
         }
+        self.set_cursor_pos_centered(index);
     }
 
     fn right(&mut self) {
@@ -364,6 +426,7 @@ impl Browser {
         self.top();
     }
 
+    /// Read the file and directory names in the current directory
     fn read_to_current_dir(&mut self, path: &String) {
         self.current_dir.clear();
 
@@ -384,20 +447,22 @@ impl Browser {
         }
     }
 
+    /// Goto the directory in the left side window, while quitting trans
     fn exit_cur_dir(&self) {
         util::exit_albuf();
         util::print_path(&self.current_path.to_str().unwrap());
         exit(0);
     }
 
+    /// Goto the directory under the cursor, while quitting trans
+    ///  or
+    /// Open the file under the cursor with a text editor
     fn exit_under_cursor(&self) {
         let mut dir = self.current_path.clone();
         dir.push(&self.current_dir[self.cursor]);
 
-        util::exit_albuf();
-
         if dir.is_dir() == false {
-            if let Ok(_) = Command::new(&self.ops.editor)
+            if let Ok(_) = Command::new(&self.editor)
                 .arg(dir.to_str().unwrap())
                 .status()
             {
@@ -412,11 +477,15 @@ impl Browser {
                     ));
             }
         } else {
+            util::exit_albuf();
             util::print_path(dir.to_str().unwrap());
+
             exit(0);
         };
 
+        // sometimes the editor exits alternate buffer, and enables cursor
         util::enter_albuf();
+        util::hide_cursor();
     }
 
     fn quit(&self) {
@@ -441,9 +510,7 @@ pub fn new() -> Browser {
         mode: Mode::NORMAL,
         search_txt: Vec::new(),
         has_search_input: false,
-        ops: Ops {
-            editor: util::get_editor(),
-        },
+        editor: util::get_editor(),
     };
 
     browser.init();
