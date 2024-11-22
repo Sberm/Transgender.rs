@@ -79,15 +79,15 @@ impl Canvas {
     /// terminal
     fn get_utf8_len(&self, c: char) -> usize {
         match self.utf8_table.classify(c) {
-            WcWidth::One => return 1,
-            WcWidth::Two => return 2,
-            WcWidth::NonPrint => return 0,
-            WcWidth::Combining => return 0,
-            WcWidth::Ambiguous => return 1,
-            WcWidth::PrivateUse => return 0,
-            WcWidth::Unassigned => return 0,
-            WcWidth::WidenedIn9 => return 2,
-            WcWidth::NonCharacter => return 0,
+            WcWidth::One => 1,
+            WcWidth::Two => 2,
+            WcWidth::NonPrint => 0,
+            WcWidth::Combining => 0,
+            WcWidth::Ambiguous => 1,
+            WcWidth::PrivateUse => 0,
+            WcWidth::Unassigned => 0,
+            WcWidth::WidenedIn9 => 2,
+            WcWidth::NonCharacter => 0,
         }
     }
 
