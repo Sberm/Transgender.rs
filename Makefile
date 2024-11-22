@@ -8,14 +8,16 @@ else
 	CFLAGS = -O2 -std=c11
 endif
 
+install_path := /usr/local/bin
+
 all: 
 	$(call msg,TRANS,STARTS-BUILDING)
 	$(Q)cargo build --release
 	$(call msg,TRANS,BUILD-SUCCEED)
 
 install:
-	$(call msg,INSTALL)
-	$(Q)sudo cp ./target/release/transgender /usr/local/bin/transgender
+	$(call msg,INSTALL,$(install_path)/transgender)
+	$(Q)sudo install target/release/transgender $(install_path)
 
 uninstall:
 	$(call msg,UNINSTALL)
