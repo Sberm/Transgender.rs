@@ -196,6 +196,7 @@ impl Canvas {
         let write_top: usize = self.height - 1;
         let write_bottom: usize = 0;
 
+        // l_w_l: left window left
         let l_w_l: usize = 0;
         let l_w_r: usize = (self.width / 10 * 6 - 1) as usize;
 
@@ -269,6 +270,7 @@ impl Canvas {
 
         let mut font_len: usize = 0;
         let mut do_preview: bool = false;
+        let mut complement: usize = 0;
 
         for i in 0..self.height {
             let mut j = 0;
@@ -279,7 +281,15 @@ impl Canvas {
                 }
 
                 let len = self.get_utf8_len(self.pixels[i][j]);
-                font_len += len;
+
+                // for a zero-width character such as a combining character, spaces in pixels is
+                // not enough, insert more spaces (complement) for alignment
+                if len == 0 {
+                    font_len += 1;
+                    complement += 1;
+                } else {
+                    font_len += len;
+                }
 
                 //  If the font_len reaches over the capcity of the left side window, discard this
                 //  character and update the preview window.
@@ -299,9 +309,13 @@ impl Canvas {
                         str_to_draw.push(' ');
                     }
 
+                    str_to_draw.push_str(&(0..complement).map(|_| ' ').collect::<String>());
+
                     j = r_w_l;
                     font_len = 0;
+                    complement = 0;
                     do_preview = true;
+
                     continue;
                 }
 
@@ -346,9 +360,12 @@ impl Canvas {
 
                 str_to_draw.push(self.pixels[i][j]);
                 j += 1;
-            }
+            } // loop
+
+            str_to_draw.push_str(&(0..complement).map(|_| ' ').collect::<String>());
 
             font_len = 0;
+            complement = 0;
             do_preview = false;
         }
 
