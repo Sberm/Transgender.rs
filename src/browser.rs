@@ -53,6 +53,7 @@ impl Browser {
     /// Construct past directory stack according to the current path
     pub fn init(&mut self) {
         self.read_to_current_dir(&String::from("."));
+
         let mut srcdir = PathBuf::from(".")
             .canonicalize()
             .expect("Failed to canonicalize current directory");
@@ -61,16 +62,13 @@ impl Browser {
             self.past_dir.push(srcdir.clone());
             self.past_cursor.push(0);
             self.past_window_start.push(0);
+
             if !srcdir.pop() {
                 break;
             }
         }
-        self.past_dir = self
-            .past_dir
-            .clone()
-            .into_iter()
-            .rev()
-            .collect::<Vec<PathBuf>>();
+
+        self.past_dir.reverse();
 
         if self.past_dir.len() > 1 {
             self.current_path = self
@@ -78,14 +76,18 @@ impl Browser {
                 .pop()
                 .expect("Failed to pop the last element from past_dir")
                 .clone();
+
             self.original_path = self.current_path.clone();
+
             self.past_cursor
                 .pop()
                 .expect("Failed to pop from past_cursor");
+
             self.past_window_start
                 .pop()
                 .expect("Failed to pop from past_window_start");
         }
+
         self.top();
     }
 
@@ -176,6 +178,7 @@ impl Browser {
 
         let mut dir_under_cursor = self.current_path.clone();
         dir_under_cursor.push(&self.current_dir[self.cursor]);
+
         if dir_under_cursor.is_dir() == false {
             return ret;
         }
@@ -186,7 +189,9 @@ impl Browser {
                     "Failed to interate through {}",
                     dir_under_cursor.to_str().unwrap()
                 ));
+
                 let s = entry.file_name().into_string();
+
                 match s {
                     Ok(v) => {
                         ret.push(v);
@@ -203,8 +208,9 @@ impl Browser {
 
     ///  Set cursor position, centered in the window
     fn set_cursor_pos_centered(&mut self, index: usize) {
-        self.cursor = index;
         let (h, _) = util::term_size();
+
+        self.cursor = index;
         self.window_start = if self.cursor as isize - h as isize / 2 > 0 {
             self.cursor - h / 2
         } else {
@@ -296,6 +302,7 @@ impl Browser {
             None => ('�', false),
         };
 
+        // there should be no search input when trans first starts
         self.has_search_input = true;
 
         if is_ascii {
@@ -338,11 +345,13 @@ impl Browser {
         if self.current_dir.is_empty() == true {
             return;
         }
+
         self.cursor = if self.cursor as isize - 1 >= 0 {
             self.cursor - 1
         } else {
             0
         };
+
         if self.cursor < self.window_start {
             self.window_start -= 1;
         }
@@ -352,32 +361,33 @@ impl Browser {
         if self.current_dir.is_empty() == true {
             return;
         }
-        let l = self.current_dir.len();
-        self.cursor = if self.cursor + 1 < l {
+
+        let max_len = self.current_dir.len();
+        self.cursor = if self.cursor + 1 < max_len {
             self.cursor + 1
         } else {
-            l - 1
+            max_len - 1
         };
 
         let (h, _) = util::term_size();
 
-        // So the cursor won't be covered by the bottom line (TODO: But trans still draws that line in Canvas)
-        let display_height = h - 1;
+        // So the cursor won't be covered by the bottom line (TODO: But trans still draws that line
+        // in Canvas)
+        let max_display_height = h - 1;
 
-        if self.cursor as isize > (display_height - 1) as isize
-            && self.cursor > self.window_start + display_height - 1
-        {
+        if (self.cursor) as isize > (self.window_start + max_display_height - 1) as isize {
             self.window_start += 1;
         }
     }
 
     fn left(&mut self) {
-        let current_path_tmp = self.current_path.clone();
-        // root dir '/'
-        if current_path_tmp.file_name() == None {
+        let child = self.current_path.clone();
+        // for example, root dir '/'
+        if child.file_name() == None {
             return;
         }
 
+        // get the parent dir and read its content
         self.current_path = self
             .past_dir
             .pop()
@@ -388,26 +398,30 @@ impl Browser {
             .past_cursor
             .pop()
             .expect("Failed to pop from past_cursor");
+
         self.window_start = self
             .past_window_start
             .pop()
             .expect("Failed to pop from past_window_start");
 
-        let dir_to_restore = current_path_tmp
+        let child_filename_str = child
             .file_name()
             .expect("Failed to get file name of current path to restore the directory")
             .to_str()
             .expect("Failed to do to_str()");
 
-        // 0 could be good, but it could be because it was pushed in beginning
+        // 0 is set in init()
         let mut index: usize = 0;
+
+        // find the child dir in parent
         for (i, dir) in self.current_dir.iter().enumerate() {
-            if dir.eq(dir_to_restore) {
+            if dir.eq(child_filename_str) {
                 self.cursor = i;
                 index = i;
                 break;
             }
         }
+
         self.set_cursor_pos_centered(index);
     }
 
@@ -426,7 +440,12 @@ impl Browser {
         self.past_cursor.push(self.cursor);
         self.past_window_start.push(self.window_start);
         self.current_path = dir_under_cursor.clone();
-        self.read_to_current_dir(&dir_under_cursor.to_str().unwrap().to_string());
+        self.read_to_current_dir(
+            &dir_under_cursor
+                .to_str()
+                .expect("Failed to call to_str() for the dir under cursor")
+                .to_string(),
+        );
         self.top();
     }
 
@@ -437,10 +456,11 @@ impl Browser {
         if let Ok(entries) = read_dir(path) {
             for entry in entries {
                 let entry = entry.expect(&format!("Failed to interate through {}", path));
-                let s = entry.file_name().into_string();
-                match s {
-                    Ok(v) => {
-                        self.current_dir.push(v);
+                let filename_str = entry.file_name().into_string();
+
+                match filename_str {
+                    Ok(str) => {
+                        self.current_dir.push(str);
                     }
                     Err(_) => {
                         let str = entry.file_name().to_string_lossy().into_owned();
@@ -473,6 +493,7 @@ impl Browser {
                 .arg(dir.to_str().unwrap())
                 .status()
             {
+                // empty, successfully opened with user's desired editor
             } else {
                 Command::new(consts::EDITOR)
                     .arg(dir.to_str().unwrap())
@@ -490,16 +511,15 @@ impl Browser {
             exit(0);
         };
 
-        // sometimes the editor exits alternate buffer, and enables cursor
+        // when an editor exits, it also exits the alternate buffer, and enables cursor, need to
+        // stay in albuf and hide cursor in trans
         util::enter_albuf();
         util::hide_cursor();
     }
 
     fn quit(&self) {
         util::exit_albuf();
-
         util::print_path(&self.original_path.to_str().unwrap());
-
         exit(0);
     }
 }
