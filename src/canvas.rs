@@ -42,6 +42,16 @@ fn csi(s: &str) -> String {
 }
 
 impl Canvas {
+    /// Set the internel pixel (char) representation
+    fn set(&mut self, i: usize, j: usize, c: char) {
+        let i_to_write: i32 = self.height as i32 - 1 - i as i32;
+        let j_to_write: usize = j;
+
+        if 0 <= i_to_write && i_to_write < self.height as i32 && j_to_write < self.width {
+            self.pixels[i_to_write as usize][j_to_write] = c;
+        }
+    }
+
     /// Get the index where the bottom line text should be cropped
     fn bottom_line_configure(
         &self,
@@ -181,6 +191,7 @@ impl Canvas {
         search_txt: &Vec<char>,
     ) {
         let (h, w) = util::term_size();
+
         if self.height != h || self.width != w {
             self.height = h;
             self.width = w;
@@ -268,6 +279,7 @@ impl Canvas {
             dir_i += 1;
         }
 
+        // after setting the pixels, format str_to_draw
         let mut font_len: usize = 0;
         let mut do_preview: bool = false;
         let mut complement: usize = 0;
@@ -369,7 +381,7 @@ impl Canvas {
             do_preview = false;
         }
 
-        // Draw bottom line after drawing the directories
+        // Draw bottom line after drawing the directories to prevent overlapping
         self.draw_bottom_line(
             &mut str_to_draw,
             mode,
@@ -379,16 +391,6 @@ impl Canvas {
 
         print!("{}", str_to_draw);
         let _ = io::stdout().flush();
-    }
-
-    /// Set the internel pixel (char) representation
-    fn set(&mut self, i: usize, j: usize, c: char) {
-        let i_to_write: i32 = self.height as i32 - 1 - i as i32;
-        let j_to_write: usize = j;
-
-        if 0 <= i_to_write && i_to_write < self.height as i32 && j_to_write < self.width {
-            self.pixels[i_to_write as usize][j_to_write] = c;
-        }
     }
 }
 
