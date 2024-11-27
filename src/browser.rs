@@ -451,24 +451,16 @@ impl Browser {
 
     /// Read the file and directory names in the current directory
     fn read_current_dir(&mut self, path: &String) {
-        self.current_dir.clear();
-
-        if let Ok(entries) = read_dir(path) {
-            for entry in entries {
-                let entry = entry.expect(&format!("Failed to interate through {}", path));
-                let filename_str = entry.file_name().into_string();
-
-                match filename_str {
-                    Ok(str) => {
-                        self.current_dir.push(str);
-                    }
-                    Err(_) => {
-                        let str = entry.file_name().to_string_lossy().into_owned();
-                        self.current_dir.push(str);
-                    }
+        self.current_dir = read_dir(path)
+            .expect(&format!("Read files from {} failed", path))
+            .map(|_e| {
+                let e = _e.expect(&format!("Failed to read a file from {}", path));
+                match e.file_name().into_string() {
+                    Ok(filename) => filename,
+                    Err(_) => e.file_name().to_string_lossy().into_owned(),
                 }
-            }
-        }
+            })
+            .collect::<Vec<String>>();
     }
 
     /// Goto the directory in the left side window, while quitting trans
