@@ -52,7 +52,7 @@ impl Iterator for IterType {
 impl Browser {
     /// Construct past directory stack according to the current path
     pub fn init(&mut self) {
-        self.read_to_current_dir(&String::from("."));
+        self.read_current_dir(&String::from("."));
 
         let mut srcdir = PathBuf::from(".")
             .canonicalize()
@@ -392,7 +392,7 @@ impl Browser {
             .past_dir
             .pop()
             .expect("Failed to pop from past_dir in when exiting a directory");
-        self.read_to_current_dir(&self.current_path.to_str().unwrap().to_string());
+        self.read_current_dir(&self.current_path.to_str().unwrap().to_string());
 
         self.cursor = self
             .past_cursor
@@ -440,7 +440,7 @@ impl Browser {
         self.past_cursor.push(self.cursor);
         self.past_window_start.push(self.window_start);
         self.current_path = dir_under_cursor.clone();
-        self.read_to_current_dir(
+        self.read_current_dir(
             &dir_under_cursor
                 .to_str()
                 .expect("Failed to call to_str() for the dir under cursor")
@@ -450,7 +450,7 @@ impl Browser {
     }
 
     /// Read the file and directory names in the current directory
-    fn read_to_current_dir(&mut self, path: &String) {
+    fn read_current_dir(&mut self, path: &String) {
         self.current_dir.clear();
 
         if let Ok(entries) = read_dir(path) {
