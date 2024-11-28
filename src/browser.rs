@@ -461,6 +461,8 @@ impl Browser {
                 }
             })
             .collect::<Vec<String>>();
+
+        self.current_dir.sort_by(|d1, d2| d1.to_lowercase().cmp(&d2.to_lowercase()));
     }
 
     /// Goto the directory in the left side window, while quitting trans
