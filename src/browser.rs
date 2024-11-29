@@ -181,7 +181,6 @@ impl Browser {
         if _dir.is_dir() == false {
             return empty;
         }
-
         let dir = _dir.to_str().expect("Failed to construct preview path");
 
         let mut preview = read_dir(&dir)
@@ -195,7 +194,6 @@ impl Browser {
             .collect::<Vec<String>>();
 
         preview.sort_by(|d1, d2| d1.to_lowercase().cmp(&d2.to_lowercase()));
-
         preview
     }
 
