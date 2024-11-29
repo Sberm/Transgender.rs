@@ -170,40 +170,33 @@ impl Browser {
 
     ///  Get directory content preview window as a vector of strings
     fn get_preview(&self) -> Vec<String> {
-        let mut ret: Vec<String> = Vec::new();
+        let empty: Vec<String> = Vec::new();
 
         if self.current_dir.len() == 0 {
-            return ret;
+            return empty;
         }
 
-        let mut dir_under_cursor = self.current_path.clone();
-        dir_under_cursor.push(&self.current_dir[self.cursor]);
-
-        if dir_under_cursor.is_dir() == false {
-            return ret;
+        let mut _dir = self.current_path.clone();
+        _dir.push(&self.current_dir[self.cursor]);
+        if _dir.is_dir() == false {
+            return empty;
         }
 
-        if let Ok(entries) = read_dir(&dir_under_cursor) {
-            for entry in entries {
-                let entry = entry.expect(&format!(
-                    "Failed to interate through {}",
-                    dir_under_cursor.to_str().unwrap()
-                ));
+        let dir = _dir.to_str().expect("Failed to construct preview path");
 
-                let s = entry.file_name().into_string();
+        let mut preview = read_dir(&dir)
+            .expect(&format!("Failed to read files from {}", dir))
+            .map(|e| {
+                e.expect("Failed to get preview entry")
+                    .file_name()
+                    .into_string()
+                    .expect("Failed to get preview file name")
+            })
+            .collect::<Vec<String>>();
 
-                match s {
-                    Ok(v) => {
-                        ret.push(v);
-                    }
-                    Err(_) => {
-                        let str = entry.file_name().to_string_lossy().into_owned();
-                        ret.push(str);
-                    }
-                }
-            }
-        }
-        ret
+        preview.sort_by(|d1, d2| d1.to_lowercase().cmp(&d2.to_lowercase()));
+
+        preview
     }
 
     ///  Set cursor position, centered in the window
@@ -452,7 +445,7 @@ impl Browser {
     /// Read the file and directory names in the current directory
     fn read_current_dir(&mut self, path: &String) {
         self.current_dir = read_dir(path)
-            .expect(&format!("Read files from {} failed", path))
+            .expect(&format!("Failed to read files from {}", path))
             .map(|_e| {
                 let e = _e.expect(&format!("Failed to read a file from {}", path));
                 match e.file_name().into_string() {
@@ -462,7 +455,8 @@ impl Browser {
             })
             .collect::<Vec<String>>();
 
-        self.current_dir.sort_by(|d1, d2| d1.to_lowercase().cmp(&d2.to_lowercase()));
+        self.current_dir
+            .sort_by(|d1, d2| d1.to_lowercase().cmp(&d2.to_lowercase()));
     }
 
     /// Goto the directory in the left side window, while quitting trans
