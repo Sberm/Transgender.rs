@@ -43,12 +43,11 @@ fn csi(s: &str) -> String {
 
 impl Canvas {
     /// Set the internel pixel (char) representation
-    fn set(&mut self, i: usize, j: usize, c: char) {
-        let i_to_write: i32 = self.height as i32 - 1 - i as i32;
-        let j_to_write: usize = j;
+    fn set(&mut self, _i: usize, j: usize, c: char) {
+        let i = self.height as i32 - 1 - _i as i32;
 
-        if 0 <= i_to_write && i_to_write < self.height as i32 && j_to_write < self.width {
-            self.pixels[i_to_write as usize][j_to_write] = c;
+        if 0 <= i && i < self.height as i32 && j < self.width {
+            self.pixels[i as usize][j] = c;
         }
     }
 
