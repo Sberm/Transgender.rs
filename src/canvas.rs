@@ -43,11 +43,9 @@ fn csi(s: &str) -> String {
 
 impl Canvas {
     /// Set the internel pixel (char) representation
-    fn set(&mut self, _i: usize, j: usize, c: char) {
-        let i = self.height as i32 - 1 - _i as i32;
-
-        if 0 <= i && i < self.height as i32 && j < self.width {
-            self.pixels[i as usize][j] = c;
+    fn set(&mut self, i: usize, j: usize, c: char) {
+        if i < self.height && j < self.width {
+            self.pixels[i][j] = c;
         }
     }
 
@@ -68,7 +66,7 @@ impl Canvas {
         }
 
         let mut display_len: usize = 0;
-        let mut slice_to: usize = 0;
+        let mut take_to: usize = 0;
 
         for c in bottom_line.chars() {
             let len = self.get_utf8_len(c);
@@ -78,10 +76,10 @@ impl Canvas {
                 break;
             }
 
-            slice_to += 1;
+            take_to += 1;
         }
 
-        bottom_line.chars().take(slice_to).collect::<String>()
+        bottom_line.chars().take(take_to).collect::<String>()
     }
 
     /// return whether this character is a full-width character that displays as two blocks in the
@@ -202,10 +200,6 @@ impl Canvas {
         str_to_draw.push_str(&csi("1H"));
         str_to_draw.push_str(&csi("?25l")); // hide cursor
 
-        // Write pixel
-        let write_top: usize = self.height - 1;
-        let write_bottom: usize = 0;
-
         // l_w_l: left window left
         let l_w_l: usize = 0;
         let l_w_r: usize = (self.width / 10 * 6 - 1) as usize;
@@ -243,14 +237,14 @@ impl Canvas {
         }
 
         // Left side
-        for i in write_bottom..=write_top {
+        for i in 0..=self.height - 1 {
             let c_a = current_dir[dir_i].chars().collect::<Vec<char>>();
             ch_i = 0;
             for j in l_w_l..=l_w_r {
                 if ch_i >= c_a.len() {
                     break;
                 }
-                self.set(write_top - i, j, c_a[ch_i]);
+                self.set(i, j, c_a[ch_i]);
                 ch_i += 1;
             }
             dir_i += 1;
@@ -262,7 +256,7 @@ impl Canvas {
         // Right side preview window
         dir_i = 0;
 
-        for i in write_bottom..=write_top {
+        for i in 0..=self.height - 1 {
             if dir_i >= preview_dir.len() {
                 break;
             }
@@ -272,14 +266,14 @@ impl Canvas {
                 if ch_i >= c_a.len() {
                     break;
                 }
-                self.set(write_top - i, j, c_a[ch_i]);
+                self.set(i, j, c_a[ch_i]);
                 ch_i += 1;
             }
             dir_i += 1;
         }
 
         // after setting the pixels, format str_to_draw
-        let mut font_len: usize = 0;
+        let mut actual_len: usize = 0;
         let mut do_preview: bool = false;
         let mut complement: usize = 0;
 
@@ -296,25 +290,25 @@ impl Canvas {
                 // for a zero-width character such as a combining character, spaces in pixels is
                 // not enough, insert more spaces (complement) for alignment
                 if len == 0 {
-                    font_len += 1;
+                    actual_len += 1;
                     complement += 1;
                 } else {
-                    font_len += len;
+                    actual_len += len;
                 }
 
-                //  If the font_len reaches over the capcity of the left side window, discard this
+                //  If the actual_len reaches over the capcity of the left side window, discard this
                 //  character and update the preview window.
-                if font_len > l_w_r + 1 && !do_preview {
+                if actual_len > l_w_r + 1 && !do_preview {
                     // If the last character of this window is wide and that causes overflow,
                     // discard it, insert a white space so it aligns.
                     //
-                    // font_len == l_w_r + 2 means it has to be a wide character from the left
+                    // actual_len == l_w_r + 2 means it has to be a wide character from the left
                     // window that just subtly causes the overflow, but not because it's time to
                     // preview the right window (for example, left window is exactly filled, and we
                     // got one more wide character on the left, no space left to insert it so it's
                     // time to switch to preview)
                     if j <= l_w_r
-                        && font_len == l_w_r + 2
+                        && actual_len == l_w_r + 2
                         && self.get_utf8_len(self.pixels[i][j]) > 1
                     {
                         str_to_draw.push(' ');
@@ -323,16 +317,16 @@ impl Canvas {
                     str_to_draw.push_str(&(0..complement).map(|_| ' ').collect::<String>());
 
                     j = r_w_l;
-                    font_len = 0;
+                    actual_len = 0;
                     complement = 0;
                     do_preview = true;
 
                     continue;
                 }
 
-                if do_preview && font_len > preview_width {
+                if do_preview && actual_len > preview_width {
                     // Same last wide character discard filling logic as above
-                    if font_len == preview_width + 1 && self.get_utf8_len(self.pixels[i][j]) > 1 {
+                    if actual_len == preview_width + 1 && self.get_utf8_len(self.pixels[i][j]) > 1 {
                         str_to_draw.push(' ');
                     }
                     break;
@@ -375,7 +369,7 @@ impl Canvas {
 
             str_to_draw.push_str(&(0..complement).map(|_| ' ').collect::<String>());
 
-            font_len = 0;
+            actual_len = 0;
             complement = 0;
             do_preview = false;
         }
