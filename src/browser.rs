@@ -183,15 +183,18 @@ impl Browser {
         }
         let dir = _dir.to_str().expect("Failed to construct preview path");
 
-        let mut preview = read_dir(&dir)
-            .expect(&format!("Failed to read files from {}", dir))
-            .map(|e| {
-                e.expect("Failed to get preview entry")
-                    .file_name()
-                    .into_string()
-                    .expect("Failed to get preview file name")
-            })
-            .collect::<Vec<String>>();
+        let mut preview = match read_dir(&dir) {
+            Ok(entries) => entries
+                .map(|_e| match _e {
+                    Ok(e) => e
+                        .file_name()
+                        .into_string()
+                        .expect("Failed to get preview file name"),
+                    Err(_) => String::new(),
+                })
+                .collect::<Vec<String>>(),
+            Err(_) => Vec::new(),
+        };
 
         preview.sort_by(|d1, d2| d1.to_lowercase().cmp(&d2.to_lowercase()));
         preview
@@ -442,16 +445,18 @@ impl Browser {
 
     /// Read the file and directory names in the current directory
     fn read_current_dir(&mut self, path: &String) {
-        self.current_dir = read_dir(path)
-            .expect(&format!("Failed to read files from {}", path))
-            .map(|_e| {
-                let e = _e.expect(&format!("Failed to read a file from {}", path));
-                match e.file_name().into_string() {
-                    Ok(filename) => filename,
-                    Err(_) => e.file_name().to_string_lossy().into_owned(),
-                }
-            })
-            .collect::<Vec<String>>();
+        self.current_dir = match read_dir(path) {
+            Ok(entries) => entries
+                .map(|_e| match _e {
+                    Ok(e) => e
+                        .file_name()
+                        .into_string()
+                        .expect("Failed to get file name"),
+                    Err(_) => String::new(),
+                })
+                .collect::<Vec<String>>(),
+            Err(_) => Vec::new(),
+        };
 
         self.current_dir
             .sort_by(|d1, d2| d1.to_lowercase().cmp(&d2.to_lowercase()));
