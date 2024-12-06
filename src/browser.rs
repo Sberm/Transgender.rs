@@ -533,7 +533,7 @@ impl Browser {
         let height = util::term_size().0 - 1;
         let half_page = height / 2;
 
-        let pos = if self.cursor + half_page > self.current_dir.len() {
+        let pos = if self.cursor + half_page >= self.current_dir.len() {
             self.current_dir.len() - 1
         } else {
             self.cursor + half_page
