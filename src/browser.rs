@@ -517,6 +517,10 @@ impl Browser {
     }
 
     fn pageup(&mut self) {
+        if self.current_dir.is_empty() == true {
+            return;
+        }
+
         let height = util::term_size().0 - 1;
         let half_page = height / 2;
 
@@ -530,6 +534,10 @@ impl Browser {
     }
 
     fn pagedown(&mut self) {
+        if self.current_dir.is_empty() == true {
+            return;
+        }
+
         let height = util::term_size().0 - 1;
         let half_page = height / 2;
 
