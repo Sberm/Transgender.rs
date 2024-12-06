@@ -66,6 +66,7 @@ ts
 | q                                | quit                                         |
 | /                                | search                                       |
 | n                                | jump to next search match                    |
+| Ctrl + U / Ctrl + D              | Half pageup / pagedown                       |
 
 <br/>
 
