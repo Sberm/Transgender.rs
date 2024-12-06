@@ -113,17 +113,23 @@ pub fn process_input() -> u8 {
     if input == 27 {
         // arrow keys
         match read_input() {
-            91 => {
-                match read_input() {
-                    65 => return code::UP,
-                    66 => return code::DOWN,
-                    67 => return code::RIGHT,
-                    68 => return code::LEFT,
-                    _ => return code::NOOP,
-                }
+            91 => match read_input() {
+                65 => return code::UP,
+                66 => return code::DOWN,
+                67 => return code::RIGHT,
+                68 => return code::LEFT,
+                _ => return code::NOOP,
             },
             _ => return code::NOOP,
         }
+    }
+
+    // ctrl + D
+    if input == 4 {
+        return code::PAGEDOWN;
+    } else if input == 21 {
+        // ctrl + U
+        return code::PAGEUP;
     }
 
     // gg

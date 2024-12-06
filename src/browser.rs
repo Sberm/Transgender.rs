@@ -161,6 +161,8 @@ impl Browser {
                         true,
                     );
                 }
+                code::PAGEUP => self.pageup(),
+                code::PAGEDOWN => self.pagedown(),
                 _ => {
                     continue;
                 }
@@ -512,6 +514,32 @@ impl Browser {
         util::exit_albuf();
         util::print_path(&self.original_path.to_str().unwrap());
         exit(0);
+    }
+
+    fn pageup(&mut self) {
+        let (height, _) = util::term_size();
+        let half_page = height / 2;
+
+        self.window_start = if self.cursor as isize - (half_page as isize) < 0 {
+            0
+        } else {
+            self.cursor - half_page
+        };
+
+        self.set_cursor_pos_centered(self.window_start);
+    }
+
+    fn pagedown(&mut self) {
+        let (height, _) = util::term_size();
+        let half_page = height / 2;
+
+        self.window_start = if self.cursor + half_page > self.current_dir.len() {
+            self.current_dir.len() - 1
+        } else {
+            self.cursor + half_page
+        };
+
+        self.set_cursor_pos_centered(self.window_start);
     }
 }
 

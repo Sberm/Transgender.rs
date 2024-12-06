@@ -32,6 +32,8 @@ pub mod code {
     pub const SEARCH: u8 = 10;
     pub const NEXT_MATCH: u8 = 11;
     pub const PREV_MATCH: u8 = 12;
+    pub const PAGEUP: u8 = 13;
+    pub const PAGEDOWN: u8 = 14;
 }
 
 #[derive(Copy, Clone)]
