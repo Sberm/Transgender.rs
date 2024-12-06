@@ -124,8 +124,8 @@ pub fn process_input() -> u8 {
         }
     }
 
-    // ctrl + D
     if input == 4 {
+        // ctrl + D
         return code::PAGEDOWN;
     } else if input == 21 {
         // ctrl + U
