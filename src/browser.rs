@@ -204,7 +204,9 @@ impl Browser {
 
     ///  Set cursor position, centered in the window
     fn set_cursor_pos_centered(&mut self, index: usize) {
-        let (h, _) = util::term_size();
+        // the bottom line will always be there and cover it, the max display height is always
+        // terminal height - 1
+        let h = util::term_size().0 - 1;
 
         self.cursor = index;
         self.window_start = if self.cursor as isize - h as isize / 2 > 0 {
@@ -365,13 +367,11 @@ impl Browser {
             max_len - 1
         };
 
-        let (h, _) = util::term_size();
-
         // So the cursor won't be covered by the bottom line (TODO: But trans still draws that line
         // in Canvas)
-        let max_display_height = h - 1;
+        let display_height = util::term_size().0 - 1;
 
-        if (self.cursor) as isize > (self.window_start + max_display_height - 1) as isize {
+        if (self.cursor) as isize > (self.window_start + display_height - 1) as isize {
             self.window_start += 1;
         }
     }
@@ -517,29 +517,29 @@ impl Browser {
     }
 
     fn pageup(&mut self) {
-        let (height, _) = util::term_size();
+        let height = util::term_size().0 - 1;
         let half_page = height / 2;
 
-        self.window_start = if self.cursor as isize - (half_page as isize) < 0 {
+        let pos = if self.cursor as isize - (half_page as isize) < 0 {
             0
         } else {
             self.cursor - half_page
         };
 
-        self.set_cursor_pos_centered(self.window_start);
+        self.set_cursor_pos_centered(pos);
     }
 
     fn pagedown(&mut self) {
-        let (height, _) = util::term_size();
+        let height = util::term_size().0 - 1;
         let half_page = height / 2;
 
-        self.window_start = if self.cursor + half_page > self.current_dir.len() {
+        let pos = if self.cursor + half_page > self.current_dir.len() {
             self.current_dir.len() - 1
         } else {
             self.cursor + half_page
         };
 
-        self.set_cursor_pos_centered(self.window_start);
+        self.set_cursor_pos_centered(pos);
     }
 }
 
