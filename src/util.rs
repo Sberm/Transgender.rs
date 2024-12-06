@@ -110,24 +110,19 @@ fn read_input() -> isize {
 pub fn process_input() -> u8 {
     let mut input = read_input();
 
-    // arrow keys
     if input == 27 {
-        input = read_input();
-        if input == 91 {
-            input = read_input();
-            if input == 65 {
-                return code::UP;
-            } else if input == 66 {
-                return code::DOWN;
-            } else if input == 67 {
-                return code::RIGHT;
-            } else if input == 68 {
-                return code::LEFT;
-            } else {
-                return code::NOOP;
-            }
-        } else {
-            return code::NOOP;
+        // arrow keys
+        match read_input() {
+            91 => {
+                match read_input() {
+                    65 => return code::UP,
+                    66 => return code::DOWN,
+                    67 => return code::RIGHT,
+                    68 => return code::LEFT,
+                    _ => return code::NOOP,
+                }
+            },
+            _ => return code::NOOP,
         }
     }
 
