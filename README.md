@@ -168,7 +168,9 @@ with bad designs that irritate its users.
 
 ### Todo:
 
-- [ ] tests
+- [ ] Tests
+
+- [ ] Bash completion
 
 - [x] Read utf-8 input
 
