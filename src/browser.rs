@@ -51,10 +51,10 @@ impl Iterator for IterType {
 
 impl Browser {
     /// Construct past directory stack according to the current path
-    pub fn init(&mut self) {
-        self.read_current_dir(&String::from("."));
+    pub fn init(&mut self, path: &str) {
+        self.read_current_dir(path);
 
-        let mut srcdir = PathBuf::from(".")
+        let mut srcdir = PathBuf::from(path)
             .canonicalize()
             .expect("Failed to canonicalize current directory");
 
@@ -77,8 +77,6 @@ impl Browser {
                 .expect("Failed to pop the last element from past_dir")
                 .clone();
 
-            self.original_path = self.current_path.clone();
-
             self.past_cursor
                 .pop()
                 .expect("Failed to pop from past_cursor");
@@ -95,6 +93,7 @@ impl Browser {
     pub fn start_loop(&mut self, canvas: &mut canvas::Canvas) {
         loop {
             let preview_dir = self.get_preview();
+
             canvas.draw(
                 self.cursor,
                 &self.current_dir,
@@ -104,6 +103,7 @@ impl Browser {
                 self.mode,
                 &self.search_txt,
             );
+
             if matches!(self.mode, Mode::SEARCH) {
                 self.search();
                 continue;
@@ -446,7 +446,7 @@ impl Browser {
     }
 
     /// Read the file and directory names in the current directory
-    fn read_current_dir(&mut self, path: &String) {
+    fn read_current_dir(&mut self, path: &str) {
         self.current_dir = match read_dir(path) {
             Ok(entries) => entries
                 .map(|_e| match _e {
@@ -551,7 +551,7 @@ impl Browser {
     }
 }
 
-pub fn new() -> Browser {
+pub fn new(path: &str) -> Browser {
     let mut browser = Browser {
         cursor: 0,
         window_start: 0,
@@ -559,14 +559,14 @@ pub fn new() -> Browser {
         past_dir: Vec::new(),
         past_cursor: Vec::new(),
         past_window_start: Vec::new(),
-        current_path: PathBuf::from(""),
-        original_path: PathBuf::from(""),
+        current_path: PathBuf::new(),
+        original_path: PathBuf::from("."),
         mode: Mode::NORMAL,
         search_txt: Vec::new(),
         has_search_input: false,
         editor: util::get_editor(),
     };
 
-    browser.init();
+    browser.init(&path);
     browser
 }

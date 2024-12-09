@@ -14,18 +14,29 @@ mod util;
 mod widechar_width;
 
 use std::env;
+use std::path::Path;
 use std::process::exit;
 
 fn main() {
-    let mut canvas = canvas::new();
-    let mut browser = browser::new();
+    let mut path = String::from(".");
 
     // -v, --version
     let args: Vec<String> = env::args().collect();
-    if args.len() > 1 && (args[1].eq("-v") || args[1].eq("--version")) {
-        println!("\n  Transgender.rs\n\n    Regex-powered trans\n");
-        exit(0);
+    if args.len() > 1 {
+        if args[1].eq("-v") || args[1].eq("--version") {
+            println!("\n  Transgender.rs\n\n    Regex-powered trans\n");
+            exit(0);
+        } else {
+            // otherwise the first argument will be identified as a path
+            let p = Path::new(&args[1]);
+            if p.exists() {
+                path = String::from(p.to_str().expect("Failed to convert an existed path"));
+            }
+        }
     }
+
+    let mut canvas = canvas::new();
+    let mut browser = browser::new(&path);
 
     util::enter_albuf();
     browser.start_loop(&mut canvas);

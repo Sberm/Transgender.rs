@@ -30,7 +30,7 @@ make install
 paste this shell script function into your shell configuration file, its location depends on which shell you use (`~/.bashrc`, `~/.bash_profile`, `source ~/.zshrc`, `~/.config/fish/config.fish`)
 ```
 ts() {
-  cd "$(transgender 3>&1 1>&2 2>&3 3>&- | tail -n 1)"
+  cd "$(transgender $1 3>&1 1>&2 2>&3 3>&- | tail -n 1)"
 }
 ```
 
@@ -56,7 +56,7 @@ ts
 
 <br/>
 
-### keys
+### Usage
 
 | keys                             | function                                     |
 | :---:                            | :---:                                        |
@@ -67,6 +67,13 @@ ts
 | /                                | search                                       |
 | n                                | jump to next search match                    |
 | Ctrl + U / Ctrl + D              | Half pageup / pagedown                       |
+
+Open up a specific directory
+```bash
+ts /usr/lib/
+ts ..
+ts /root
+```
 
 <br/>
 
