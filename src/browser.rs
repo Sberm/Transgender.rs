@@ -70,7 +70,7 @@ impl Browser {
 
         self.past_dir.reverse();
 
-        if self.past_dir.len() > 1 {
+        if self.past_dir.len() >= 1 {
             self.current_path = self
                 .past_dir
                 .pop()
