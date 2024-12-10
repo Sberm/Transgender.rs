@@ -23,8 +23,19 @@ fn main() {
     // -v, --version
     let args: Vec<String> = env::args().collect();
     if args.len() > 1 {
-        if args[1].eq("-v") || args[1].eq("--version") {
+        let option: &str = &args[1];
+        if option.eq("-v") || option.eq("--version") {
             println!("\n  Transgender.rs\n\n    Regex-powered trans\n");
+            exit(0);
+        } else if option.eq("--sh") {
+            let script = r#"
+ts () {
+  cd "$(transgender $1 3>&1 1>&2 2>&3 3>&- | tail -n 1)"
+}
+
+complete -o dirnames ts"#;
+
+            println!("{}", script);
             exit(0);
         } else {
             // otherwise the first argument will be identified as a path
