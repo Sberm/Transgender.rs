@@ -40,7 +40,7 @@ complete -o dirnames ts"#;
         } else {
             // otherwise the first argument will be identified as a path
             let p = Path::new(&args[1]);
-            if p.exists() {
+            if p.is_dir() {
                 path = String::from(p.to_str().expect("Failed to convert an existed path"));
             }
         }
