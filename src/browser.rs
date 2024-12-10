@@ -188,10 +188,10 @@ impl Browser {
         let mut preview = match read_dir(&dir) {
             Ok(entries) => entries
                 .map(|_e| match _e {
-                    Ok(e) => e
-                        .file_name()
-                        .into_string()
-                        .expect("Failed to get preview file name"),
+                    Ok(e) => match e.file_name().into_string() {
+                        Ok(filename) => filename,
+                        Err(filename_os) => filename_os.to_string_lossy().to_string(),
+                    },
                     Err(_) => String::new(),
                 })
                 .collect::<Vec<String>>(),
@@ -450,10 +450,12 @@ impl Browser {
         self.current_dir = match read_dir(path) {
             Ok(entries) => entries
                 .map(|_e| match _e {
-                    Ok(e) => e
-                        .file_name()
-                        .into_string()
-                        .expect("Failed to get file name"),
+                    Ok(e) => {
+                        match e.file_name().into_string() {
+                            Ok(filename) => filename,
+                            Err(filename_os) => filename_os.to_string_lossy().to_string(),
+                        }
+                    },
                     Err(_) => String::new(),
                 })
                 .collect::<Vec<String>>(),
