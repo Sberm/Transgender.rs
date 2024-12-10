@@ -13,6 +13,18 @@ A minimalistic TUI file explorer with **minimal dependencies**, written by a [ra
 
 ## quick start
 
+### installation
+
+#### Arch Linux
+
+[transgender](https://aur.archlinux.org/packages/transgender) is available as a package in the [AUR](https://aur.archlinux.org). you can install it using your preferred AUR helper. example:
+
+```sh
+paru -S transgender
+```
+
+### compiling from source
+
 clone the repo
 ```bash
 git clone https://github.com/Sberm/Transgender.rs.git
@@ -26,6 +38,8 @@ cd Transgender.rs
 make
 make install
 ```
+
+### shell configuration
 
 paste this shell script function into your shell configuration file, its location depends on which shell you use (`~/.bashrc`, `~/.bash_profile`, `source ~/.zshrc`, `~/.config/fish/config.fish`)
 ```
