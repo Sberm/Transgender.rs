@@ -63,8 +63,8 @@ ts
 | i                                | go to current directory(in left side window) |
 | q                                | quit                                         |
 | /                                | search                                       |
-| n                                | jump to next search match                    |
-| Ctrl + U / Ctrl + D              | Half pageup / pagedown                       |
+| n / N                            | jump to the next / previous search match     |
+| Ctrl + U / Ctrl + D              | half pageup / pagedown                       |
 
 Open up a specific directory
 ```bash
