@@ -28,12 +28,13 @@ fn main() {
             println!("\n  Transgender.rs\n\n    Regex-powered trans\n");
             exit(0);
         } else if option.eq("--sh") {
-            let script = r#"
+            let script = r###"
 ts () {
   cd "$(transgender $1 3>&1 1>&2 2>&3 3>&- | tail -n 1)"
 }
 
-complete -o dirnames ts"#;
+complete -o dirnames ts
+            "###;
 
             println!("{}", script);
             exit(0);
