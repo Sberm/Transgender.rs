@@ -202,7 +202,7 @@ impl Browser {
         preview
     }
 
-    ///  Set cursor position, centered in the window
+    /// set cursor position, centered in the window
     fn set_cursor_pos_centered(&mut self, index: usize) {
         // the bottom line will always be there and cover it, the max display height is always
         // terminal height - 1
@@ -277,7 +277,7 @@ impl Browser {
             }
         }
 
-        // start from 0
+        // starts from 0
         if matched == false {
             let it2 = if rev == false {
                 IterType::Forward(0..start)
@@ -378,12 +378,12 @@ impl Browser {
 
     fn left(&mut self) {
         let child = self.current_path.clone();
-        // for example, root dir '/'
+        // for example, root dir '/' doesn't have a file name
         if child.file_name() == None {
             return;
         }
 
-        // get the parent dir and read its content
+        // access the parent dir and read its content
         self.current_path = self
             .past_dir
             .pop()
@@ -409,7 +409,7 @@ impl Browser {
         // 0 is set in init()
         let mut index: usize = 0;
 
-        // find the child dir in parent
+        // find the child dir in parent directories
         for (i, dir) in self.current_dir.iter().enumerate() {
             if dir.eq(child_filename_str) {
                 self.cursor = i;
@@ -450,11 +450,9 @@ impl Browser {
         self.current_dir = match read_dir(path) {
             Ok(entries) => entries
                 .map(|_e| match _e {
-                    Ok(e) => {
-                        match e.file_name().into_string() {
-                            Ok(filename) => filename,
-                            Err(filename_os) => filename_os.to_string_lossy().to_string(),
-                        }
+                    Ok(e) => match e.file_name().into_string() {
+                        Ok(filename) => filename,
+                        Err(filename_os) => filename_os.to_string_lossy().to_string(),
                     },
                     Err(_) => String::new(),
                 })
@@ -466,22 +464,22 @@ impl Browser {
             .sort_by(|d1, d2| d1.to_lowercase().cmp(&d2.to_lowercase()));
     }
 
-    /// Goto the directory in the left side window, while quitting trans
+    /// quit trans and goto the directory in the left side window
     fn exit_cur_dir(&self) {
         util::exit_albuf();
         util::print_path(&self.current_path.to_str().unwrap());
         exit(0);
     }
 
-    /// Goto the directory under the cursor, while quitting trans
+    /// quit trans and goto the directory under the cursor
     ///  or
-    /// Open the file under the cursor with a text editor
+    /// open the file under the cursor with a text editor
     fn exit_under_cursor(&self) {
         let mut dir = self.current_path.clone();
         dir.push(&self.current_dir[self.cursor]);
 
         if dir.is_dir() == false {
-            // reduce color flicking (caused by bottom bar color)
+            // reduce color flicking (the flicking color is the bottom bar color)
             util::reduce_flick();
 
             if let Ok(_) = Command::new(&self.editor)
