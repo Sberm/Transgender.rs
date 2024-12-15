@@ -19,6 +19,7 @@ git clone https://github.com/Sberm/Transgender.rs.git
 ```
 
 before compilation, make sure you have rust's environment installed, if not, goto [HERE](https://www.rust-lang.org/tools/install)
+<br/>
 
 compile & install
 ```bash
@@ -44,10 +45,9 @@ source ~/.zshrc
 
 # fish
 source ~/.config/fish/config.fish
-
 ```
 
-enjoy
+launch `Transgender.rs` with:
 ```bash
 ts
 ```
@@ -66,7 +66,7 @@ ts
 | n / N                            | jump to the next / previous search match     |
 | Ctrl + U / Ctrl + D              | half pageup / pagedown                       |
 
-Open up a specific directory
+To open up a directory with trans
 ```bash
 ts /usr/lib/
 ts ..
@@ -76,16 +76,18 @@ ts /root
 <br/>
 
 ### config file
+
 located at
+
 ```bash
 ~/.tsrc
 ```
 
 **if `~/.tsrc` doesn't exist, you need to create one**
 
-Supports changing the editor and the theme.
+It supports changing the editor (opened with `o` or `ENTER`) and the theme.
 
-Example of `~/.tsrc`:
+An example of `~/.tsrc`:
 
 ```tsrc
 # Set your preferred editor
@@ -99,7 +101,7 @@ theme = dark
 
 The specified editor will open when `o` or `ENTER` is pressed while the cursor is on a file.
 
-By default, the editor is set to `vi`.
+The default editor is `vi`.
 
 #### Theme
 
@@ -123,12 +125,12 @@ Other themes:
 
 Now supports `>> regular expression <<`
 
-`Trangender.rs` performs a search whenever a key is pressed
+`Trangender.rs` performs a search whenever a key is pressed in search mode
 
-Due to the use of the `regex` crate, the executable can be a bit bloated (
-~474KB). If you don't want regular expression feature, simply switch to the
+Due to the use of the `regex-lite` crate, the executable can be a bit bloated (
+~504KB). If you don't need the regular expression feature, simply switch to the
 vanilla version by checking out to the vanilla branch and building
-`Transgender.rs`.
+`Transgender.rs` from there.
 
 ```bash
 git checkout vanilla
@@ -140,7 +142,7 @@ make install
 
 ### uninstall
 
-if you want to uninstall Transgender
+if you want to uninstall `Transgender.rs`
 ```
 make uninstall
 ```
@@ -149,17 +151,20 @@ make uninstall
 
 ### Features:
 
-* file exploring
-* cd to directories
-* search directories
+* File exploration
+* Changing directories
+* Searching by file name
+* Opening files with a preferred editor
+* Multiple themes
 
 ```
-WHY DO I MAKE TRANS?
+WHY DID I MAKE TRANS?
 
-In my opinion trans is simpler than ranger. Creeping
-featurism, growing size made ranger less attractive. 
-Also, ranger is not a good software, it is filled
-with bad designs that irritate its users.
+In my opinion, Trans is simpler than ranger. Creeping
+featurism and growing size have made ranger less
+attractive. Additionally, ranger is not a good
+software; it is filled with bad designs that irritate
+its users.
 ```
 
 <br/>
