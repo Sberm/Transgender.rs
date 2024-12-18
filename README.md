@@ -11,9 +11,9 @@ A minimalistic TUI file explorer with **minimal dependencies**, written by a [ra
 
 ![](img/lucius.jpg)
 
-## quick start
+## Quick start
 
-### installation
+### Installation
 
 #### Arch Linux
 
@@ -23,7 +23,7 @@ A minimalistic TUI file explorer with **minimal dependencies**, written by a [ra
 paru -S transgender
 ```
 
-### compiling from source
+### Compiling from source
 
 clone the repo
 ```bash
@@ -40,7 +40,7 @@ make
 make install
 ```
 
-### shell configuration
+### Shell configuration
 
 paste this shell script function into your shell configuration file, its location depends on which shell you use (`~/.bashrc`, `~/.bash_profile`, `source ~/.zshrc`, `~/.config/fish/config.fish`)
 ```
@@ -89,7 +89,7 @@ ts /root
 
 <br/>
 
-### config file
+### Config file
 
 located at
 
@@ -135,7 +135,7 @@ Other themes:
 
 <br/>
 
-### Search
+### Searching
 
 Now supports `>> regular expression <<`
 
@@ -154,7 +154,7 @@ make install
 
 <br/>
 
-### uninstall
+### Uninstallation
 
 if you want to uninstall `Transgender.rs`
 ```
