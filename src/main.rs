@@ -29,7 +29,7 @@ fn main() {
             exit(0);
         } else if option.eq("--sh") {
             let script = r###"
-ts () {
+function ts() {
   cd "$(transgender $1 3>&1 1>&2 2>&3 3>&- | tail -n 1)"
 }
 
