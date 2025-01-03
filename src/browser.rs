@@ -234,7 +234,6 @@ impl Browser {
         // Check if the case sensitive '\C' is present at the bottom of the search text
         let len = self.search_txt.iter().count();
 
-        // TODO: support "/ok\\C" backslash escape
         if len > 2 {
             let last_two = self
                 .search_txt
@@ -243,12 +242,19 @@ impl Browser {
                 .take(2)
                 .collect::<String>();
             if last_two.eq("\\C") {
-                search = self.search_txt.iter().take(len - 2).collect::<String>();
-                case_insensitive = false;
-            }
-            if last_two.eq("\\c") {
-                search = self.search_txt.iter().take(len - 2).collect::<String>();
-                case_insensitive = true;
+                let mut cnt = 0;
+                for c in self.search_txt.iter().rev().skip(2) {
+                    if *c == '\\' {
+                        cnt += 1;
+                    } else {
+                        break;
+                    }
+                }
+                // U\\\\\C is case sensitive
+                if cnt % 2 == 0 {
+                    search = self.search_txt.iter().take(len - 2).collect::<String>();
+                    case_insensitive = false;
+                }
             }
         }
 
