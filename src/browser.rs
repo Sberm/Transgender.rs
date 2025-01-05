@@ -470,7 +470,7 @@ impl Browser {
             .sort_by(|d1, d2| d1.to_lowercase().cmp(&d2.to_lowercase()));
     }
 
-    /// quit trans and goto the directory in the left side window
+    /// quit trans and goto the directory in the left window
     fn exit_cur_dir(&self) {
         util::exit_albuf();
         util::print_path(&self.current_path.to_str().unwrap());

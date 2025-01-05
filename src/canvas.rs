@@ -171,12 +171,12 @@ impl Canvas {
         str_to_draw.push_str(&self.bottom_line_configure(current_path, search_txt, mode));
 
         if matches!(mode, Mode::SEARCH) {
-            // show cursor
+            // show the cursor when searching
             str_to_draw.push_str(&csi("?25h"));
         }
     }
 
-    /// Core function to display the window
+    /// core function to display the window
     pub fn draw(
         &mut self,
         cursor: usize,
@@ -200,7 +200,7 @@ impl Canvas {
         str_to_draw.push_str(&csi("1H"));
         str_to_draw.push_str(&csi("?25l")); // hide cursor
 
-        // l_w_l: left window left
+        // l_w_l: left window's left
         let l_w_l: usize = 0;
         let l_w_r: usize = (self.width / 10 * 6 - 1) as usize;
 
@@ -236,7 +236,7 @@ impl Canvas {
             return;
         }
 
-        // Left side
+        // left window
         for i in 0..=self.height - 1 {
             let c_a = current_dir[dir_i].chars().collect::<Vec<char>>();
             ch_i = 0;
@@ -253,7 +253,7 @@ impl Canvas {
             }
         }
 
-        // Right side preview window
+        // right preview window
         dir_i = 0;
 
         for i in 0..=self.height - 1 {
@@ -296,7 +296,7 @@ impl Canvas {
                     actual_len += len;
                 }
 
-                //  If the actual_len reaches over the capcity of the left side window, discard this
+                //  If the actual_len reaches over the capcity of the left window, discard this
                 //  character and update the preview window.
                 if actual_len > l_w_r + 1 && !do_preview {
                     // If the last character of this window is wide and that causes overflow,
@@ -332,8 +332,8 @@ impl Canvas {
                     break;
                 }
 
-                // decide if we add the directory highlight, this applies to both the left side
-                // window and the right side preview window
+                // decide if the directory highlight should be added, this applies to both the left
+                // window and the right preview window
                 let is_dir = if !do_preview {
                     if i + window_start >= current_dir.len() {
                         false
