@@ -187,6 +187,8 @@ its users.
 
 - [ ] Tests
 
+- [ ] Support for up arrow for search history, left and right arrow for navigation, and logic to properly display overflowed search text (show the rightmost part)
+
 - [x] Bash completion
 
 - [x] Read utf-8 input
