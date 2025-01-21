@@ -132,6 +132,7 @@ Other themes:
 * [acme](https://github.com/ianyepan/acme-emacs-theme)
 * [sakura](https://imgur.com/a/5YhgVMG)
 * [vscode](https://github.com/Mofiqul/vscode.nvim)
+* [jesus](https://imgur.com/a/creZltw)
 
 <br/>
 
