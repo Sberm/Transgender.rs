@@ -40,7 +40,7 @@ fi
 
 if [[ "$0" == "zsh" ]];
 then
-  exit 0
+  true
 fi
 "###;
             print!("{}", script);
