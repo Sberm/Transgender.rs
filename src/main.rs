@@ -33,10 +33,17 @@ function ts() {
   cd "$(transgender $1 3>&1 1>&2 2>&3 3>&- | tail -n 1)"
 }
 
-complete -o dirnames ts
-            "###;
+if [[ "$0" =~ .*bash$ ]];
+then
+  complete -o dirnames ts
+fi
 
-            println!("{}", script);
+if [[ "$0" == "zsh" ]];
+then
+  exit 0
+fi
+"###;
+            print!("{}", script);
             exit(0);
         } else {
             // otherwise the first argument will be identified as a path
