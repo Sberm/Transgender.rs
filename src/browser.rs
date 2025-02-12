@@ -302,10 +302,11 @@ impl Browser {
     }
 
     fn search(&mut self) {
-        let (rc, is_ascii) = match util::read_utf8() {
+        let (_rc, is_ascii) = match util::read_utf8() {
             Some((rc, is_ascii)) => (rc, is_ascii),
-            None => ('�', false),
+            None => (vec!['�'], false),
         };
+        let rc = _rc[0];
 
         // there should be no search input when trans first starts
         self.has_search_input = true;

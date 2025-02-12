@@ -11,6 +11,7 @@ extern crate libc;
 use self::libc::{
     c_ushort, ioctl, tcgetattr, tcsetattr, termios, ECHO, ICANON, ISIG, STDIN_FILENO,
     STDOUT_FILENO, TCSAFLUSH, TIOCGWINSZ,
+    pollfd, ppoll, POLLIN, POLLERR, nfds_t, timespec
 };
 use crate::ops::{code, consts};
 use std::env::var;
@@ -21,6 +22,7 @@ use std::path::{Path, PathBuf};
 use std::str::from_utf8;
 use std::thread::sleep;
 use std::time::Duration;
+use std::os::fd::{AsFd, AsRawFd};
 
 #[inline(always)]
 pub fn hide_cursor() {
@@ -232,47 +234,64 @@ pub fn get_editor() -> String {
     return String::from(consts::EDITOR);
 }
 
+// pass a pointer to an array, the pointer will updated during the reading
+fn parse_utf8(raw: &[u8]) -> char {
+    let mut bytes_cnt = 0;
+
+    if raw[0] & 0b10000000 == 0 {
+        bytes_cnt = 1;
+    } else if raw[0] & 0b11000000 == 0b11000000 && raw[0] & 0b00100000 == 0 {
+        bytes_cnt = 2;
+        stdin()
+            .read(&mut raw[1..2])
+            .expect("Failed to read 1 byte for UTF8 char");
+    } else if raw[0] & 0b11100000 == 0b11100000 && raw[0] & 0b00010000 == 0 {
+        bytes_cnt = 3;
+        stdin()
+            .read(&mut raw[1..3])
+            .expect("Failed to read 2 bytes for UTF8 char");
+    } else if raw[0] & 0b11110000 == 0b11110000 && raw[0] & 0b00001000 == 0 {
+        bytes_cnt = 4;
+        stdin()
+            .read(&mut raw[1..])
+            .expect("Failed to read 3 bytes for UTF8 char");
+    }
+
+    let s = String::from(
+        from_utf8(&raw[0..bytes_cnt]).expect("Failed to convert array of bytes to UTF8 string"),
+    );
+    s.chars().nth(0).expect("Failed to get the first & only character");
+}
+
 /// Read a single utf8 char
 ///
 /// returns
 ///  A tuple of char and bool
-pub fn read_utf8() -> Option<(char, bool)> {
-    let mut c_bytes = [0u8; 4];
+// TODO: Use select(), poll(), or epoll() to read with a timeout
+// for an escape sequence, such as an arrow, it will be multiple characters
+// for a normal character, it'll be a single character
+pub fn read_utf8() -> Option<(Vec<char>, ops::code)> {
+    let mut raw = [0u8; 4]; // UTF8 character size limit
     let mut bytes_cnt: usize = 0;
+    let _stdin = stdin(); // longer lifetime
+    let stdin_fd = _stdin.as_fd();
+    let mut fds = pollfd {
+        fd: stdin_fd.as_raw_fd(),
+        events: POLLIN,
+        revents: POLLERR,
+    }; // only one fd
+    let nfds = 1;
+    let timeout = 100;
 
-    stdin()
-        .read(&mut c_bytes[0..1])
-        .expect("Failed to read the UTF8 prefix");
+    _stdin.read(&mut raw[0..1]).expect("Failed to read one byte from stdin");
+    let c = parse_utf8(raw);
 
-    if c_bytes[0] & 0b10000000 == 0 {
-        bytes_cnt = 1;
-    } else if c_bytes[0] & 0b11000000 == 0b11000000 && c_bytes[0] & 0b00100000 == 0 {
-        bytes_cnt = 2;
-        stdin()
-            .read(&mut c_bytes[1..2])
-            .expect("Failed to read 1 byte for UTF8 char");
-    } else if c_bytes[0] & 0b11100000 == 0b11100000 && c_bytes[0] & 0b00010000 == 0 {
-        bytes_cnt = 3;
-        stdin()
-            .read(&mut c_bytes[1..3])
-            .expect("Failed to read 2 bytes for UTF8 char");
-    } else if c_bytes[0] & 0b11110000 == 0b11110000 && c_bytes[0] & 0b00001000 == 0 {
-        bytes_cnt = 4;
-        stdin()
-            .read(&mut c_bytes[1..])
-            .expect("Failed to read 3 bytes for UTF8 char");
+    // ESC
+    if c as usize == 27 && poll(&mut fds, nfds, &timeout) > 0 {
+        // read the sequence and return the op code
+        return Some((c, ops::code::))
     }
 
-    let is_ascii: bool = if bytes_cnt == 1 { true } else { false };
-
-    let s = String::from(
-        from_utf8(&c_bytes[0..bytes_cnt]).expect("Failed to convert bytes string to &str"),
-    );
-
-    let rc = s
-        .chars()
-        .nth(0)
-        .expect("Failed to get the first & only character");
-
-    Some((rc, is_ascii))
+    // return the character and NOOP op code
+    Some((c, ops::code::NOOP))
 }
