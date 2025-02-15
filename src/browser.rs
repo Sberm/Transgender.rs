@@ -31,6 +31,7 @@ pub struct Browser {
     search_txt: Vec<char>,
     has_search_input: bool,
     editor: String,
+    dest_file: Option<PathBuf>,
 }
 
 pub enum IterType {
@@ -473,7 +474,7 @@ impl Browser {
     /// quit trans and goto the directory in the left window
     fn exit_cur_dir(&self) {
         util::exit_albuf();
-        util::print_path(&self.current_path.to_str().unwrap());
+        util::print_path(&self.current_path, (&self.dest_file).as_ref());
         exit(0);
     }
 
@@ -505,7 +506,7 @@ impl Browser {
             }
         } else {
             util::exit_albuf();
-            util::print_path(dir.to_str().unwrap());
+            util::print_path(&dir, (&self.dest_file).as_ref());
 
             exit(0);
         };
@@ -518,7 +519,7 @@ impl Browser {
 
     fn quit(&self) {
         util::exit_albuf();
-        util::print_path(&self.original_path.to_str().unwrap());
+        util::print_path(&self.original_path, (&self.dest_file).as_ref());
         exit(0);
     }
 
@@ -557,7 +558,7 @@ impl Browser {
     }
 }
 
-pub fn new(path: &str) -> Browser {
+pub fn new(path: &str, dest_file: Option<String>) -> Browser {
     let mut browser = Browser {
         cursor: 0,
         window_start: 0,
@@ -571,6 +572,10 @@ pub fn new(path: &str) -> Browser {
         search_txt: Vec::new(),
         has_search_input: false,
         editor: util::get_editor(),
+        dest_file: (|dest_file| match dest_file {
+            Some(df) => Some(PathBuf::from(&df)),
+            None => None,
+        })(dest_file),
     };
 
     browser.init(&path);

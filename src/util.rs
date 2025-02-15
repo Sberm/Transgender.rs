@@ -17,7 +17,7 @@ use std::env::var;
 use std::fs::File;
 use std::io::{self, stdin, BufRead, Read, Write};
 use std::mem;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::str::from_utf8;
 use std::thread::sleep;
 use std::time::Duration;
@@ -167,8 +167,27 @@ where
 
 /// Print path to stderr (although stdin and stdout are switched in ts shell function) for cd to
 /// consume.
-pub fn print_path(str_: &str) {
-    eprintln!("\n{}", str_);
+pub fn print_path(_path: &PathBuf, dest_file: Option<&PathBuf>) {
+    let path = String::from(
+        _path
+            .as_path()
+            .to_str()
+            .expect("Failed to output file path"),
+    ) + "\n";
+    if dest_file.is_some() {
+        let mut file = File::create(dest_file.unwrap().as_path()).expect(&format!(
+            "Failed to write to temporary destination file {}",
+            dest_file
+                .unwrap()
+                .as_path()
+                .to_str()
+                .expect("Failed to print the temporary destination file")
+        ));
+        let mut __empty = file.write_all(path.as_bytes());
+        __empty = file.flush();
+    } else {
+        println!("\n{}", path);
+    }
 }
 
 pub fn get_theme() -> String {

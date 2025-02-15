@@ -19,6 +19,7 @@ use std::process::exit;
 
 fn main() {
     let mut path = String::from(".");
+    let mut dest_file: Option<String> = None;
 
     // -v, --version
     let args: Vec<String> = env::args().collect();
@@ -29,8 +30,12 @@ fn main() {
             exit(0);
         } else if option.eq("--sh") {
             let script = r###"
-function ts() {
-  cd "$(transgender $1 3>&1 1>&2 2>&3 3>&- | tail -n 1)"
+ts() {
+  dest_file=$(mktemp -t "ts.XXXX")
+  transgender $1 --dest "${dest_file}"
+  dest_dir=$(tail -n 1 "${dest_file}")
+  cd "${dest_dir}"
+  rm -rf "${dest_file}"
 }
 
 if [[ "$0" =~ .*bash$ ]];
@@ -52,10 +57,14 @@ fi
                 path = String::from(p.to_str().expect("Failed to convert an existed path"));
             }
         }
+
+        if args.len() > 2 && option.eq("--dest") {
+            dest_file = Some(args[2].clone());
+        }
     }
 
     let mut canvas = canvas::new();
-    let mut browser = browser::new(&path);
+    let mut browser = browser::new(&path, dest_file);
 
     util::enter_albuf();
     browser.start_loop(&mut canvas);
