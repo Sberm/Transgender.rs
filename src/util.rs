@@ -11,7 +11,6 @@ extern crate libc;
 use self::libc::{
     c_ushort, ioctl, tcgetattr, tcsetattr, termios, ECHO, ICANON, ISIG, STDIN_FILENO,
     STDOUT_FILENO, TCSAFLUSH, TIOCGWINSZ,
-    pollfd, ppoll, POLLIN, POLLERR, nfds_t, timespec
 };
 use crate::ops::{code, consts};
 use std::env::var;
@@ -22,7 +21,7 @@ use std::path::{Path, PathBuf};
 use std::str::from_utf8;
 use std::thread::sleep;
 use std::time::Duration;
-use std::os::fd::{AsFd, AsRawFd};
+use std::vec::Vec;
 
 #[inline(always)]
 pub fn hide_cursor() {
@@ -234,64 +233,56 @@ pub fn get_editor() -> String {
     return String::from(consts::EDITOR);
 }
 
-// pass a pointer to an array, the pointer will updated during the reading
-fn parse_utf8(raw: &[u8]) -> char {
+fn parse_utf8(_raw: &[u8], prev_trunc: &Vec<u8>) -> (Vec<char>, Vec<u8>) {
+    let mut res: Vec<char> = Vec::new();
+    let mut trunc: Vec<u8> = Vec::new();
     let mut bytes_cnt = 0;
-
-    if raw[0] & 0b10000000 == 0 {
-        bytes_cnt = 1;
-    } else if raw[0] & 0b11000000 == 0b11000000 && raw[0] & 0b00100000 == 0 {
-        bytes_cnt = 2;
-        stdin()
-            .read(&mut raw[1..2])
-            .expect("Failed to read 1 byte for UTF8 char");
-    } else if raw[0] & 0b11100000 == 0b11100000 && raw[0] & 0b00010000 == 0 {
-        bytes_cnt = 3;
-        stdin()
-            .read(&mut raw[1..3])
-            .expect("Failed to read 2 bytes for UTF8 char");
-    } else if raw[0] & 0b11110000 == 0b11110000 && raw[0] & 0b00001000 == 0 {
-        bytes_cnt = 4;
-        stdin()
-            .read(&mut raw[1..])
-            .expect("Failed to read 3 bytes for UTF8 char");
+    let mut i = 0;
+    let mut raw = prev_trunc.clone();
+    raw.extend_from_slice(_raw);
+    while i < raw.len() {
+        let this_byte = raw[i];
+        if this_byte == 0 {
+            break;
+        }
+        if this_byte & 0b10000000 == 0 {
+            bytes_cnt = 1;
+        } else if this_byte & 0b11000000 == 0b11000000 && this_byte & 0b00100000 == 0 {
+            bytes_cnt = 2;
+        } else if this_byte & 0b11100000 == 0b11100000 && this_byte & 0b00010000 == 0 {
+            bytes_cnt = 3;
+        } else if this_byte & 0b11110000 == 0b11110000 && this_byte & 0b00001000 == 0 {
+            bytes_cnt = 4;
+        }
+        // truncate bytes
+        if i + bytes_cnt > raw.len() {
+            trunc.extend_from_slice(&raw[i..raw.len()]);
+            break;
+        }
+        let s = String::from(
+            from_utf8(&raw[i..i + bytes_cnt]).expect("Failed to convert array of bytes to UTF8 string"),
+        );
+        i += bytes_cnt;
+        res.push(s.chars().nth(0).expect("Failed to get the first & only character"));
     }
-
-    let s = String::from(
-        from_utf8(&raw[0..bytes_cnt]).expect("Failed to convert array of bytes to UTF8 string"),
-    );
-    s.chars().nth(0).expect("Failed to get the first & only character");
+    (res, trunc)
 }
 
-/// Read a single utf8 char
-///
-/// returns
-///  A tuple of char and bool
-// TODO: Use select(), poll(), or epoll() to read with a timeout
-// for an escape sequence, such as an arrow, it will be multiple characters
-// for a normal character, it'll be a single character
-pub fn read_utf8() -> Option<(Vec<char>, ops::code)> {
-    let mut raw = [0u8; 4]; // UTF8 character size limit
-    let mut bytes_cnt: usize = 0;
-    let _stdin = stdin(); // longer lifetime
-    let stdin_fd = _stdin.as_fd();
-    let mut fds = pollfd {
-        fd: stdin_fd.as_raw_fd(),
-        events: POLLIN,
-        revents: POLLERR,
-    }; // only one fd
-    let nfds = 1;
-    let timeout = 100;
-
-    _stdin.read(&mut raw[0..1]).expect("Failed to read one byte from stdin");
-    let c = parse_utf8(raw);
-
-    // ESC
-    if c as usize == 27 && poll(&mut fds, nfds, &timeout) > 0 {
-        // read the sequence and return the op code
-        return Some((c, ops::code::))
+pub fn read_chars_or_op(prev_trunc: &Vec<u8>) -> (Vec<char>, Vec<u8>, u8) {
+    let mut raw = [0_u8; 16];
+    let mut _stdin = stdin();
+    _stdin.read(&mut raw).expect("Failed to read");
+    let (char_vec, trunc) = parse_utf8(&mut raw, prev_trunc);
+    if char_vec[0] as usize == 27 && char_vec.len() > 1 {
+        if char_vec[1] as usize == 91 && char_vec.len() > 2 {
+            match char_vec[2] as usize {
+                65 => return (vec!['\0'], trunc, code::UP),
+                66 => return (vec!['\0'], trunc, code::DOWN),
+                67 => return (vec!['\0'], trunc, code::RIGHT),
+                68 => return (vec!['\0'], trunc, code::LEFT),
+                _ => {},
+            };
+        }
     }
-
-    // return the character and NOOP op code
-    Some((c, ops::code::NOOP))
+    (char_vec, trunc, code::NOOP)
 }
