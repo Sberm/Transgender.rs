@@ -21,6 +21,7 @@ pub struct Canvas {
     pixels: Vec<Vec<char>>,
     theme: theme::Theme,
     utf8_table: WcLookupTable,
+    bottom_bar_text_left: usize, // the left border of the bottom bar text
 }
 
 impl Clone for Canvas {
@@ -31,6 +32,7 @@ impl Clone for Canvas {
             pixels: Vec::new(),
             theme: theme::Theme::default(),
             utf8_table: WcLookupTable::new(),
+            bottom_bar_text_left: 0,
         }
     }
 }
@@ -49,12 +51,17 @@ impl Canvas {
         }
     }
 
+    pub fn reset_bottom_bar_text_left(&mut self) {
+        self.bottom_bar_text_left = 0;
+    }
+
     /// Get the index where the bottom line text should be cropped
     fn bottom_line_configure(
-        &self,
+        &mut self,
         current_path: &str,
         search_txt: &Vec<char>,
         mode: Mode,
+        input_cursor_pos: usize,
     ) -> String {
         let mut bottom_line = String::new();
 
@@ -66,20 +73,28 @@ impl Canvas {
         }
 
         let mut display_len: usize = 0;
-        let mut take_to: usize = 0;
+        let mut included: usize = 0;
 
-        for c in bottom_line.chars() {
-            let len = self.get_utf8_len(c);
-            display_len += len;
-
-            if display_len >= self.width {
-                break;
-            }
-
-            take_to += 1;
+        // input_cursor_pos is supposed to be from 0..=len, "/" not included
+        // the actual cursor position is input_cursor_pos + 1 (1 is the slash)
+        if self.bottom_bar_text_left > input_cursor_pos + 1 {
+            self.bottom_bar_text_left = input_cursor_pos + 1;
+        } else if self.bottom_bar_text_left + self.width - 1 < input_cursor_pos + 1 {
+            self.bottom_bar_text_left = input_cursor_pos + 2 - self.width;
         }
 
-        bottom_line.chars().take(take_to).collect::<String>()
+        let bottom_line_skipped = bottom_line.chars().skip(self.bottom_bar_text_left);
+
+        for c in bottom_line_skipped.clone() {
+            let len = self.get_utf8_len(c);
+            display_len += len;
+            if display_len > self.width {
+                break;
+            }
+            included += 1;
+        }
+
+        bottom_line_skipped.take(included).collect::<String>()
     }
 
     /// return whether this character is a full-width character that displays as two blocks in the
@@ -147,11 +162,12 @@ impl Canvas {
 
     /// Draw file path or search text in the bottom line
     fn draw_bottom_line(
-        &self,
+        &mut self,
         str_to_draw: &mut String,
         mode: Mode,
         current_path: &str,
         search_txt: &Vec<char>,
+        input_cursor_pos: usize,
     ) {
         // Goto the bottom line
         str_to_draw.push_str(&csi(&format!("{}H", self.height)));
@@ -168,11 +184,22 @@ impl Canvas {
 
         str_to_draw.push_str(&csi(&format!("{}H", self.height)));
         str_to_draw.push_str(&csi("0K"));
-        str_to_draw.push_str(&self.bottom_line_configure(current_path, search_txt, mode));
+        str_to_draw.push_str(&self.bottom_line_configure(
+            current_path,
+            search_txt,
+            mode,
+            input_cursor_pos,
+        ));
 
         if matches!(mode, Mode::SEARCH) {
             // show the cursor when searching
             str_to_draw.push_str(&csi("?25h"));
+            // + 1 + 1: one because ansi escape is 1-index, another one because the extra slash
+            str_to_draw.push_str(&csi(&format!(
+                "{};{}H",
+                self.height,
+                input_cursor_pos + 1 + 1 - self.bottom_bar_text_left
+            )));
         }
     }
 
@@ -186,6 +213,7 @@ impl Canvas {
         current_path: &PathBuf,
         mode: Mode,
         search_txt: &Vec<char>,
+        input_cursor_pos: usize,
     ) {
         let (h, w) = util::term_size();
 
@@ -229,6 +257,7 @@ impl Canvas {
                 mode,
                 &current_path.to_str().unwrap().to_string(),
                 search_txt,
+                input_cursor_pos,
             );
 
             print!("{}", str_to_draw);
@@ -380,6 +409,7 @@ impl Canvas {
             mode,
             &current_path.to_str().unwrap().to_string(),
             search_txt,
+            input_cursor_pos,
         );
 
         print!("{}", str_to_draw);
@@ -394,5 +424,6 @@ pub fn new() -> Canvas {
         pixels: Vec::new(),
         theme: theme::Theme::from(&util::get_theme()),
         utf8_table: WcLookupTable::new(),
+        bottom_bar_text_left: 0,
     }
 }

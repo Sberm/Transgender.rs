@@ -69,15 +69,16 @@ ts
 
 ### Usage
 
-| keys                             | function                                         |
-| :---:                            | :---:                                            |
-| hjkl(vim bindings) or arrow keys | scroll/enter/exit a directory                    |
-| o or \<ENTER\>                   | go to directory/open file under cursor           |
-| i                                | go to the current directory (in the left window) |
-| q                                | quit                                             |
-| /                                | search                                           |
-| n / N                            | jump to the next / previous search match         |
-| Ctrl + U / Ctrl + D              | half pageup / pagedown                           |
+| keys                             | function                                                                |
+| :---:                            | :---:                                                                   |
+| hjkl(vim bindings) or arrow keys | scroll/enter/exit a directory                                           |
+| o or \<ENTER\>                   | go to directory/open file under cursor                                  |
+| i                                | go to the current directory (in the left window)                        |
+| q                                | quit                                                                    |
+| /                                | search                                                                  |
+| n / N                            | jump to the next / previous search match                                |
+| Ctrl + U / Ctrl + D              | half pageup / pagedown                                                  |
+| (when in search mode) arrow keys | up / down for search history, left / right for editing the search query |
 
 To open up a directory with trans
 ```bash

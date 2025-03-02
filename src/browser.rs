@@ -37,6 +37,7 @@ pub struct Browser {
     search_history: VecDeque<Vec<char>>,
     search_history_index: usize,
     trunc: Vec<u8>,
+    input_cursor_pos: usize,
 }
 
 pub enum IterType {
@@ -108,10 +109,11 @@ impl Browser {
                 &self.current_path,
                 self.mode,
                 &self.search_txt,
+                self.input_cursor_pos,
             );
 
             if matches!(self.mode, Mode::SEARCH) {
-                self.search();
+                self.search(canvas);
                 continue;
             }
             match util::process_input() {
@@ -230,7 +232,15 @@ impl Browser {
             return;
         }
         if self.search_history_index < self.search_history.len() {
-            self.search_history.remove(self.search_history_index);
+            let string_a = self.search_history[self.search_history_index]
+                .clone()
+                .into_iter()
+                .collect::<String>();
+            let string_b = self.search_txt.clone().into_iter().collect::<String>();
+            if string_a == string_b {
+                // history could be modified by user, that case we save both instead of overwriting the old
+                self.search_history.remove(self.search_history_index);
+            }
         }
         self.search_history.push_back(self.search_txt.clone());
         self.search_history_index = self.search_history.len(); // out-of-bound on purpose
@@ -320,32 +330,46 @@ impl Browser {
         }
     }
 
-    fn search(&mut self) {
+    fn search(&mut self, canvas: &mut canvas::Canvas) {
         let (mut chars, trunc, op) = util::read_chars_or_op(&self.trunc);
         self.trunc = trunc;
         if chars.len() != 0 {
+            // regular text input
             let first_char = chars[0];
             if first_char as usize == 27 {
                 // esc
                 self.mode = Mode::NORMAL;
                 self.search_history_index = self.search_history.len();
+                self.input_cursor_pos = 0;
+                canvas.reset_bottom_bar_text_left();
                 return;
             } else if first_char as usize == 127 {
-                // backspace
-                if self.search_txt.len() > 0 {
-                    self.search_txt.pop().expect("search txt(pop) out of bound");
+                if self.input_cursor_pos >= 1 {
+                    self.search_txt.remove(self.input_cursor_pos - 1);
+                    self.input_cursor_pos -= 1;
                 }
                 return;
             } else if first_char as usize == 10 {
                 // enter
                 self.save_history();
                 self.mode = Mode::NORMAL;
+                self.input_cursor_pos = 0;
+                canvas.reset_bottom_bar_text_left();
                 return;
             }
-            self.search_txt.append(&mut chars);
+            // character input
+            let mut search_txt_inserted = vec![];
+            let chars_len = chars.len();
+            search_txt_inserted.extend_from_slice(&self.search_txt[0..self.input_cursor_pos]);
+            search_txt_inserted.append(&mut chars);
+            search_txt_inserted.extend_from_slice(&self.search_txt[self.input_cursor_pos..]);
+            self.search_txt = search_txt_inserted;
+            self.input_cursor_pos += chars_len;
         } else if self.search_txt.len() == 0
-            || self.search_history_index < self.search_history.len()
+            || (self.search_history_index < self.search_history.len()
+                && (op == Op::Up || op == Op::Down))
         {
+            // search history
             // ok to scroll: 1. at the end of history, search input is empty
             //               2. currently in the process of scolling through history
             match op {
@@ -368,7 +392,24 @@ impl Browser {
             } else {
                 self.search_txt = Vec::new();
             }
+            self.input_cursor_pos = self.search_txt.len();
+        } else {
+            // left and right arrow
+            match op {
+                Op::Left => {
+                    if self.input_cursor_pos > 0 {
+                        self.input_cursor_pos -= 1;
+                    }
+                }
+                Op::Right => {
+                    if self.input_cursor_pos + 1 <= self.search_txt.len() {
+                        self.input_cursor_pos += 1;
+                    }
+                }
+                _ => {}
+            }
         }
+
         self.next_match(self.cursor, false);
     }
 
@@ -613,6 +654,7 @@ pub fn new(path: &str, dest_file: Option<String>) -> Browser {
         search_history: VecDeque::new(),
         search_history_index: 0,
         trunc: Vec::new(),
+        input_cursor_pos: 0,
     };
 
     browser.init(&path);

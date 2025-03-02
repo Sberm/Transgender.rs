@@ -16,6 +16,7 @@ pub mod consts {
 }
 
 /// File browser operation code
+#[derive(PartialEq)]
 pub enum Op {
     Noop,
     Up,
