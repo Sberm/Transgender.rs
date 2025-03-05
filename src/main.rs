@@ -68,7 +68,10 @@ fi
 
 if [[ "$0" == "zsh" ]];
 then
-  true
+  autoload -U compinit
+  compinit
+  setopt globdots
+  zstyle ':completion:*:*:ts:*' file-patterns '*(-/):directories'
 fi
 "###;
             print!("{}", script);
