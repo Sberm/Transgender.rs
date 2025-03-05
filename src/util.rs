@@ -54,8 +54,13 @@ pub fn term_size() -> (usize, usize) {
 }
 
 #[allow(dead_code)]
-pub fn slp(tm: f64) {
+pub fn _slp(tm: f64) {
     sleep(Duration::from_millis((tm * 1000.0) as u64));
+}
+
+#[allow(dead_code)]
+pub fn slp(tm: usize) {
+    sleep(Duration::from_secs(tm as u64));
 }
 
 pub fn raw_input() {

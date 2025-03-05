@@ -21,7 +21,7 @@ pub struct Canvas {
     pixels: Vec<Vec<char>>,
     theme: theme::Theme,
     utf8_table: WcLookupTable,
-    bottom_bar_text_left: usize, // the left border of the bottom bar text
+    pub bottom_bar_text_left: usize, // the left border of the bottom bar text
 }
 
 impl Clone for Canvas {
@@ -64,37 +64,84 @@ impl Canvas {
         input_cursor_pos: usize,
     ) -> String {
         let mut bottom_line = String::new();
+        let mut has_extra_slash = false;
 
         if matches!(mode, Mode::SEARCH) {
-            bottom_line.push_str("/");
+            has_extra_slash = true; // we will prepend the slash later
             bottom_line.push_str(&search_txt.into_iter().collect::<String>());
         } else {
             bottom_line.push_str(current_path);
         }
 
-        let mut display_len: usize = 0;
-        let mut included: usize = 0;
+        let real_width = if has_extra_slash {
+            // self.width - 1 because there is an extra slash
+            self.width - 1
+        } else {
+            self.width
+        };
+        let left_border = self.bottom_bar_text_left;
+        let mut right_border = self.bottom_bar_text_left + self.width - 2;
+        let mut right_maybe_smaller = self.bottom_bar_text_left;
+        let mut real_len = 0;
+        let mut trunc = false;
+
+        for i in self.bottom_bar_text_left..=input_cursor_pos {
+            if i == search_txt.len() {
+                real_len += 1;
+            } else {
+                real_len += self.get_utf8_len(search_txt[i]);
+            }
+            if real_len > real_width {
+                trunc = true;
+                break;
+            }
+            right_maybe_smaller += 1;
+        }
+        if trunc {
+            right_border = right_maybe_smaller;
+        }
 
         // input_cursor_pos is supposed to be from 0..=len, "/" not included
         // the actual cursor position is input_cursor_pos + 1 (1 is the slash)
-        if self.bottom_bar_text_left > input_cursor_pos + 1 {
+        if left_border > input_cursor_pos + 1 {
             self.bottom_bar_text_left = input_cursor_pos + 1;
-        } else if self.bottom_bar_text_left + self.width - 1 < input_cursor_pos + 1 {
-            self.bottom_bar_text_left = input_cursor_pos + 2 - self.width;
+        } else if right_border < input_cursor_pos + 1 {
+            let mut i = input_cursor_pos;
+            real_len = 0;
+            loop {
+                if i == search_txt.len() {
+                    real_len += 1;
+                } else {
+                    real_len += self.get_utf8_len(search_txt[i]);
+                }
+                if real_len > real_width {
+                    break;
+                }
+                self.bottom_bar_text_left = i;
+                if i == 0 {
+                    break;
+                } else {
+                    i -= 1;
+                }
+            }
         }
-
         let bottom_line_skipped = bottom_line.chars().skip(self.bottom_bar_text_left);
 
+        let mut display_len: usize = 0;
+        let mut included: usize = 0;
         for c in bottom_line_skipped.clone() {
-            let len = self.get_utf8_len(c);
-            display_len += len;
-            if display_len > self.width {
+            display_len += self.get_utf8_len(c);
+            if display_len > real_width {
                 break;
             }
             included += 1;
         }
 
-        bottom_line_skipped.take(included).collect::<String>()
+        let mut result = bottom_line_skipped.take(included).collect::<String>();
+        if has_extra_slash {
+            result = String::from("/") + &result;
+        }
+        result
     }
 
     /// return whether this character is a full-width character that displays as two blocks in the
@@ -184,22 +231,18 @@ impl Canvas {
 
         str_to_draw.push_str(&csi(&format!("{}H", self.height)));
         str_to_draw.push_str(&csi("0K"));
-        str_to_draw.push_str(&self.bottom_line_configure(
-            current_path,
-            search_txt,
-            mode,
-            input_cursor_pos,
-        ));
+        let content = self.bottom_line_configure(current_path, search_txt, mode, input_cursor_pos);
+        str_to_draw.push_str(&content);
 
         if matches!(mode, Mode::SEARCH) {
             // show the cursor when searching
             str_to_draw.push_str(&csi("?25h"));
+            let mut real_len = 0;
+            for i in self.bottom_bar_text_left..input_cursor_pos {
+                real_len += self.get_utf8_len(search_txt[i]);
+            }
             // + 1 + 1: one because ansi escape is 1-index, another one because the extra slash
-            str_to_draw.push_str(&csi(&format!(
-                "{};{}H",
-                self.height,
-                input_cursor_pos + 1 + 1 - self.bottom_bar_text_left
-            )));
+            str_to_draw.push_str(&csi(&format!("{};{}H", self.height, real_len + 1 + 1)));
         }
     }
 

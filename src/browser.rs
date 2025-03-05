@@ -344,11 +344,18 @@ impl Browser {
                 canvas.reset_bottom_bar_text_left();
                 return;
             } else if first_char as usize == 127 {
+                // backspace
                 if self.input_cursor_pos >= 1 {
                     self.search_txt.remove(self.input_cursor_pos - 1);
+                    // this is added so user knows what's being deleted.
+                    // there could be a problem when the lengths of the UTF-8 characters (the one
+                    // being deleted and the new one added on the left for alignment) are not equal,
+                    // making the cursor all over the place.
+                    if canvas.bottom_bar_text_left > 0 {
+                        canvas.bottom_bar_text_left -= 1;
+                    }
                     self.input_cursor_pos -= 1;
                 }
-                return;
             } else if first_char as usize == 10 {
                 // enter
                 self.save_history();
@@ -356,15 +363,16 @@ impl Browser {
                 self.input_cursor_pos = 0;
                 canvas.reset_bottom_bar_text_left();
                 return;
+            } else {
+                // input characters
+                let mut search_txt_inserted = vec![];
+                let chars_len = chars.len();
+                search_txt_inserted.extend_from_slice(&self.search_txt[0..self.input_cursor_pos]);
+                search_txt_inserted.append(&mut chars);
+                search_txt_inserted.extend_from_slice(&self.search_txt[self.input_cursor_pos..]);
+                self.search_txt = search_txt_inserted;
+                self.input_cursor_pos += chars_len;
             }
-            // character input
-            let mut search_txt_inserted = vec![];
-            let chars_len = chars.len();
-            search_txt_inserted.extend_from_slice(&self.search_txt[0..self.input_cursor_pos]);
-            search_txt_inserted.append(&mut chars);
-            search_txt_inserted.extend_from_slice(&self.search_txt[self.input_cursor_pos..]);
-            self.search_txt = search_txt_inserted;
-            self.input_cursor_pos += chars_len;
         } else if self.search_txt.len() == 0
             || (self.search_history_index < self.search_history.len()
                 && (op == Op::Up || op == Op::Down))
@@ -402,6 +410,7 @@ impl Browser {
                     }
                 }
                 Op::Right => {
+                    // println!("input_cursor_pos {} search_txt.len() {}", self.input_cursor_pos, self.search_txt.len());
                     if self.input_cursor_pos + 1 <= self.search_txt.len() {
                         self.input_cursor_pos += 1;
                     }
