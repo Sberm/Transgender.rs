@@ -17,6 +17,8 @@ use std::env;
 use std::path::Path;
 use std::process::exit;
 
+const VERSION: &str = "1.3.5";
+
 fn main() {
     let mut path = String::from(".");
     let mut dest_file: Option<String> = None;
@@ -45,7 +47,7 @@ fn main() {
         let s = _s.expect("Failed to unwrap arguments");
 
         if s.eq("-v") || s.eq("--version") {
-            println!("\n  Transgender.rs\n\n    Regex-powered trans\n");
+            println!("\n  Transgender.rs\n\n    Regex-powered trans, version {}\n ", VERSION);
             exit(0);
         } else if s.eq("--sh") {
             let script = r###"ts() {
