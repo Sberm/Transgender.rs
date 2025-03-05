@@ -410,7 +410,6 @@ impl Browser {
                     }
                 }
                 Op::Right => {
-                    // println!("input_cursor_pos {} search_txt.len() {}", self.input_cursor_pos, self.search_txt.len());
                     if self.input_cursor_pos + 1 <= self.search_txt.len() {
                         self.input_cursor_pos += 1;
                     }

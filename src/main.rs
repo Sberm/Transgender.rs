@@ -47,7 +47,10 @@ fn main() {
         let s = _s.expect("Failed to unwrap arguments");
 
         if s.eq("-v") || s.eq("--version") {
-            println!("\n  Transgender.rs\n\n    Regex-powered trans, version {}\n ", VERSION);
+            println!(
+                "\n  Transgender.rs\n\n    Regex-powered trans, version {}\n ",
+                VERSION
+            );
             exit(0);
         } else if s.eq("--sh") {
             let script = r###"ts() {

@@ -80,8 +80,8 @@ impl Canvas {
             self.width
         };
         let left_border = self.bottom_bar_text_left;
-        let mut right_border = self.bottom_bar_text_left + self.width - 2;
-        let mut right_maybe_smaller = self.bottom_bar_text_left;
+        let mut right_border = self.bottom_bar_text_left + real_width - 1;
+        let mut right_maybe_smaller = 0;
         let mut real_len = 0;
         let mut trunc = false;
 
@@ -95,17 +95,14 @@ impl Canvas {
                 trunc = true;
                 break;
             }
-            right_maybe_smaller += 1;
+            right_maybe_smaller = i;
         }
         if trunc {
             right_border = right_maybe_smaller;
         }
-
-        // input_cursor_pos is supposed to be from 0..=len, "/" not included
-        // the actual cursor position is input_cursor_pos + 1 (1 is the slash)
-        if left_border > input_cursor_pos + 1 {
-            self.bottom_bar_text_left = input_cursor_pos + 1;
-        } else if right_border < input_cursor_pos + 1 {
+        if left_border > input_cursor_pos {
+            self.bottom_bar_text_left = input_cursor_pos;
+        } else if right_border < input_cursor_pos {
             let mut i = input_cursor_pos;
             real_len = 0;
             loop {
@@ -126,17 +123,15 @@ impl Canvas {
             }
         }
         let bottom_line_skipped = bottom_line.chars().skip(self.bottom_bar_text_left);
-
-        let mut display_len: usize = 0;
         let mut included: usize = 0;
+        real_len = 0;
         for c in bottom_line_skipped.clone() {
-            display_len += self.get_utf8_len(c);
-            if display_len > real_width {
+            real_len += self.get_utf8_len(c);
+            if real_len > real_width {
                 break;
             }
             included += 1;
         }
-
         let mut result = bottom_line_skipped.take(included).collect::<String>();
         if has_extra_slash {
             result = String::from("/") + &result;
