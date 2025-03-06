@@ -6,8 +6,6 @@
 ║ above copyright notice and this permission notice appear in all copies ║
 ╚═══════════════════════════════════════════════════════════════════════*/
 
-extern crate libc;
-
 use crate::ops::Mode;
 use crate::theme;
 use crate::util;
