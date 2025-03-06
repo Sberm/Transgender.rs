@@ -53,7 +53,7 @@ fn main() {
             );
             exit(0);
         } else if s.eq("--sh") {
-            let script = r###"ts() {
+            let script = r###"function ts() {
   dest_file=$(mktemp -t "ts.XXXX")
   transgender $1 --dest "${dest_file}"
   dest_dir=$(tail -n 1 "${dest_file}")
