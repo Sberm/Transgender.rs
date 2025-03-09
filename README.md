@@ -190,7 +190,7 @@ its users.
 
 - [x] Support for up arrow for search history, left and right arrow for navigation, and logic to properly display overflowed search text (show the rightmost part)
 
-- [ ] Decouple the utf8 length function get_utf8_len(), and use fewer .clone() in the new arrow key feature
+- [x] Decouple the utf8 length function get_utf8_len(), and use fewer .clone() in the new arrow key feature
 
 - [x] Add support for zsh and other shells
 
