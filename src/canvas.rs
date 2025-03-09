@@ -120,17 +120,17 @@ impl Canvas {
                 }
             }
         }
-        let bottom_line_skipped = bottom_line.chars().skip(self.bottom_bar_text_left);
+        let skipped = bottom_line.chars().skip(self.bottom_bar_text_left);
         let mut included: usize = 0;
         real_len = 0;
-        for c in bottom_line_skipped.clone() {
+        for c in skipped.clone() {
             real_len += self.get_utf8_len(c);
             if real_len > real_width {
                 break;
             }
             included += 1;
         }
-        let mut result = bottom_line_skipped.take(included).collect::<String>();
+        let mut result = skipped.take(included).collect::<String>();
         if has_extra_slash {
             result = String::from("/") + &result;
         }
