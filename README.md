@@ -138,6 +138,9 @@ Other themes:
 
 ### Searching
 
+Searching is case-insensitive by default, use `<search term>\C` to search
+case-sensitively. e.g. `README\C` will return the search result for `README.md`.
+
 Now supports `>> regular expression <<`
 
 `Trangender.rs` performs a search whenever a key is pressed in search mode
