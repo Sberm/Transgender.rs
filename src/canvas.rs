@@ -20,6 +20,7 @@ pub struct Canvas {
     theme: theme::Theme,
     utf8_table: WcLookupTable,
     pub bottom_start: usize, // the left border of the bottom bar text
+    add_algnmt: bool,
 }
 
 impl Clone for Canvas {
@@ -31,6 +32,7 @@ impl Clone for Canvas {
             theme: theme::Theme::default(),
             utf8_table: WcLookupTable::new(),
             bottom_start: 0,
+            add_algnmt: false
         }
     }
 }
@@ -60,7 +62,7 @@ impl Canvas {
         search_txt: &Vec<char>,
         mode: Mode,
         input_cursor_pos: usize,
-    ) -> (String, bool) {
+    ) -> String {
         let mut bottom_line = String::new();
         let mut has_extra_slash = false;
 
@@ -82,7 +84,6 @@ impl Canvas {
         let mut right_maybe_smaller = 0;
         let mut real_len = 0;
         let mut trunc = false;
-        let mut add_algnmt = false;
         // check if the cursor position is out of range
         for i in self.bottom_start..=input_cursor_pos {
             if i == search_txt.len() {
@@ -100,12 +101,20 @@ impl Canvas {
             right_border = right_maybe_smaller;
         }
 
+        // this means that the cursor is at the very right of the bottom line, even without the
+        // alignment, therefore an alignment will break the length limit
+        if real_len == real_width {
+            self.add_algnmt = false;
+        }
+
         let mut last_real_len = 0;
         let mut new_border = false;
         if left_border > input_cursor_pos {
+            self.add_algnmt = false;
             self.bottom_start = input_cursor_pos;
         } else if right_border < input_cursor_pos {
             let mut i = input_cursor_pos;
+            self.add_algnmt = false;
             real_len = 0;
             // decide the right bottom_start
             loop {
@@ -127,7 +136,7 @@ impl Canvas {
             }
             // this means that a UTF8 full width character causes the cursor to shiver
             if last_real_len != real_width {
-                add_algnmt = true;
+                self.add_algnmt = true;
             }
             new_border = true;
         }
@@ -148,13 +157,13 @@ impl Canvas {
         }
 
         let mut result = skipped.take(included).collect::<String>();
-        if add_algnmt {
+        if self.add_algnmt {
             result = String::from(">") + &result;
         }
         if has_extra_slash {
             result = String::from("/") + &result;
         }
-        (result, add_algnmt)
+        result
     }
 
     /// return whether this character is a full-width character that displays as two blocks in the
@@ -244,8 +253,8 @@ impl Canvas {
 
         str_to_draw.push_str(&csi(&format!("{}H", self.height)));
         str_to_draw.push_str(&csi("0K"));
-        let (content, add_algnmt) =
-            self.bottom_line_configure(current_path, search_txt, mode, input_cursor_pos);
+
+        let content = self.bottom_line_configure(current_path, search_txt, mode, input_cursor_pos);
         str_to_draw.push_str(&content);
 
         if matches!(mode, Mode::SEARCH) {
@@ -259,7 +268,7 @@ impl Canvas {
             str_to_draw.push_str(&csi(&format!(
                 "{};{}H",
                 self.height,
-                real_len + 1 + 1 + if add_algnmt { 1 } else { 0 }
+                real_len + 1 + 1 + if self.add_algnmt { 1 } else { 0 }
             )));
         }
     }
@@ -486,5 +495,6 @@ pub fn new() -> Canvas {
         theme: theme::Theme::from(&util::get_theme()),
         utf8_table: WcLookupTable::new(),
         bottom_start: 0,
+        add_algnmt: false,
     }
 }
