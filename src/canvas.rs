@@ -19,7 +19,7 @@ pub struct Canvas {
     pixels: Vec<Vec<char>>,
     theme: theme::Theme,
     utf8_table: WcLookupTable,
-    pub bottom_bar_text_left: usize, // the left border of the bottom bar text
+    pub bottom_start: usize, // the left border of the bottom bar text
 }
 
 impl Clone for Canvas {
@@ -30,7 +30,7 @@ impl Clone for Canvas {
             pixels: Vec::new(),
             theme: theme::Theme::default(),
             utf8_table: WcLookupTable::new(),
-            bottom_bar_text_left: 0,
+            bottom_start: 0,
         }
     }
 }
@@ -49,8 +49,8 @@ impl Canvas {
         }
     }
 
-    pub fn reset_bottom_bar_text_left(&mut self) {
-        self.bottom_bar_text_left = 0;
+    pub fn reset_bottom_start(&mut self) {
+        self.bottom_start = 0;
     }
 
     /// Get the index where the bottom line text should be cropped
@@ -77,13 +77,13 @@ impl Canvas {
         } else {
             self.width
         };
-        let left_border = self.bottom_bar_text_left;
-        let mut right_border = self.bottom_bar_text_left + real_width - 1;
+        let left_border = self.bottom_start;
+        let mut right_border = self.bottom_start + real_width - 1;
         let mut right_maybe_smaller = 0;
         let mut real_len = 0;
         let mut trunc = false;
-
-        for i in self.bottom_bar_text_left..=input_cursor_pos {
+        // check if the cursor position is out of range
+        for i in self.bottom_start..=input_cursor_pos {
             if i == search_txt.len() {
                 real_len += 1;
             } else {
@@ -98,11 +98,13 @@ impl Canvas {
         if trunc {
             right_border = right_maybe_smaller;
         }
+
         if left_border > input_cursor_pos {
-            self.bottom_bar_text_left = input_cursor_pos;
+            self.bottom_start = input_cursor_pos;
         } else if right_border < input_cursor_pos {
             let mut i = input_cursor_pos;
             real_len = 0;
+            // decide the right bottom_start
             loop {
                 if i == search_txt.len() {
                     real_len += 1;
@@ -112,7 +114,7 @@ impl Canvas {
                 if real_len > real_width {
                     break;
                 }
-                self.bottom_bar_text_left = i;
+                self.bottom_start = i;
                 if i == 0 {
                     break;
                 } else {
@@ -120,7 +122,8 @@ impl Canvas {
                 }
             }
         }
-        let skipped = bottom_line.chars().skip(self.bottom_bar_text_left);
+
+        let skipped = bottom_line.chars().skip(self.bottom_start);
         let mut included: usize = 0;
         real_len = 0;
         for c in skipped.clone() {
@@ -231,7 +234,7 @@ impl Canvas {
             // show the cursor when searching
             str_to_draw.push_str(&csi("?25h"));
             let mut real_len = 0;
-            for i in self.bottom_bar_text_left..input_cursor_pos {
+            for i in self.bottom_start..input_cursor_pos {
                 real_len += self.get_utf8_len(search_txt[i]);
             }
             // + 1 + 1: one because ansi escape is 1-index, another one because the extra slash
@@ -460,6 +463,6 @@ pub fn new() -> Canvas {
         pixels: Vec::new(),
         theme: theme::Theme::from(&util::get_theme()),
         utf8_table: WcLookupTable::new(),
-        bottom_bar_text_left: 0,
+        bottom_start: 0,
     }
 }

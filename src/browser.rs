@@ -341,7 +341,7 @@ impl Browser {
                 self.mode = Mode::NORMAL;
                 self.search_history_index = self.search_history.len();
                 self.input_cursor_pos = 0;
-                canvas.reset_bottom_bar_text_left();
+                canvas.reset_bottom_start();
                 return;
             } else if first_char as usize == 127 {
                 // backspace
@@ -351,8 +351,8 @@ impl Browser {
                     // there could be a problem when the lengths of the UTF-8 characters (the one
                     // being deleted and the new one added on the left for alignment) are not equal,
                     // making the cursor all over the place.
-                    if canvas.bottom_bar_text_left > 0 {
-                        canvas.bottom_bar_text_left -= 1;
+                    if canvas.bottom_start > 0 {
+                        canvas.bottom_start -= 1;
                     }
                     self.input_cursor_pos -= 1;
                 }
@@ -361,7 +361,7 @@ impl Browser {
                 self.save_history();
                 self.mode = Mode::NORMAL;
                 self.input_cursor_pos = 0;
-                canvas.reset_bottom_bar_text_left();
+                canvas.reset_bottom_start();
                 return;
             } else {
                 // input characters
