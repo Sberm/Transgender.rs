@@ -60,7 +60,7 @@ impl Canvas {
         search_txt: &Vec<char>,
         mode: Mode,
         input_cursor_pos: usize,
-    ) -> String {
+    ) -> (String, bool) {
         let mut bottom_line = String::new();
         let mut has_extra_slash = false;
 
@@ -82,6 +82,7 @@ impl Canvas {
         let mut right_maybe_smaller = 0;
         let mut real_len = 0;
         let mut trunc = false;
+        let mut add_algnmt = false;
         // check if the cursor position is out of range
         for i in self.bottom_start..=input_cursor_pos {
             if i == search_txt.len() {
@@ -99,6 +100,8 @@ impl Canvas {
             right_border = right_maybe_smaller;
         }
 
+        let mut last_real_len = 0;
+        let mut new_border = false;
         if left_border > input_cursor_pos {
             self.bottom_start = input_cursor_pos;
         } else if right_border < input_cursor_pos {
@@ -114,6 +117,7 @@ impl Canvas {
                 if real_len > real_width {
                     break;
                 }
+                last_real_len = real_len;
                 self.bottom_start = i;
                 if i == 0 {
                     break;
@@ -121,23 +125,36 @@ impl Canvas {
                     i -= 1;
                 }
             }
+            // this means that a UTF8 full width character causes the cursor to shiver
+            if last_real_len != real_width {
+                add_algnmt = true;
+            }
+            new_border = true;
         }
 
         let skipped = bottom_line.chars().skip(self.bottom_start);
         let mut included: usize = 0;
-        real_len = 0;
-        for c in skipped.clone() {
-            real_len += self.get_utf8_len(c);
-            if real_len > real_width {
-                break;
+        if new_border {
+            included = input_cursor_pos - self.bottom_start + 1;
+        } else {
+            real_len = 0;
+            for c in skipped.clone() {
+                real_len += self.get_utf8_len(c);
+                if real_len > real_width {
+                    break;
+                }
+                included += 1;
             }
-            included += 1;
         }
+
         let mut result = skipped.take(included).collect::<String>();
+        if add_algnmt {
+            result = String::from(">") + &result;
+        }
         if has_extra_slash {
             result = String::from("/") + &result;
         }
-        result
+        (result, add_algnmt)
     }
 
     /// return whether this character is a full-width character that displays as two blocks in the
@@ -227,7 +244,8 @@ impl Canvas {
 
         str_to_draw.push_str(&csi(&format!("{}H", self.height)));
         str_to_draw.push_str(&csi("0K"));
-        let content = self.bottom_line_configure(current_path, search_txt, mode, input_cursor_pos);
+        let (content, add_algnmt) =
+            self.bottom_line_configure(current_path, search_txt, mode, input_cursor_pos);
         str_to_draw.push_str(&content);
 
         if matches!(mode, Mode::SEARCH) {
@@ -238,7 +256,11 @@ impl Canvas {
                 real_len += self.get_utf8_len(search_txt[i]);
             }
             // + 1 + 1: one because ansi escape is 1-index, another one because the extra slash
-            str_to_draw.push_str(&csi(&format!("{};{}H", self.height, real_len + 1 + 1)));
+            str_to_draw.push_str(&csi(&format!(
+                "{};{}H",
+                self.height,
+                real_len + 1 + 1 + if add_algnmt { 1 } else { 0 }
+            )));
         }
     }
 
