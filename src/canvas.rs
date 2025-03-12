@@ -23,20 +23,6 @@ pub struct Canvas {
     add_algnmt: bool,
 }
 
-impl Clone for Canvas {
-    fn clone(&self) -> Canvas {
-        Canvas {
-            height: self.height,
-            width: self.width,
-            pixels: Vec::new(),
-            theme: theme::Theme::default(),
-            utf8_table: WcLookupTable::new(),
-            bottom_start: 0,
-            add_algnmt: false
-        }
-    }
-}
-
 fn csi(s: &str) -> String {
     let mut ret: String = String::from("\x1b[");
     ret.push_str(s);
