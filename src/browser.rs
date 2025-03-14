@@ -40,18 +40,18 @@ pub struct Browser {
     input_cursor_pos: usize,
 }
 
-pub enum IterType {
+pub enum UsizeIter {
     Forward(Range<usize>),
     Backward(Rev<Range<usize>>),
 }
 
-impl Iterator for IterType {
+impl Iterator for UsizeIter {
     type Item = usize;
 
-    fn next(&mut self) -> Option<usize> {
+    fn next(&mut self) -> Option<Self::Item> {
         match self {
-            IterType::Forward(range) => range.next(),
-            IterType::Backward(range) => range.next(),
+            UsizeIter::Forward(range) => range.next(),
+            UsizeIter::Backward(range) => range.next(),
         }
     }
 }
@@ -300,9 +300,9 @@ impl Browser {
         };
 
         let it1 = if rev == false {
-            IterType::Forward(start..self.current_dir.len())
+            UsizeIter::Forward(start..self.current_dir.len())
         } else {
-            IterType::Backward((0..start + 1).rev())
+            UsizeIter::Backward((0..start + 1).rev())
         };
 
         for i in it1 {
@@ -316,9 +316,9 @@ impl Browser {
         // starts from 0
         if matched == false {
             let it2 = if rev == false {
-                IterType::Forward(0..start)
+                UsizeIter::Forward(0..start)
             } else {
-                IterType::Backward((start + 1..self.current_dir.len()).rev())
+                UsizeIter::Backward((start + 1..self.current_dir.len()).rev())
             };
 
             for i in it2 {
