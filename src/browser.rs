@@ -334,7 +334,7 @@ impl Browser {
         let (mut chars, trunc, op) = util::read_chars_or_op(&self.trunc);
         self.trunc = trunc;
         // regular text input
-        if chars.len() != 0 {
+        if op == Op::Noop {
             let first_char = chars[0] as usize;
             // for example, Ctrl + C = 3, Ctrl + I = 9 these characters cannot be displayed, yet
             // they will take space in the search text
