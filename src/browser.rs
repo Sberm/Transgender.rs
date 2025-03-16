@@ -333,17 +333,25 @@ impl Browser {
     fn search(&mut self, canvas: &mut canvas::Canvas) {
         let (mut chars, trunc, op) = util::read_chars_or_op(&self.trunc);
         self.trunc = trunc;
+        // regular text input
         if chars.len() != 0 {
-            // regular text input
-            let first_char = chars[0];
-            if first_char as usize == 27 {
+            let first_char = chars[0] as usize;
+            // for example, Ctrl + C = 3, Ctrl + I = 9 these characters cannot be displayed, yet
+            // they will take space in the search text
+            if first_char < 32 {
+                // escape or return (line feed)
+                if first_char != 27 && first_char != 10 {
+                    return;
+                }
+            }
+            if first_char == 27 {
                 // esc
                 self.mode = Mode::NORMAL;
                 self.search_history_index = self.search_history.len();
                 self.input_cursor_pos = 0;
                 canvas.reset_bottom_start();
                 return;
-            } else if first_char as usize == 127 {
+            } else if first_char == 127 {
                 // backspace
                 if self.input_cursor_pos >= 1 {
                     self.search_txt.remove(self.input_cursor_pos - 1);
@@ -356,7 +364,7 @@ impl Browser {
                     }
                     self.input_cursor_pos -= 1;
                 }
-            } else if first_char as usize == 10 {
+            } else if first_char == 10 {
                 // enter
                 self.save_history();
                 self.mode = Mode::NORMAL;
