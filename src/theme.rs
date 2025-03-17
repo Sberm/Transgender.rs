@@ -56,8 +56,10 @@ impl Theme {
         };
 
         // optional extra colors for bottom bar
-        if t.color.len() == 7 {
+        if !t.color[5].is_empty() {
             theme.bottom_bar = t.color[5].clone();
+        }
+        if !t.color[6].is_empty() {
             theme.bottom_bar_background = t.color[6].clone();
         }
 
@@ -69,16 +71,18 @@ struct ThemeTable {
     theme_entries: Vec<ThemeEntry>,
 }
 
+const THEME_COLOR_NUM: usize = 7;
+
 struct ThemeEntry {
     name: String,
-    color: Vec<String>,
+    color: [String; THEME_COLOR_NUM],
 }
 
 macro_rules! __theme {
     ( $name: expr, $($x: expr),+ ) => {
         ThemeEntry {
             name: String::from($name),
-            color: vec![
+            color: [
             $(
                 String::from($x),
             )*],
@@ -106,7 +110,9 @@ impl ThemeTable {
                     "\x1b[38;5;27m",
                     "\x1b[48;5;255m",
                     "\x1b[38;5;255m",
-                    "\x1b[48;5;0m"
+                    "\x1b[48;5;0m",
+                    "",
+                    ""
                 ],
                 __theme![
                     "lucius",
