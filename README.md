@@ -135,6 +135,8 @@ Other themes:
 * [vscode](https://github.com/Mofiqul/vscode.nvim)
 * [jesus](https://imgur.com/a/creZltw)
 
+The theme name is case-insensitive; e.g., Catppuccin and catppuccin both work.
+
 <br/>
 
 ### Searching
