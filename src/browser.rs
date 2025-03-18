@@ -1,5 +1,5 @@
 /*═══════════════════════════════════════════════════════════════════════╗
-║                          ©  Howard Chu                                 ║
+║                         (C)  Howard Chu                                ║
 ║                                                                        ║
 ║ Permission to use, copy, modify, and/or distribute this software for   ║
 ║ any purpose with or without fee is hereby granted, provided that the   ║
@@ -7,14 +7,17 @@
 ╚═══════════════════════════════════════════════════════════════════════*/
 
 use crate::canvas;
-use crate::ops::{code, consts, Mode};
+use crate::ops::{consts, Mode, Op};
 use crate::util;
+use std::collections::VecDeque;
 use std::fs::read_dir;
 use std::iter::Rev;
 use std::ops::Range;
 use std::path::PathBuf;
 use std::process::{exit, Command};
 use std::vec::Vec;
+
+const SEARCH_HISTORY_LEN: usize = 256;
 
 /// Directory browser
 pub struct Browser {
@@ -28,31 +31,36 @@ pub struct Browser {
     original_path: PathBuf,
     mode: Mode,
     search_txt: Vec<char>,
-    has_search_input: bool,
     editor: String,
+    dest_file: Option<PathBuf>,
+    search_history: VecDeque<Vec<char>>,
+    search_history_index: usize,
+    trunc: Vec<u8>,
+    input_cursor_pos: usize,
 }
 
-pub enum IterType {
+pub enum UsizeIter {
     Forward(Range<usize>),
     Backward(Rev<Range<usize>>),
 }
 
-impl Iterator for IterType {
+impl Iterator for UsizeIter {
     type Item = usize;
 
-    fn next(&mut self) -> Option<usize> {
+    fn next(&mut self) -> Option<Self::Item> {
         match self {
-            IterType::Forward(range) => range.next(),
-            IterType::Backward(range) => range.next(),
+            UsizeIter::Forward(range) => range.next(),
+            UsizeIter::Backward(range) => range.next(),
         }
     }
 }
 
 impl Browser {
     /// Construct past directory stack according to the current path
-    pub fn init(&mut self) {
-        self.read_to_current_dir(&String::from("."));
-        let mut srcdir = PathBuf::from(".")
+    pub fn init(&mut self, path: &str) {
+        self.read_current_dir(path);
+
+        let mut srcdir = PathBuf::from(path)
             .canonicalize()
             .expect("Failed to canonicalize current directory");
 
@@ -60,31 +68,30 @@ impl Browser {
             self.past_dir.push(srcdir.clone());
             self.past_cursor.push(0);
             self.past_window_start.push(0);
+
             if !srcdir.pop() {
                 break;
             }
         }
-        self.past_dir = self
-            .past_dir
-            .clone()
-            .into_iter()
-            .rev()
-            .collect::<Vec<PathBuf>>();
 
-        if self.past_dir.len() > 1 {
+        self.past_dir.reverse();
+
+        if self.past_dir.len() >= 1 {
             self.current_path = self
                 .past_dir
                 .pop()
                 .expect("Failed to pop the last element from past_dir")
                 .clone();
-            self.original_path = self.current_path.clone();
+
             self.past_cursor
                 .pop()
                 .expect("Failed to pop from past_cursor");
+
             self.past_window_start
                 .pop()
                 .expect("Failed to pop from past_window_start");
         }
+
         self.top();
     }
 
@@ -92,6 +99,7 @@ impl Browser {
     pub fn start_loop(&mut self, canvas: &mut canvas::Canvas) {
         loop {
             let preview_dir = self.get_preview();
+
             canvas.draw(
                 self.cursor,
                 &self.current_dir,
@@ -100,45 +108,46 @@ impl Browser {
                 &self.current_path,
                 self.mode,
                 &self.search_txt,
+                self.input_cursor_pos,
             );
+
             if matches!(self.mode, Mode::SEARCH) {
-                self.search();
+                self.search(canvas);
                 continue;
             }
             match util::process_input() {
-                code::UP => {
+                Op::Up => {
                     self.up();
                 }
-                code::DOWN => {
+                Op::Down => {
                     self.down();
                 }
-                code::LEFT => {
+                Op::Left => {
                     self.left();
                 }
-                code::RIGHT => {
+                Op::Right => {
                     self.right();
                 }
-                code::EXIT_CURSOR => {
+                Op::ExitCursor => {
                     self.exit_under_cursor();
                 }
-                code::EXIT => {
+                Op::Exit => {
                     self.exit_cur_dir();
                 }
-                code::QUIT => {
+                Op::Quit => {
                     self.quit();
                 }
-                code::TOP => {
+                Op::Top => {
                     self.top();
                 }
-                code::BOTTOM => {
+                Op::Bottom => {
                     self.bottom();
                 }
-                code::SEARCH => {
+                Op::Search => {
                     self.search_txt = Vec::new();
-                    self.has_search_input = false;
                     self.mode = Mode::SEARCH;
                 }
-                code::NEXT_MATCH => {
+                Op::NextMatch => {
                     self.next_match(
                         if self.cursor + 1 < self.current_dir.len() {
                             self.cursor + 1
@@ -148,7 +157,7 @@ impl Browser {
                         false,
                     );
                 }
-                code::PREV_MATCH => {
+                Op::PrevMatch => {
                     self.next_match(
                         if self.cursor as isize - 1 >= 0 {
                             self.cursor - 1
@@ -158,6 +167,8 @@ impl Browser {
                         true,
                     );
                 }
+                Op::PageUp => self.pageup(),
+                Op::PageDown => self.pagedown(),
                 _ => {
                     continue;
                 }
@@ -167,37 +178,34 @@ impl Browser {
 
     ///  Get directory content preview window as a vector of strings
     fn get_preview(&self) -> Vec<String> {
-        let mut ret: Vec<String> = Vec::new();
+        let empty: Vec<String> = Vec::new();
 
         if self.current_dir.len() == 0 {
-            return ret;
+            return empty;
         }
 
-        let mut dir_under_cursor = self.current_path.clone();
-        dir_under_cursor.push(&self.current_dir[self.cursor]);
-        if dir_under_cursor.is_dir() == false {
-            return ret;
+        let mut _dir = self.current_path.clone();
+        _dir.push(&self.current_dir[self.cursor]);
+        if _dir.is_dir() == false {
+            return empty;
         }
+        let dir = _dir.to_str().expect("Failed to construct preview path");
 
-        if let Ok(entries) = read_dir(&dir_under_cursor) {
-            for entry in entries {
-                let entry = entry.expect(&format!(
-                    "Failed to interate through {}",
-                    dir_under_cursor.to_str().unwrap()
-                ));
-                let s = entry.file_name().into_string();
-                match s {
-                    Ok(v) => {
-                        ret.push(v);
-                    }
-                    Err(_) => {
-                        let str = entry.file_name().to_string_lossy().into_owned();
-                        ret.push(str);
-                    }
-                }
-            }
-        }
-        ret
+        let mut preview = match read_dir(&dir) {
+            Ok(entries) => entries
+                .map(|_e| match _e {
+                    Ok(e) => match e.file_name().into_string() {
+                        Ok(filename) => filename,
+                        Err(filename_os) => filename_os.to_string_lossy().to_string(),
+                    },
+                    Err(_) => String::new(),
+                })
+                .collect::<Vec<String>>(),
+            Err(_) => Vec::new(),
+        };
+
+        preview.sort_by(|d1, d2| d1.to_lowercase().cmp(&d2.to_lowercase()));
+        preview
     }
 
     fn brute_force_search(&self, to_search: &str, pattern: &str, case_insensitive: bool) -> bool {
@@ -208,10 +216,13 @@ impl Browser {
         }
     }
 
-    ///  Set cursor position, centered in the window
+    /// set cursor position, centered in the window
     fn set_cursor_pos_centered(&mut self, index: usize) {
+        // the bottom line will always be there and cover it, the max display height is always
+        // terminal height - 1
+        let h = util::term_size().0 - 1;
+
         self.cursor = index;
-        let (h, _) = util::term_size();
         self.window_start = if self.cursor as isize - h as isize / 2 > 0 {
             self.cursor - h / 2
         } else {
@@ -219,9 +230,32 @@ impl Browser {
         };
     }
 
+    fn save_history(&mut self) {
+        if self.search_history.len() >= SEARCH_HISTORY_LEN {
+            self.search_history.pop_front();
+        }
+        // don't save an empty line
+        if self.search_txt.len() == 0 {
+            return;
+        }
+        if self.search_history_index < self.search_history.len() {
+            let string_a = self.search_history[self.search_history_index]
+                .clone()
+                .into_iter()
+                .collect::<String>();
+            let string_b = self.search_txt.clone().into_iter().collect::<String>();
+            if string_a == string_b {
+                // history could be modified by user, that case we save both instead of overwriting the old
+                self.search_history.remove(self.search_history_index);
+            }
+        }
+        self.search_history.push_back(self.search_txt.clone());
+        self.search_history_index = self.search_history.len(); // out-of-bound on purpose
+    }
+
     /// Next search match, can be a reversed search
     fn next_match(&mut self, start: usize, rev: bool) {
-        if self.has_search_input == false {
+        if self.search_txt.len() == 0 {
             return;
         }
 
@@ -237,7 +271,6 @@ impl Browser {
         // Check if the case sensitive '\C' is present at the bottom of the search text
         let len = self.search_txt.iter().count();
 
-        // TODO: support "/ok\\C" backslash escape
         if len > 2 {
             let last_two = self
                 .search_txt
@@ -246,19 +279,26 @@ impl Browser {
                 .take(2)
                 .collect::<String>();
             if last_two.eq("\\C") {
-                search = self.search_txt.iter().take(len - 2).collect::<String>();
-                case_insensitive = false;
-            }
-            if last_two.eq("\\c") {
-                search = self.search_txt.iter().take(len - 2).collect::<String>();
-                case_insensitive = true;
+                let mut cnt = 0;
+                for c in self.search_txt.iter().rev().skip(2) {
+                    if *c == '\\' {
+                        cnt += 1;
+                    } else {
+                        break;
+                    }
+                }
+                // U\\\\\C is case sensitive
+                if cnt % 2 == 0 {
+                    search = self.search_txt.iter().take(len - 2).collect::<String>();
+                    case_insensitive = false;
+                }
             }
         }
 
         let it1 = if rev == false {
-            IterType::Forward(start..self.current_dir.len())
+            UsizeIter::Forward(start..self.current_dir.len())
         } else {
-            IterType::Backward((0..start + 1).rev())
+            UsizeIter::Backward((0..start + 1).rev())
         };
 
         for i in it1 {
@@ -269,12 +309,12 @@ impl Browser {
             }
         }
 
-        // start from 0
+        // starts from 0
         if matched == false {
             let it2 = if rev == false {
-                IterType::Forward(0..start)
+                UsizeIter::Forward(0..start)
             } else {
-                IterType::Backward((start + 1..self.current_dir.len()).rev())
+                UsizeIter::Backward((start + 1..self.current_dir.len()).rev())
             };
 
             for i in it2 {
@@ -286,38 +326,102 @@ impl Browser {
         }
     }
 
-    fn search(&mut self) {
-        let (rc, is_ascii) = match util::read_utf8() {
-            Some((rc, is_ascii)) => (rc, is_ascii),
-            None => ('�', false),
-        };
-
-        self.has_search_input = true;
-
-        if is_ascii {
-            // esc
-            if rc as u8 == 27 {
-                self.mode = Mode::NORMAL;
-                return;
-            }
-
-            // backspace
-            if rc as u8 == 127 {
-                if self.search_txt.len() > 0 {
-                    self.search_txt.pop().expect("search txt(pop) out of bound");
+    fn search(&mut self, canvas: &mut canvas::Canvas) {
+        let (mut chars, trunc, op) = util::read_chars_or_op(&self.trunc);
+        self.trunc = trunc;
+        // regular text input
+        if op == Op::Noop {
+            let first_char = chars[0] as usize;
+            // for example, Ctrl + C = 3, Ctrl + I = 9 these characters cannot be displayed, yet
+            // they will take space in the search text
+            if first_char < 32 {
+                // escape or return (line feed)
+                if first_char != 27 && first_char != 10 {
+                    return;
                 }
-                return;
             }
-
-            // enter
-            if rc as u8 == 10 {
-                // search
+            if first_char == 27 {
+                // esc
                 self.mode = Mode::NORMAL;
+                self.search_history_index = self.search_history.len();
+                self.input_cursor_pos = 0;
+                canvas.reset_bottom_bar();
                 return;
+            } else if first_char == 127 {
+                // backspace
+                if self.input_cursor_pos >= 1 {
+                    self.search_txt.remove(self.input_cursor_pos - 1);
+                    // this is added so user knows what's being deleted.
+                    // there could be a problem when the lengths of the UTF-8 characters (the one
+                    // being deleted and the new one added on the left for alignment) are not equal,
+                    // making the cursor all over the place.
+                    if canvas.bottom_start > 0 {
+                        canvas.bottom_start -= 1;
+                    }
+                    self.input_cursor_pos -= 1;
+                }
+            } else if first_char == 10 {
+                // enter
+                self.save_history();
+                self.mode = Mode::NORMAL;
+                self.input_cursor_pos = 0;
+                canvas.reset_bottom_bar();
+                return;
+            } else {
+                // input characters
+                let mut search_txt_inserted = vec![];
+                let chars_len = chars.len();
+                search_txt_inserted.extend_from_slice(&self.search_txt[0..self.input_cursor_pos]);
+                search_txt_inserted.append(&mut chars);
+                search_txt_inserted.extend_from_slice(&self.search_txt[self.input_cursor_pos..]);
+                self.search_txt = search_txt_inserted;
+                self.input_cursor_pos += chars_len;
+            }
+        } else if self.search_txt.len() == 0
+            || (self.search_history_index < self.search_history.len()
+                && (op == Op::Up || op == Op::Down))
+        {
+            // search history
+            // ok to scroll: 1. at the end of history, search input is empty
+            //               2. currently in the process of scolling through history
+            match op {
+                Op::Up => {
+                    if self.search_history_index > 0 {
+                        self.search_history_index -= 1;
+                    }
+                }
+                Op::Down => {
+                    if self.search_history_index < self.search_history.len() {
+                        self.search_history_index += 1;
+                    }
+                }
+                _ => {}
+            }
+            // when user is not browsing history, search_history_index should be
+            // search_history.len() + 1
+            if self.search_history_index < self.search_history.len() {
+                self.search_txt = self.search_history[self.search_history_index].clone();
+            } else {
+                self.search_txt = Vec::new();
+            }
+            self.input_cursor_pos = self.search_txt.len();
+        } else {
+            // left and right arrow
+            match op {
+                Op::Left => {
+                    if self.input_cursor_pos > 0 {
+                        self.input_cursor_pos -= 1;
+                    }
+                }
+                Op::Right => {
+                    if self.input_cursor_pos + 1 <= self.search_txt.len() {
+                        self.input_cursor_pos += 1;
+                    }
+                }
+                _ => {}
             }
         }
 
-        self.search_txt.push(rc);
         self.next_match(self.cursor, false);
     }
 
@@ -334,11 +438,13 @@ impl Browser {
         if self.current_dir.is_empty() == true {
             return;
         }
+
         self.cursor = if self.cursor as isize - 1 >= 0 {
             self.cursor - 1
         } else {
             0
         };
+
         if self.cursor < self.window_start {
             self.window_start -= 1;
         }
@@ -348,62 +454,63 @@ impl Browser {
         if self.current_dir.is_empty() == true {
             return;
         }
-        let l = self.current_dir.len();
-        self.cursor = if self.cursor + 1 < l {
+
+        let max_len = self.current_dir.len();
+        self.cursor = if self.cursor + 1 < max_len {
             self.cursor + 1
         } else {
-            l - 1
+            max_len - 1
         };
 
-        let (h, _) = util::term_size();
+        let display_height = util::term_size().0 - 1;
 
-        // So the cursor won't be covered by the bottom line (TODO: But trans still draws that line in Canvas)
-        let display_height = h - 1;
-
-        if self.cursor as isize > (display_height - 1) as isize
-            && self.cursor > self.window_start + display_height - 1
-        {
+        if (self.cursor) as isize > (self.window_start + display_height - 1) as isize {
             self.window_start += 1;
         }
     }
 
     fn left(&mut self) {
-        let current_path_tmp = self.current_path.clone();
-        // root dir '/'
-        if current_path_tmp.file_name() == None {
+        let child = self.current_path.clone();
+        // for example, root dir '/' doesn't have a file name
+        if child.file_name() == None {
             return;
         }
 
+        // access the parent dir and read its content
         self.current_path = self
             .past_dir
             .pop()
             .expect("Failed to pop from past_dir in when exiting a directory");
-        self.read_to_current_dir(&self.current_path.to_str().unwrap().to_string());
+        self.read_current_dir(&self.current_path.to_str().unwrap().to_string());
 
         self.cursor = self
             .past_cursor
             .pop()
             .expect("Failed to pop from past_cursor");
+
         self.window_start = self
             .past_window_start
             .pop()
             .expect("Failed to pop from past_window_start");
 
-        let dir_to_restore = current_path_tmp
+        let child_filename_str = child
             .file_name()
             .expect("Failed to get file name of current path to restore the directory")
             .to_str()
             .expect("Failed to do to_str()");
 
-        // 0 could be good, but it could be because it was pushed in beginning
+        // 0 is set in init()
         let mut index: usize = 0;
+
+        // find the child dir in parent directories
         for (i, dir) in self.current_dir.iter().enumerate() {
-            if dir.eq(dir_to_restore) {
+            if dir.eq(child_filename_str) {
                 self.cursor = i;
                 index = i;
                 break;
             }
         }
+
         self.set_cursor_pos_centered(index);
     }
 
@@ -422,50 +529,57 @@ impl Browser {
         self.past_cursor.push(self.cursor);
         self.past_window_start.push(self.window_start);
         self.current_path = dir_under_cursor.clone();
-        self.read_to_current_dir(&dir_under_cursor.to_str().unwrap().to_string());
+        self.read_current_dir(
+            &dir_under_cursor
+                .to_str()
+                .expect("Failed to call to_str() for the dir under cursor")
+                .to_string(),
+        );
         self.top();
     }
 
     /// Read the file and directory names in the current directory
-    fn read_to_current_dir(&mut self, path: &String) {
-        self.current_dir.clear();
+    fn read_current_dir(&mut self, path: &str) {
+        self.current_dir = match read_dir(path) {
+            Ok(entries) => entries
+                .map(|_e| match _e {
+                    Ok(e) => match e.file_name().into_string() {
+                        Ok(filename) => filename,
+                        Err(filename_os) => filename_os.to_string_lossy().to_string(),
+                    },
+                    Err(_) => String::new(),
+                })
+                .collect::<Vec<String>>(),
+            Err(_) => Vec::new(),
+        };
 
-        if let Ok(entries) = read_dir(path) {
-            for entry in entries {
-                let entry = entry.expect(&format!("Failed to interate through {}", path));
-                let s = entry.file_name().into_string();
-                match s {
-                    Ok(v) => {
-                        self.current_dir.push(v);
-                    }
-                    Err(_) => {
-                        let str = entry.file_name().to_string_lossy().into_owned();
-                        self.current_dir.push(str);
-                    }
-                }
-            }
-        }
+        self.current_dir
+            .sort_by(|d1, d2| d1.to_lowercase().cmp(&d2.to_lowercase()));
     }
 
-    /// Goto the directory in the left side window, while quitting trans
+    /// quit trans and goto the directory in the left window
     fn exit_cur_dir(&self) {
         util::exit_albuf();
-        util::print_path(&self.current_path.to_str().unwrap());
+        util::print_path(&self.current_path, (&self.dest_file).as_ref());
         exit(0);
     }
 
-    /// Goto the directory under the cursor, while quitting trans
+    /// quit trans and goto the directory under the cursor
     ///  or
-    /// Open the file under the cursor with a text editor
+    /// open the file under the cursor with a text editor
     fn exit_under_cursor(&self) {
         let mut dir = self.current_path.clone();
         dir.push(&self.current_dir[self.cursor]);
 
         if dir.is_dir() == false {
+            // reduce color flicking (the flicking color is the bottom bar color)
+            util::reduce_flick();
+
             if let Ok(_) = Command::new(&self.editor)
                 .arg(dir.to_str().unwrap())
                 .status()
             {
+                // empty, successfully opened with user's desired editor
             } else {
                 Command::new(consts::EDITOR)
                     .arg(dir.to_str().unwrap())
@@ -478,26 +592,59 @@ impl Browser {
             }
         } else {
             util::exit_albuf();
-            util::print_path(dir.to_str().unwrap());
+            util::print_path(&dir, (&self.dest_file).as_ref());
 
             exit(0);
         };
 
-        // sometimes the editor exits alternate buffer, and enables cursor
+        // when an editor exits, it also exits the alternate buffer, and enables cursor, need to
+        // stay in albuf and hide cursor in trans
         util::enter_albuf();
         util::hide_cursor();
     }
 
     fn quit(&self) {
         util::exit_albuf();
-
-        util::print_path(&self.original_path.to_str().unwrap());
-
+        util::print_path(&self.original_path, (&self.dest_file).as_ref());
         exit(0);
+    }
+
+    fn pageup(&mut self) {
+        if self.current_dir.is_empty() == true {
+            return;
+        }
+
+        let height = util::term_size().0 - 1;
+        let half_page = height / 2;
+
+        let pos = if self.cursor as isize - (half_page as isize) < 0 {
+            0
+        } else {
+            self.cursor - half_page
+        };
+
+        self.set_cursor_pos_centered(pos);
+    }
+
+    fn pagedown(&mut self) {
+        if self.current_dir.is_empty() == true {
+            return;
+        }
+
+        let height = util::term_size().0 - 1;
+        let half_page = height / 2;
+
+        let pos = if self.cursor + half_page >= self.current_dir.len() {
+            self.current_dir.len() - 1
+        } else {
+            self.cursor + half_page
+        };
+
+        self.set_cursor_pos_centered(pos);
     }
 }
 
-pub fn new() -> Browser {
+pub fn new(path: &str, dest_file: Option<String>) -> Browser {
     let mut browser = Browser {
         cursor: 0,
         window_start: 0,
@@ -505,14 +652,21 @@ pub fn new() -> Browser {
         past_dir: Vec::new(),
         past_cursor: Vec::new(),
         past_window_start: Vec::new(),
-        current_path: PathBuf::from(""),
-        original_path: PathBuf::from(""),
+        current_path: PathBuf::new(),
+        original_path: PathBuf::from("."),
         mode: Mode::NORMAL,
         search_txt: Vec::new(),
-        has_search_input: false,
         editor: util::get_editor(),
+        dest_file: (|dest_file| match dest_file {
+            Some(df) => Some(PathBuf::from(&df)),
+            None => None,
+        })(dest_file),
+        search_history: VecDeque::new(),
+        search_history_index: 0,
+        trunc: Vec::new(),
+        input_cursor_pos: 0,
     };
 
-    browser.init();
+    browser.init(&path);
     browser
 }

@@ -1,3 +1,11 @@
+/*═══════════════════════════════════════════════════════════════════════╗
+║                         (C)  Howard Chu                                ║
+║                                                                        ║
+║ Permission to use, copy, modify, and/or distribute this software for   ║
+║ any purpose with or without fee is hereby granted, provided that the   ║
+║ above copyright notice and this permission notice appear in all copies ║
+╚═══════════════════════════════════════════════════════════════════════*/
+
 #[derive(Default)]
 pub struct Theme {
     // Highlighted filename when selected
@@ -22,7 +30,7 @@ impl Theme {
 
         // default
         for (i, t) in theme_table.theme_entries.iter().enumerate() {
-            if t.name == "trans" {
+            if t.name == "lucius" {
                 theme_i = i;
                 break;
             }
@@ -48,8 +56,10 @@ impl Theme {
         };
 
         // optional extra colors for bottom bar
-        if t.color.len() == 7 {
+        if !t.color[5].is_empty() {
             theme.bottom_bar = t.color[5].clone();
+        }
+        if !t.color[6].is_empty() {
             theme.bottom_bar_background = t.color[6].clone();
         }
 
@@ -61,16 +71,18 @@ struct ThemeTable {
     theme_entries: Vec<ThemeEntry>,
 }
 
+const THEME_COLOR_NUM: usize = 7;
+
 struct ThemeEntry {
     name: String,
-    color: Vec<String>,
+    color: [String; THEME_COLOR_NUM],
 }
 
 macro_rules! __theme {
     ( $name: expr, $($x: expr),+ ) => {
         ThemeEntry {
             name: String::from($name),
-            color: vec![
+            color: [
             $(
                 String::from($x),
             )*],
@@ -98,7 +110,9 @@ impl ThemeTable {
                     "\x1b[38;5;27m",
                     "\x1b[48;5;255m",
                     "\x1b[38;5;255m",
-                    "\x1b[48;5;0m"
+                    "\x1b[48;5;0m",
+                    "",
+                    ""
                 ],
                 __theme![
                     "lucius",
@@ -139,6 +153,26 @@ impl ThemeTable {
                     "\x1b[48;5;235m",
                     "\x1b[38;5;117m",
                     "\x1b[48;5;236m"
+                ],
+                __theme![
+                    "jesus",
+                    "\x1b[38;5;94m",
+                    "\x1b[38;5;236m",
+                    "\x1b[48;5;180m",
+                    "\x1b[38;5;187m",
+                    "\x1b[48;5;137m",
+                    "\x1b[38;5;236m",
+                    "\x1b[48;5;180m"
+                ],
+                __theme![
+                    "catppuccin",
+                    "\x1b[38;2;238;212;159m",
+                    "\x1b[38;2;245;169;127m",
+                    "\x1b[48;2;48;51;71m",
+                    "\x1b[38;2;138;173;244m",
+                    "\x1b[48;2;36;39;58m",
+                    "\x1b[38;2;128;135;162m",
+                    "\x1b[48;2;54;58;79m"
                 ],
             ],
         }

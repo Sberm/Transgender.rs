@@ -11,7 +11,19 @@ A minimalistic TUI file explorer with **minimal dependencies**, written by a [ra
 
 ![](img/lucius.jpg)
 
-## quick start
+## Quick start
+
+### Installation
+
+#### Arch Linux
+
+[transgender](https://aur.archlinux.org/packages/transgender) is available as a package in the [AUR](https://aur.archlinux.org). you can install it using your preferred AUR helper. example:
+
+```sh
+paru -S transgender
+```
+
+### Compiling from source
 
 clone the repo
 ```bash
@@ -19,6 +31,7 @@ git clone https://github.com/Sberm/Transgender.rs.git
 ```
 
 before compilation, make sure you have rust's environment installed, if not, goto [HERE](https://www.rust-lang.org/tools/install)
+<br/>
 
 compile & install
 ```bash
@@ -27,11 +40,13 @@ make
 make install
 ```
 
-paste this shell script function into your shell configuration file, its location depends on which shell you use (`~/.bashrc`, `~/.bash_profile`, `source ~/.zshrc`, `~/.config/fish/config.fish`)
+### Shell configuration
+
+Currently only supports `bash` and `zsh`.
+
+paste this shell script function into your shell configuration file, its location depends on which shell you use (`~/.bashrc`, `~/.bash_profile`, `source ~/.zshrc`)
 ```
-ts() {
-  cd "$(transgender 3>&1 1>&2 2>&3 3>&- | tail -n 1)"
-}
+eval "$(transgender --sh)"
 ```
 
 refresh your shell configuration, or open up a new terminal window
@@ -43,43 +58,50 @@ source ~/.bash_profile
 
 # zsh
 source ~/.zshrc
-
-# fish
-source ~/.config/fish/config.fish
-
 ```
 
-enjoy
+launch `Transgender.rs` with:
 ```bash
 ts
 ```
 
 <br/>
 
-### keys
+### Usage
 
-| keys                             | function                                     |
-| :---:                            | :---:                                        |
-| hjkl(vim bindings) or arrow keys | scroll/enter/exit a directory                |
-| o or \<ENTER\>                   | go to directory/open file under cursor       |
-| i                                | go to current directory(in left side window) |
-| q                                | quit                                         |
-| /                                | search                                       |
-| n                                | jump to next search match                    |
+| keys                             | function                                                                |
+| :---:                            | :---:                                                                   |
+| hjkl(vim bindings) or arrow keys | scroll/enter/exit a directory                                           |
+| o or \<ENTER\>                   | go to directory/open file under cursor                                  |
+| i                                | go to the current directory (in the left window)                        |
+| q                                | quit                                                                    |
+| /                                | search                                                                  |
+| n / N                            | jump to the next / previous search match                                |
+| Ctrl + U / Ctrl + D              | half pageup / pagedown                                                  |
+| (when in search mode) arrow keys | up / down for search history, left / right for editing the search query |
+
+To open up a directory with trans
+```bash
+ts /usr/lib/
+ts ..
+ts /root
+```
 
 <br/>
 
-### config file
+### Config file
+
 located at
+
 ```bash
 ~/.tsrc
 ```
 
 **if `~/.tsrc` doesn't exist, you need to create one**
 
-Supports changing the editor and the theme.
+It supports changing the editor (opened with `o` or `ENTER`) and the theme.
 
-Example of `~/.tsrc`:
+An example of `~/.tsrc`:
 
 ```tsrc
 # Set your preferred editor
@@ -93,36 +115,43 @@ theme = dark
 
 The specified editor will open when `o` or `ENTER` is pressed while the cursor is on a file.
 
-By default, the editor is set to `vi`.
+The default editor is `vi`.
 
 #### Theme
 
-Currently, there are only two themes available: `dark` and `trans`, the default
-theme is `trans`.
+The default theme is `lucius`.
 
-Image of the `dark` theme:
+`dark` theme:
 
 ![](img/dark.jpg)
 
 Other themes:
 
+* [catppuccin](https://imgur.com/a/mK2Toin)
+* [trans](https://imgur.com/a/m4dmLig)
 * [lucius](https://github.com/jonathanfilip/lucius)
 * [acme](https://github.com/ianyepan/acme-emacs-theme)
 * [sakura](https://imgur.com/a/5YhgVMG)
 * [vscode](https://github.com/Mofiqul/vscode.nvim)
+* [jesus](https://imgur.com/a/creZltw)
+
+The theme name is case-insensitive; e.g., Catppuccin and catppuccin both work.
 
 <br/>
 
-### Search
+### Searching
+
+Searching is case-insensitive by default, use `<search term>\C` to search
+case-sensitively. e.g. `README\C` will return the search result for `README.md`.
 
 Now supports `>> regular expression <<`
 
-`Trangender.rs` performs a search whenever a key is pressed
+`Trangender.rs` performs a search whenever a key is pressed in search mode
 
-Due to the use of the `regex` crate, the executable can be a bit bloated (
-~474KB). If you don't want regular expression feature, simply switch to the
+Due to the use of the `regex-lite` crate, the executable can be a bit bloated (
+~504KB). If you don't need the regular expression feature, simply switch to the
 vanilla version by checking out to the vanilla branch and building
-`Transgender.rs`.
+`Transgender.rs` from there.
 
 ```bash
 git checkout vanilla
@@ -132,9 +161,9 @@ make install
 
 <br/>
 
-### uninstall
+### Uninstallation
 
-if you want to uninstall Transgender
+if you want to uninstall `Transgender.rs`
 ```
 make uninstall
 ```
@@ -143,24 +172,37 @@ make uninstall
 
 ### Features:
 
-* file exploring
-* cd to directories
-* search directories
+* File exploration
+* Changing directories
+* Searching by file name
+* Opening files with a preferred editor
+* Multiple themes
 
 ```
-WHY DO I MAKE TRANS?
+WHY DID I MAKE TRANS?
 
-In my opinion trans is simpler than ranger. Creeping
-featurism, growing size made ranger less attractive. 
-Also, ranger is not a good software, it is filled
-with bad designs that irritate its users.
+In my opinion, Trans is simpler than ranger. Creeping
+featurism and growing size have made ranger less
+attractive. Additionally, ranger is not a good
+software; it is filled with bad designs that irritate
+its users.
 ```
 
 <br/>
 
 ### Todo:
 
-- [ ] tests
+- [ ] Tests
+
+- [x] Support for up arrow for search history, left and right arrow for navigation, and logic to properly display overflowed search text (show the rightmost part)
+
+- [x] Decouple the utf8 length function get_utf8_len(), and use fewer .clone() in the new arrow key feature
+
+- [x] Add support for zsh and other shells
+
+- [ ] Opening files with "open" command and so on
+
+- [x] Bash completion
 
 - [x] Read utf-8 input
 

@@ -1,12 +1,10 @@
 /*═══════════════════════════════════════════════════════════════════════╗
-║                          ©  Howard Chu                                 ║
+║                         (C)  Howard Chu                                ║
 ║                                                                        ║
 ║ Permission to use, copy, modify, and/or distribute this software for   ║
 ║ any purpose with or without fee is hereby granted, provided that the   ║
 ║ above copyright notice and this permission notice appear in all copies ║
 ╚═══════════════════════════════════════════════════════════════════════*/
-
-extern crate libc;
 
 use crate::ops::Mode;
 use crate::theme;
@@ -21,18 +19,8 @@ pub struct Canvas {
     pixels: Vec<Vec<char>>,
     theme: theme::Theme,
     utf8_table: WcLookupTable,
-}
-
-impl Clone for Canvas {
-    fn clone(&self) -> Canvas {
-        Canvas {
-            height: self.height,
-            width: self.width,
-            pixels: Vec::new(),
-            theme: theme::Theme::default(),
-            utf8_table: WcLookupTable::new(),
-        }
-    }
+    pub bottom_start: usize, // the left border of the bottom bar text
+    add_algnmt: bool,
 }
 
 fn csi(s: &str) -> String {
@@ -42,52 +30,142 @@ fn csi(s: &str) -> String {
 }
 
 impl Canvas {
+    /// Set the internel pixel (char) representation
+    fn set(&mut self, i: usize, j: usize, c: char) {
+        if i < self.height && j < self.width {
+            self.pixels[i][j] = c;
+        }
+    }
+
+    pub fn reset_bottom_bar(&mut self) {
+        self.bottom_start = 0;
+        self.add_algnmt = false;
+    }
+
     /// Get the index where the bottom line text should be cropped
     fn bottom_line_configure(
-        &self,
+        &mut self,
         current_path: &str,
         search_txt: &Vec<char>,
         mode: Mode,
+        input_cursor_pos: usize,
     ) -> String {
         let mut bottom_line = String::new();
+        let mut has_extra_slash = false;
 
         if matches!(mode, Mode::SEARCH) {
-            bottom_line.push_str("/");
+            has_extra_slash = true; // we will prepend the slash later
             bottom_line.push_str(&search_txt.into_iter().collect::<String>());
         } else {
             bottom_line.push_str(current_path);
         }
 
-        let mut display_len: usize = 0;
-        let mut slice_to: usize = 0;
-
-        for c in bottom_line.chars() {
-            let len = self.get_utf8_len(c);
-            display_len += len;
-
-            if display_len >= self.width {
+        let real_width = if has_extra_slash {
+            // self.width - 1 because there is an extra slash
+            self.width - 1
+        } else {
+            self.width
+        };
+        let left_border = self.bottom_start;
+        let mut right_border = self.bottom_start + real_width - 1;
+        let mut right_maybe_smaller = 0;
+        let mut real_len = 0;
+        let mut trunc = false;
+        // check if the cursor position is out of range
+        for i in self.bottom_start..=input_cursor_pos {
+            if i == search_txt.len() {
+                real_len += 1;
+            } else {
+                real_len += self.get_utf8_len(search_txt[i]);
+            }
+            if real_len > real_width {
+                trunc = true;
                 break;
             }
-
-            slice_to += 1;
+            right_maybe_smaller = i;
+        }
+        if trunc {
+            right_border = right_maybe_smaller;
         }
 
-        bottom_line.chars().take(slice_to).collect::<String>()
+        // this means that the cursor is at the very right of the bottom line, even without the
+        // alignment, therefore an alignment will break the length limit
+        if real_len == real_width {
+            self.add_algnmt = false;
+        }
+
+        let mut last_real_len = 0;
+        let mut new_border = false;
+        if left_border > input_cursor_pos {
+            self.add_algnmt = false;
+            self.bottom_start = input_cursor_pos;
+        } else if right_border < input_cursor_pos {
+            let mut i = input_cursor_pos;
+            self.add_algnmt = false;
+            real_len = 0;
+            // decide the right bottom_start
+            loop {
+                if i == search_txt.len() {
+                    real_len += 1;
+                } else {
+                    real_len += self.get_utf8_len(search_txt[i]);
+                }
+                if real_len > real_width {
+                    break;
+                }
+                last_real_len = real_len;
+                self.bottom_start = i;
+                if i == 0 {
+                    break;
+                } else {
+                    i -= 1;
+                }
+            }
+            // this means that a UTF8 full width character causes the cursor to shiver
+            if last_real_len != real_width {
+                self.add_algnmt = true;
+            }
+            new_border = true;
+        }
+
+        let skipped = bottom_line.chars().skip(self.bottom_start);
+        let mut included: usize = 0;
+        if new_border {
+            included = input_cursor_pos - self.bottom_start + 1;
+        } else {
+            real_len = 0;
+            for c in skipped.clone() {
+                real_len += self.get_utf8_len(c);
+                if real_len > real_width {
+                    break;
+                }
+                included += 1;
+            }
+        }
+
+        let mut result = skipped.take(included).collect::<String>();
+        if self.add_algnmt {
+            result = String::from(">") + &result;
+        }
+        if has_extra_slash {
+            result = String::from("/") + &result;
+        }
+        result
     }
 
     /// return whether this character is a full-width character that displays as two blocks in the
     /// terminal
     fn get_utf8_len(&self, c: char) -> usize {
         match self.utf8_table.classify(c) {
-            WcWidth::One => return 1,
-            WcWidth::Two => return 2,
-            WcWidth::NonPrint => return 0,
-            WcWidth::Combining => return 0,
-            WcWidth::Ambiguous => return 1,
-            WcWidth::PrivateUse => return 0,
-            WcWidth::Unassigned => return 0,
-            WcWidth::WidenedIn9 => return 2,
-            WcWidth::NonCharacter => return 0,
+            WcWidth::One => 1,
+            WcWidth::Two => 2,
+            WcWidth::NonPrint => 0,
+            WcWidth::Combining => 0,
+            WcWidth::Ambiguous => 1,
+            WcWidth::PrivateUse => 0,
+            WcWidth::Unassigned => 0,
+            WcWidth::WidenedIn9 => 2,
+            WcWidth::NonCharacter => 0,
         }
     }
 
@@ -140,11 +218,12 @@ impl Canvas {
 
     /// Draw file path or search text in the bottom line
     fn draw_bottom_line(
-        &self,
+        &mut self,
         str_to_draw: &mut String,
         mode: Mode,
         current_path: &str,
         search_txt: &Vec<char>,
+        input_cursor_pos: usize,
     ) {
         // Goto the bottom line
         str_to_draw.push_str(&csi(&format!("{}H", self.height)));
@@ -161,15 +240,27 @@ impl Canvas {
 
         str_to_draw.push_str(&csi(&format!("{}H", self.height)));
         str_to_draw.push_str(&csi("0K"));
-        str_to_draw.push_str(&self.bottom_line_configure(current_path, search_txt, mode));
+
+        let content = self.bottom_line_configure(current_path, search_txt, mode, input_cursor_pos);
+        str_to_draw.push_str(&content);
 
         if matches!(mode, Mode::SEARCH) {
-            // show cursor
+            // show the cursor when searching
             str_to_draw.push_str(&csi("?25h"));
+            let mut real_len = 0;
+            for i in self.bottom_start..input_cursor_pos {
+                real_len += self.get_utf8_len(search_txt[i]);
+            }
+            // + 1 + 1: one because ansi escape is 1-index, another one because the extra slash
+            str_to_draw.push_str(&csi(&format!(
+                "{};{}H",
+                self.height,
+                real_len + 1 + 1 + if self.add_algnmt { 1 } else { 0 }
+            )));
         }
     }
 
-    /// Core function to display the window
+    /// core function to display the window
     pub fn draw(
         &mut self,
         cursor: usize,
@@ -179,8 +270,10 @@ impl Canvas {
         current_path: &PathBuf,
         mode: Mode,
         search_txt: &Vec<char>,
+        input_cursor_pos: usize,
     ) {
         let (h, w) = util::term_size();
+
         if self.height != h || self.width != w {
             self.height = h;
             self.width = w;
@@ -192,10 +285,7 @@ impl Canvas {
         str_to_draw.push_str(&csi("1H"));
         str_to_draw.push_str(&csi("?25l")); // hide cursor
 
-        // Write pixel
-        let write_top: usize = self.height - 1;
-        let write_bottom: usize = 0;
-
+        // l_w_l: left window's left
         let l_w_l: usize = 0;
         let l_w_r: usize = (self.width / 10 * 6 - 1) as usize;
 
@@ -224,6 +314,7 @@ impl Canvas {
                 mode,
                 &current_path.to_str().unwrap().to_string(),
                 search_txt,
+                input_cursor_pos,
             );
 
             print!("{}", str_to_draw);
@@ -231,15 +322,15 @@ impl Canvas {
             return;
         }
 
-        // Left side
-        for i in write_bottom..=write_top {
+        // left window
+        for i in 0..=self.height - 1 {
             let c_a = current_dir[dir_i].chars().collect::<Vec<char>>();
             ch_i = 0;
             for j in l_w_l..=l_w_r {
                 if ch_i >= c_a.len() {
                     break;
                 }
-                self.set(write_top - i, j, c_a[ch_i]);
+                self.set(i, j, c_a[ch_i]);
                 ch_i += 1;
             }
             dir_i += 1;
@@ -248,10 +339,10 @@ impl Canvas {
             }
         }
 
-        // Right side preview window
+        // right preview window
         dir_i = 0;
 
-        for i in write_bottom..=write_top {
+        for i in 0..=self.height - 1 {
             if dir_i >= preview_dir.len() {
                 break;
             }
@@ -261,14 +352,16 @@ impl Canvas {
                 if ch_i >= c_a.len() {
                     break;
                 }
-                self.set(write_top - i, j, c_a[ch_i]);
+                self.set(i, j, c_a[ch_i]);
                 ch_i += 1;
             }
             dir_i += 1;
         }
 
-        let mut font_len: usize = 0;
+        // after setting the pixels, format str_to_draw
+        let mut actual_len: usize = 0;
         let mut do_preview: bool = false;
+        let mut complement: usize = 0;
 
         for i in 0..self.height {
             let mut j = 0;
@@ -279,42 +372,54 @@ impl Canvas {
                 }
 
                 let len = self.get_utf8_len(self.pixels[i][j]);
-                font_len += len;
 
-                //  If the font_len reaches over the capcity of the left side window, discard this
+                // for a zero-width character such as a combining character, spaces in pixels is
+                // not enough, insert more spaces (complement) for alignment
+                if len == 0 {
+                    actual_len += 1;
+                    complement += 1;
+                } else {
+                    actual_len += len;
+                }
+
+                //  If the actual_len reaches over the capcity of the left window, discard this
                 //  character and update the preview window.
-                if font_len > l_w_r + 1 && !do_preview {
+                if actual_len > l_w_r + 1 && !do_preview {
                     // If the last character of this window is wide and that causes overflow,
                     // discard it, insert a white space so it aligns.
                     //
-                    // font_len == l_w_r + 2 means it has to be a wide character from the left
+                    // actual_len == l_w_r + 2 means it has to be a wide character from the left
                     // window that just subtly causes the overflow, but not because it's time to
                     // preview the right window (for example, left window is exactly filled, and we
                     // got one more wide character on the left, no space left to insert it so it's
                     // time to switch to preview)
                     if j <= l_w_r
-                        && font_len == l_w_r + 2
+                        && actual_len == l_w_r + 2
                         && self.get_utf8_len(self.pixels[i][j]) > 1
                     {
                         str_to_draw.push(' ');
                     }
 
+                    str_to_draw.push_str(&(0..complement).map(|_| ' ').collect::<String>());
+
                     j = r_w_l;
-                    font_len = 0;
+                    actual_len = 0;
+                    complement = 0;
                     do_preview = true;
+
                     continue;
                 }
 
-                if do_preview && font_len > preview_width {
+                if do_preview && actual_len > preview_width {
                     // Same last wide character discard filling logic as above
-                    if font_len == preview_width + 1 && self.get_utf8_len(self.pixels[i][j]) > 1 {
+                    if actual_len == preview_width + 1 && self.get_utf8_len(self.pixels[i][j]) > 1 {
                         str_to_draw.push(' ');
                     }
                     break;
                 }
 
-                // decide if we add the directory highlight, this applies to both the left side
-                // window and the right side preview window
+                // decide if the directory highlight should be added, this applies to both the left
+                // window and the right preview window
                 let is_dir = if !do_preview {
                     if i + window_start >= current_dir.len() {
                         false
@@ -346,32 +451,26 @@ impl Canvas {
 
                 str_to_draw.push(self.pixels[i][j]);
                 j += 1;
-            }
+            } // loop
 
-            font_len = 0;
+            str_to_draw.push_str(&(0..complement).map(|_| ' ').collect::<String>());
+
+            actual_len = 0;
+            complement = 0;
             do_preview = false;
         }
 
-        // Draw bottom line after drawing the directories
+        // Draw bottom line after drawing the directories to prevent overlapping
         self.draw_bottom_line(
             &mut str_to_draw,
             mode,
             &current_path.to_str().unwrap().to_string(),
             search_txt,
+            input_cursor_pos,
         );
 
         print!("{}", str_to_draw);
         let _ = io::stdout().flush();
-    }
-
-    /// Set the internel pixel (char) representation
-    fn set(&mut self, i: usize, j: usize, c: char) {
-        let i_to_write: i32 = self.height as i32 - 1 - i as i32;
-        let j_to_write: usize = j;
-
-        if 0 <= i_to_write && i_to_write < self.height as i32 && j_to_write < self.width {
-            self.pixels[i_to_write as usize][j_to_write] = c;
-        }
     }
 }
 
@@ -382,5 +481,7 @@ pub fn new() -> Canvas {
         pixels: Vec::new(),
         theme: theme::Theme::from(&util::get_theme()),
         utf8_table: WcLookupTable::new(),
+        bottom_start: 0,
+        add_algnmt: false,
     }
 }

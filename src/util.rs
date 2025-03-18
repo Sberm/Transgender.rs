@@ -1,5 +1,5 @@
 /*═══════════════════════════════════════════════════════════════════════╗
-║                          ©  Howard Chu                                 ║
+║                         (C)  Howard Chu                                ║
 ║                                                                        ║
 ║ Permission to use, copy, modify, and/or distribute this software for   ║
 ║ any purpose with or without fee is hereby granted, provided that the   ║
@@ -12,15 +12,16 @@ use self::libc::{
     c_ushort, ioctl, tcgetattr, tcsetattr, termios, ECHO, ICANON, ISIG, STDIN_FILENO,
     STDOUT_FILENO, TCSAFLUSH, TIOCGWINSZ,
 };
-use crate::ops::{code, consts};
+use crate::ops::{consts, Op};
 use std::env::var;
 use std::fs::File;
 use std::io::{self, stdin, BufRead, Read, Write};
 use std::mem;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::str::from_utf8;
 use std::thread::sleep;
 use std::time::Duration;
+use std::vec::Vec;
 
 #[inline(always)]
 pub fn hide_cursor() {
@@ -53,8 +54,13 @@ pub fn term_size() -> (usize, usize) {
 }
 
 #[allow(dead_code)]
-pub fn slp(i: u64) {
-    sleep(Duration::from_secs(i));
+pub fn _slp(tm: f64) {
+    sleep(Duration::from_millis((tm * 1000.0) as u64));
+}
+
+#[allow(dead_code)]
+pub fn slp(tm: usize) {
+    sleep(Duration::from_secs(tm as u64));
 }
 
 pub fn raw_input() {
@@ -73,6 +79,11 @@ pub fn canonical_input() {
         termios_.c_lflag |= ECHO | ICANON | ISIG;
         tcsetattr(STDIN_FILENO, TCSAFLUSH, &termios_);
     }
+}
+
+pub fn reduce_flick() {
+    print!("\x1b[0;0m");
+    let _ = io::stdout().flush();
 }
 
 pub fn enter_albuf() {
@@ -102,52 +113,53 @@ fn read_input() -> isize {
     byte[0] as isize
 }
 
-pub fn process_input() -> u8 {
+pub fn process_input() -> Op {
     let mut input = read_input();
 
-    // arrow keys
     if input == 27 {
-        input = read_input();
-        if input == 91 {
-            input = read_input();
-            if input == 65 {
-                return code::UP;
-            } else if input == 66 {
-                return code::DOWN;
-            } else if input == 67 {
-                return code::RIGHT;
-            } else if input == 68 {
-                return code::LEFT;
-            } else {
-                return code::NOOP;
-            }
-        } else {
-            return code::NOOP;
+        // arrow keys
+        match read_input() {
+            91 => match read_input() {
+                65 => return Op::Up,
+                66 => return Op::Down,
+                67 => return Op::Right,
+                68 => return Op::Left,
+                _ => return Op::Noop,
+            },
+            _ => return Op::Noop,
         }
+    }
+
+    if input == 4 {
+        // ctrl + D
+        return Op::PageDown;
+    } else if input == 21 {
+        // ctrl + U
+        return Op::PageUp;
     }
 
     // gg
     if input == 103 {
         input = read_input();
         if input == 103 {
-            return code::TOP;
+            return Op::Top;
         }
     }
 
     match input {
-        107 => return code::UP,          // k
-        106 => return code::DOWN,        // j
-        104 => return code::LEFT,        // h
-        108 => return code::RIGHT,       // l
-        111 => return code::EXIT_CURSOR, // o
-        10 => return code::EXIT_CURSOR,  // Enter
-        105 => return code::EXIT,        // i
-        113 => return code::QUIT,        // q
-        47 => return code::SEARCH,       // /
-        71 => return code::BOTTOM,       // G
-        110 => return code::NEXT_MATCH,  // n
-        78 => return code::PREV_MATCH,   // N
-        _ => return code::NOOP,
+        107 => return Op::Up,         // k
+        106 => return Op::Down,       // j
+        104 => return Op::Left,       // h
+        108 => return Op::Right,      // l
+        111 => return Op::ExitCursor, // o
+        10 => return Op::ExitCursor,  // Enter
+        105 => return Op::Exit,       // i
+        113 => return Op::Quit,       // q
+        47 => return Op::Search,      // /
+        71 => return Op::Bottom,      // G
+        110 => return Op::NextMatch,  // n
+        78 => return Op::PrevMatch,   // N
+        _ => return Op::Noop,
     }
 }
 
@@ -161,8 +173,27 @@ where
 
 /// Print path to stderr (although stdin and stdout are switched in ts shell function) for cd to
 /// consume.
-pub fn print_path(str_: &str) {
-    eprintln!("\n{}", str_);
+pub fn print_path(_path: &PathBuf, dest_file: Option<&PathBuf>) {
+    let path = String::from(
+        _path
+            .as_path()
+            .to_str()
+            .expect("Failed to output file path"),
+    ) + "\n";
+    if dest_file.is_some() {
+        let mut file = File::create(dest_file.unwrap().as_path()).expect(&format!(
+            "Failed to write to temporary destination file {}",
+            dest_file
+                .expect("Failed to unwrap dest file")
+                .as_path()
+                .to_str()
+                .expect("Failed to print the temporary destination file")
+        ));
+        let mut __empty = file.write_all(path.as_bytes());
+        __empty = file.flush();
+    } else {
+        println!("\n{}", path);
+    }
 }
 
 pub fn get_theme() -> String {
@@ -207,47 +238,61 @@ pub fn get_editor() -> String {
     return String::from(consts::EDITOR);
 }
 
-///  Read a single utf8 char
-///
-/// returns
-///  A tuple of char and bool
-pub fn read_utf8() -> Option<(char, bool)> {
-    let mut c_bytes = [0u8; 4];
-    let mut bytes_cnt: usize = 0;
-
-    stdin()
-        .read(&mut c_bytes[0..1])
-        .expect("Failed to read the UTF8 prefix");
-
-    if c_bytes[0] & 0b10000000 == 0 {
-        bytes_cnt = 1;
-    } else if c_bytes[0] & 0b11000000 == 0b11000000 && c_bytes[0] & 0b00100000 == 0 {
-        bytes_cnt = 2;
-        stdin()
-            .read(&mut c_bytes[1..2])
-            .expect("Failed to read 1 byte for UTF8 char");
-    } else if c_bytes[0] & 0b11100000 == 0b11100000 && c_bytes[0] & 0b00010000 == 0 {
-        bytes_cnt = 3;
-        stdin()
-            .read(&mut c_bytes[1..3])
-            .expect("Failed to read 2 bytes for UTF8 char");
-    } else if c_bytes[0] & 0b11110000 == 0b11110000 && c_bytes[0] & 0b00001000 == 0 {
-        bytes_cnt = 4;
-        stdin()
-            .read(&mut c_bytes[1..])
-            .expect("Failed to read 3 bytes for UTF8 char");
+fn parse_utf8(_raw: &[u8], prev_trunc: &Vec<u8>) -> (Vec<char>, Vec<u8>) {
+    let mut res: Vec<char> = Vec::new();
+    let mut trunc: Vec<u8> = Vec::new();
+    let mut bytes_cnt = 0;
+    let mut i = 0;
+    let mut raw = prev_trunc.clone();
+    raw.extend_from_slice(_raw);
+    while i < raw.len() {
+        let this_byte = raw[i];
+        if this_byte == 0 {
+            break;
+        }
+        if this_byte & 0b10000000 == 0 {
+            bytes_cnt = 1;
+        } else if this_byte & 0b11000000 == 0b11000000 && this_byte & 0b00100000 == 0 {
+            bytes_cnt = 2;
+        } else if this_byte & 0b11100000 == 0b11100000 && this_byte & 0b00010000 == 0 {
+            bytes_cnt = 3;
+        } else if this_byte & 0b11110000 == 0b11110000 && this_byte & 0b00001000 == 0 {
+            bytes_cnt = 4;
+        }
+        // truncate bytes
+        if i + bytes_cnt > raw.len() {
+            trunc.extend_from_slice(&raw[i..raw.len()]);
+            break;
+        }
+        let s = String::from(
+            from_utf8(&raw[i..i + bytes_cnt])
+                .expect("Failed to convert array of bytes to UTF8 string"),
+        );
+        i += bytes_cnt;
+        res.push(
+            s.chars()
+                .nth(0)
+                .expect("Failed to get the first & only character"),
+        );
     }
+    (res, trunc)
+}
 
-    let is_ascii: bool = if bytes_cnt == 1 { true } else { false };
-
-    let s = String::from(
-        from_utf8(&c_bytes[0..bytes_cnt]).expect("Failed to convert bytes string to &str"),
-    );
-
-    let rc = s
-        .chars()
-        .nth(0)
-        .expect("Failed to get the first & only character");
-
-    Some((rc, is_ascii))
+pub fn read_chars_or_op(prev_trunc: &Vec<u8>) -> (Vec<char>, Vec<u8>, Op) {
+    let mut raw = [0_u8; 256];
+    let mut _stdin = stdin();
+    _stdin.read(&mut raw).expect("Failed to read");
+    let (char_vec, trunc) = parse_utf8(&mut raw, prev_trunc);
+    if char_vec[0] as usize == 27 {
+        if char_vec.len() >= 3 && char_vec[1] as usize == 91 {
+            match char_vec[2] as usize {
+                65 => return (vec![], trunc, Op::Up),
+                66 => return (vec![], trunc, Op::Down),
+                67 => return (vec![], trunc, Op::Right),
+                68 => return (vec![], trunc, Op::Left),
+                _ => {}
+            };
+        }
+    }
+    (char_vec, trunc, Op::Noop)
 }
