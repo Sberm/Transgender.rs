@@ -349,7 +349,7 @@ impl Browser {
                 self.mode = Mode::NORMAL;
                 self.search_history_index = self.search_history.len();
                 self.input_cursor_pos = 0;
-                canvas.reset_bottom_start();
+                canvas.reset_bottom_bar();
                 return;
             } else if first_char == 127 {
                 // backspace
@@ -369,7 +369,7 @@ impl Browser {
                 self.save_history();
                 self.mode = Mode::NORMAL;
                 self.input_cursor_pos = 0;
-                canvas.reset_bottom_start();
+                canvas.reset_bottom_bar();
                 return;
             } else {
                 // input characters

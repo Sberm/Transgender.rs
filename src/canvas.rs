@@ -37,8 +37,9 @@ impl Canvas {
         }
     }
 
-    pub fn reset_bottom_start(&mut self) {
+    pub fn reset_bottom_bar(&mut self) {
         self.bottom_start = 0;
+        self.add_algnmt = false;
     }
 
     /// Get the index where the bottom line text should be cropped
