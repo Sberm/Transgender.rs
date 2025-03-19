@@ -7,6 +7,8 @@
 
 A minimalistic TUI file explorer with **minimal dependencies**, written by a [ranger](https://github.com/ranger/ranger) hater, works on Linux & MacOS.
 
+![](img/catppuccin.png)
+
 ![](img/trans_.jpg)
 
 ![](img/lucius.jpg)
