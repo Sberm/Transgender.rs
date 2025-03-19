@@ -33,12 +33,11 @@ pub fn show_cursor() {
     print!("\x1b[?25h"); // show cursor
 }
 
-#[allow(dead_code)]
 struct TermSize {
     height: c_ushort,
     width: c_ushort,
-    a: c_ushort,
-    b: c_ushort,
+    _a: c_ushort,
+    _b: c_ushort,
 }
 
 /// Get the height and width of the current terminal window
