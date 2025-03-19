@@ -237,6 +237,10 @@ pub fn get_editor() -> String {
     return String::from(consts::EDITOR);
 }
 
+/// Parse a byte array to a vector of chars
+///
+/// returns
+///  the parsed char array along with trailing truncated bytes for the next parsing
 fn parse_utf8(_raw: &[u8], prev_trunc: &Vec<u8>) -> (Vec<char>, Vec<u8>) {
     let mut res: Vec<char> = Vec::new();
     let mut trunc: Vec<u8> = Vec::new();
@@ -277,6 +281,11 @@ fn parse_utf8(_raw: &[u8], prev_trunc: &Vec<u8>) -> (Vec<char>, Vec<u8>) {
     (res, trunc)
 }
 
+/// read characters
+///
+/// returns
+///  either a vector of characters or an Opcode, along with trailing truncated bytes for the next
+///  parsing
 pub fn read_chars_or_op(prev_trunc: &Vec<u8>) -> (Vec<char>, Vec<u8>, Op) {
     let mut raw = [0_u8; 256];
     let mut _stdin = stdin();
