@@ -60,19 +60,14 @@ impl Canvas {
             bottom_line.push_str(current_path);
         }
 
-        let real_width = if has_extra_slash {
-            // self.width - 1 because there is an extra slash
-            self.width - 1
-        } else {
-            self.width
-        };
+        let mut real_width = self.width - (has_extra_slash as usize + self.add_algnmt as usize);
         let left_border = self.bottom_start;
         let mut right_border = self.bottom_start + real_width - 1;
         let mut right_maybe_smaller = 0;
         let mut real_len = 0;
         let mut trunc = false;
-        // check if the cursor position is out of range
-        for i in self.bottom_start..=input_cursor_pos {
+        // find the right_border
+        for i in self.bottom_start..search_txt.len() + 1 {
             if i == search_txt.len() {
                 real_len += 1;
             } else {
@@ -91,17 +86,27 @@ impl Canvas {
         // this means that the cursor is at the very right of the bottom line, even without the
         // alignment, therefore an alignment will break the length limit
         if real_len == real_width {
-            self.add_algnmt = false;
+            if self.add_algnmt == true {
+                // since the alignment is deleted, increment real_width by 1
+                real_width += 1;
+                self.add_algnmt = false;
+            }
         }
 
         let mut last_real_len = 0;
         let mut new_border = false;
         if left_border > input_cursor_pos {
-            self.add_algnmt = false;
+            if self.add_algnmt == true {
+                real_width += 1;
+                self.add_algnmt = false;
+            }
             self.bottom_start = input_cursor_pos;
         } else if right_border < input_cursor_pos {
             let mut i = input_cursor_pos;
-            self.add_algnmt = false;
+            if self.add_algnmt == true {
+                real_width += 1;
+                self.add_algnmt = false;
+            }
             real_len = 0;
             // decide the right bottom_start
             loop {
