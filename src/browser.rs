@@ -331,10 +331,11 @@ impl Browser {
     }
 
     fn search(&mut self, canvas: &mut canvas::Canvas) {
-        let (mut chars, trunc, op) = util::read_chars_or_op(&self.trunc);
+        let (_chars, trunc, op) = util::read_chars_or_op(&self.trunc);
         self.trunc = trunc;
         // regular text input
         if op == Op::Noop {
+            let mut chars = _chars.expect("unwrap char vec failed");
             let first_char = chars[0] as usize;
             // for example, Ctrl + C = 3, Ctrl + I = 9 these characters cannot be displayed, yet
             // they will take space in the search text
@@ -381,34 +382,37 @@ impl Browser {
                 self.search_txt = search_txt_inserted;
                 self.input_cursor_pos += chars_len;
             }
-        } else if self.search_txt.len() == 0
-            || (self.search_history_index < self.search_history.len()
-                && (op == Op::Up || op == Op::Down))
-        {
+        } else if op == Op::Up || op == Op::Down {
             // search history
             // ok to scroll: 1. at the end of history, search input is empty
             //               2. currently in the process of scolling through history
-            match op {
-                Op::Up => {
-                    if self.search_history_index > 0 {
-                        self.search_history_index -= 1;
-                    }
-                }
-                Op::Down => {
-                    if self.search_history_index < self.search_history.len() {
-                        self.search_history_index += 1;
-                    }
-                }
-                _ => {}
-            }
+            //
             // when user is not browsing history, search_history_index should be
-            // search_history.len() + 1
-            if self.search_history_index < self.search_history.len() {
-                self.search_txt = self.search_history[self.search_history_index].clone();
-            } else {
-                self.search_txt = Vec::new();
+            // search_history.len()
+            if (self.search_history_index == self.search_history.len()
+                && self.search_txt.len() == 0)
+                || self.search_history_index < self.search_history.len()
+            {
+                match op {
+                    Op::Up => {
+                        if self.search_history_index > 0 {
+                            self.search_history_index -= 1;
+                        }
+                    }
+                    Op::Down => {
+                        if self.search_history_index < self.search_history.len() {
+                            self.search_history_index += 1;
+                        }
+                    }
+                    _ => {}
+                }
+                if self.search_history_index < self.search_history.len() {
+                    self.search_txt = self.search_history[self.search_history_index].clone();
+                } else {
+                    self.search_txt = Vec::new();
+                }
+                self.input_cursor_pos = self.search_txt.len();
             }
-            self.input_cursor_pos = self.search_txt.len();
         } else {
             // left and right arrow
             match op {
@@ -425,7 +429,6 @@ impl Browser {
                 _ => {}
             }
         }
-
         self.next_match(self.cursor, false);
     }
 
@@ -670,7 +673,6 @@ pub fn new(path: &str, dest_file: Option<String>) -> Browser {
         trunc: Vec::new(),
         input_cursor_pos: 0,
     };
-
     browser.init(&path);
     browser
 }

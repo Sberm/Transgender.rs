@@ -286,7 +286,7 @@ fn parse_utf8(_raw: &[u8], prev_trunc: &Vec<u8>) -> (Vec<char>, Vec<u8>) {
 /// returns
 ///  either a vector of characters or an Opcode, along with trailing truncated bytes for the next
 ///  parsing
-pub fn read_chars_or_op(prev_trunc: &Vec<u8>) -> (Vec<char>, Vec<u8>, Op) {
+pub fn read_chars_or_op(prev_trunc: &Vec<u8>) -> (Option<Vec<char>>, Vec<u8>, Op) {
     let mut raw = [0_u8; 256];
     let mut _stdin = stdin();
     _stdin.read(&mut raw).expect("Failed to read");
@@ -294,13 +294,13 @@ pub fn read_chars_or_op(prev_trunc: &Vec<u8>) -> (Vec<char>, Vec<u8>, Op) {
     if char_vec[0] as usize == 27 {
         if char_vec.len() >= 3 && char_vec[1] as usize == 91 {
             match char_vec[2] as usize {
-                65 => return (vec![], trunc, Op::Up),
-                66 => return (vec![], trunc, Op::Down),
-                67 => return (vec![], trunc, Op::Right),
-                68 => return (vec![], trunc, Op::Left),
+                65 => return (None, trunc, Op::Up),
+                66 => return (None, trunc, Op::Down),
+                67 => return (None, trunc, Op::Right),
+                68 => return (None, trunc, Op::Left),
                 _ => {}
             };
         }
     }
-    (char_vec, trunc, Op::Noop)
+    (Some(char_vec), trunc, Op::Noop)
 }
