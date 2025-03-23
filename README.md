@@ -232,7 +232,7 @@ its users.
 
 - [x] Add support for zsh and other shells
 
-- [ ] Opening files with "open" command and so on
+- [x] Opening files with "open" command and so on
 
 - [x] Bash completion
 
