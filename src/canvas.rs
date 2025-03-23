@@ -83,18 +83,9 @@ impl Canvas {
             right_border = right_maybe_smaller;
         }
 
-        // this means that the cursor is at the very right of the bottom line, even without the
-        // alignment, therefore an alignment will break the length limit
-        if real_len == real_width {
-            if self.add_algnmt == true {
-                // since the alignment is deleted, increment real_width by 1
-                real_width += 1;
-                self.add_algnmt = false;
-            }
-        }
-
+        // border detection
         let mut last_real_len = 0;
-        let mut new_border = false;
+        let mut new_right_border = false;
         if left_border > input_cursor_pos {
             if self.add_algnmt == true {
                 real_width += 1;
@@ -102,13 +93,14 @@ impl Canvas {
             }
             self.bottom_start = input_cursor_pos;
         } else if right_border < input_cursor_pos {
-            let mut i = input_cursor_pos;
             if self.add_algnmt == true {
                 real_width += 1;
                 self.add_algnmt = false;
             }
+
+            let mut i = input_cursor_pos;
             real_len = 0;
-            // decide the right bottom_start
+            // decide the correct bottom_start, from right to left
             loop {
                 if i == search_txt.len() {
                     real_len += 1;
@@ -127,16 +119,17 @@ impl Canvas {
                 }
             }
             // this means that a UTF8 full width character causes the cursor to shiver
-            if last_real_len != real_width {
+            if last_real_len != real_width && !self.add_algnmt {
                 self.add_algnmt = true;
+                real_width -= 1;
             }
-            new_border = true;
+            new_right_border = true;
         }
 
         let skipped = bottom_line.chars().skip(self.bottom_start);
-        let mut included: usize = 0;
-        if new_border {
-            included = input_cursor_pos - self.bottom_start + 1;
+        let mut to_take: usize = 0;
+        if new_right_border {
+            to_take = input_cursor_pos - self.bottom_start + 1;
         } else {
             real_len = 0;
             for c in skipped.clone() {
@@ -144,16 +137,16 @@ impl Canvas {
                 if real_len > real_width {
                     break;
                 }
-                included += 1;
+                to_take += 1;
             }
         }
 
-        let mut result = skipped.take(included).collect::<String>();
+        let mut result = skipped.take(to_take).collect::<String>();
         if self.add_algnmt {
-            result = String::from(">") + &result;
+            result.insert(0, '>');
         }
         if has_extra_slash {
-            result = String::from("/") + &result;
+            result.insert(0, '/');
         }
         result
     }
