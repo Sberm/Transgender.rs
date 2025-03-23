@@ -14,6 +14,7 @@ use self::libc::{
 };
 use crate::ops::{consts, Op};
 use std::env::var;
+use std::ffi::OsString;
 use std::fs::File;
 use std::io::{self, stdin, BufRead, Read, Write};
 use std::mem;
@@ -146,18 +147,18 @@ pub fn process_input() -> Op {
     }
 
     match input {
-        107 => return Op::Up,         // k
-        106 => return Op::Down,       // j
-        104 => return Op::Left,       // h
-        108 => return Op::Right,      // l
-        111 => return Op::ExitCursor, // o
-        10 => return Op::ExitCursor,  // Enter
-        105 => return Op::Exit,       // i
-        113 => return Op::Quit,       // q
-        47 => return Op::Search,      // /
-        71 => return Op::Bottom,      // G
-        110 => return Op::NextMatch,  // n
-        78 => return Op::PrevMatch,   // N
+        107 => return Op::Up,             // k
+        106 => return Op::Down,           // j
+        104 => return Op::Left,           // h
+        108 => return Op::Right,          // l
+        111 => return Op::ExitCursorO,    // o
+        10 => return Op::ExitCursorEnter, // Enter
+        105 => return Op::Exit,           // i
+        113 => return Op::Quit,           // q
+        47 => return Op::Search,          // /
+        71 => return Op::Bottom,          // G
+        110 => return Op::NextMatch,      // n
+        78 => return Op::PrevMatch,       // N
         _ => return Op::Noop,
     }
 }
@@ -199,14 +200,12 @@ pub fn get_theme() -> String {
     if let Ok(home_dir) = var(consts::HOME_VAR) {
         if let Ok(lines) = read_lines(&format!("{}/{}", home_dir, consts::CONFIG_FILE)) {
             for line in lines.flatten() {
-                let trimmed = line.replace(" ", "");
-
-                let kv = trimmed.split("=").collect::<Vec<&str>>();
+                let kv = line.split("=").collect::<Vec<&str>>();
                 if kv.len() != 2 {
                     continue;
                 }
-                if kv[0].eq(consts::THEME_KEY) {
-                    return String::from(kv[1]);
+                if kv[0].trim().to_lowercase() == consts::THEME_KEY {
+                    return kv[1].trim().to_lowercase();
                 }
             }
         }
@@ -214,27 +213,63 @@ pub fn get_theme() -> String {
     return String::new();
 }
 
-/// Read trans config file to get preferred editor
+/// Read trans config file to get preferred opener
 ///
 /// returns
-///  editor name as a String
-pub fn get_editor() -> String {
+///  opener's command with arguments
+pub fn get_opener(op: Op) -> (OsString, Option<Vec<OsString>>) {
+    let key = match op {
+        Op::ExitCursorO => Some(consts::O_KEY),
+        Op::ExitCursorEnter => Some(consts::ENTER_KEY),
+        _ => None,
+    };
+    let mut comm = OsString::from(consts::OPENER);
+    let mut args: Option<Vec<OsString>> = None;
     if let Ok(home_dir) = var(consts::HOME_VAR) {
         if let Ok(lines) = read_lines(&format!("{}/{}", home_dir, consts::CONFIG_FILE)) {
             for line in lines.flatten() {
-                let trimmed = line.replace(" ", "");
-
-                let kv = trimmed.split("=").collect::<Vec<&str>>();
+                let kv = line.split("=").collect::<Vec<&str>>();
                 if kv.len() != 2 {
                     continue;
                 }
-                if kv[0].eq(consts::EDITOR_KEY) {
-                    return String::from(kv[1]);
+                if key.is_some() {
+                    if kv[0].trim().to_lowercase() == key.unwrap() {
+                        // "key =.*"
+                        let comm_op = kv[1].trim().split(" ").collect::<Vec<&str>>();
+                        if comm_op.len() != 0 {
+                            // key = code.*
+                            comm = OsString::from(comm_op[0]);
+                            args = Some(
+                                comm_op
+                                    .into_iter()
+                                    .skip(1)
+                                    .map(|x| OsString::from(x))
+                                    .collect(),
+                            );
+                            return (comm, args);
+                        }
+                    }
+                }
+                if kv[0].trim().to_lowercase() == consts::EDITOR_KEY
+                    || kv[0].trim().to_lowercase() == consts::OPENER_KEY
+                {
+                    let comm_op = kv[1].trim().split(" ").collect::<Vec<&str>>();
+                    if comm_op.len() != 0 {
+                        // can be overridden by 'o' or 'enter'
+                        comm = OsString::from(comm_op[0]);
+                        args = Some(
+                            comm_op
+                                .into_iter()
+                                .skip(1)
+                                .map(|x| OsString::from(x))
+                                .collect(),
+                        );
+                    }
                 }
             }
         }
     }
-    return String::from(consts::EDITOR);
+    (comm, args)
 }
 
 /// Parse a byte array to a vector of chars

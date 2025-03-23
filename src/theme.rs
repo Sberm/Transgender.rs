@@ -37,7 +37,7 @@ impl Theme {
         }
 
         for (i, t) in theme_table.theme_entries.iter().enumerate() {
-            if t.name == name.to_lowercase() {
+            if t.name == name {
                 theme_i = i;
                 break;
             }

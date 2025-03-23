@@ -11,6 +11,7 @@ use crate::ops::{consts, Mode, Op};
 use crate::util;
 use regex_lite::RegexBuilder;
 use std::collections::VecDeque;
+use std::ffi::OsString;
 use std::fs::read_dir;
 use std::iter::Rev;
 use std::ops::Range;
@@ -19,6 +20,11 @@ use std::process::{exit, Command};
 use std::vec::Vec;
 
 const SEARCH_HISTORY_LEN: usize = 256;
+
+struct Opener {
+    comm: OsString,
+    args: Vec<OsString>,
+}
 
 /// Directory browser
 pub struct Browser {
@@ -32,7 +38,8 @@ pub struct Browser {
     original_path: PathBuf,
     mode: Mode,
     search_txt: Vec<char>,
-    editor: String,
+    opener_o: Opener,
+    opener_enter: Opener,
     dest_file: Option<PathBuf>,
     search_history: VecDeque<Vec<char>>,
     search_history_index: usize,
@@ -129,8 +136,11 @@ impl Browser {
                 Op::Right => {
                     self.right();
                 }
-                Op::ExitCursor => {
-                    self.exit_under_cursor();
+                Op::ExitCursorO => {
+                    self.exit_under_cursor(Op::ExitCursorO);
+                }
+                Op::ExitCursorEnter => {
+                    self.exit_under_cursor(Op::ExitCursorEnter);
                 }
                 Op::Exit => {
                     self.exit_cur_dir();
@@ -573,38 +583,43 @@ impl Browser {
 
     /// quit trans and goto the directory under the cursor
     ///  or
-    /// open the file under the cursor with a text editor
-    fn exit_under_cursor(&self) {
+    /// open the file under the cursor with opener command
+    fn exit_under_cursor(&self, op: Op) {
         let mut dir = self.current_path.clone();
         dir.push(&self.current_dir[self.cursor]);
+        let opener = match op {
+            Op::ExitCursorO => &self.opener_o,
+            Op::ExitCursorEnter => &self.opener_enter,
+            _ => &self.opener_o,
+        };
 
         if dir.is_dir() == false {
             // reduce color flicking (the flicking color is the bottom bar color)
             util::reduce_flick();
 
-            if let Ok(_) = Command::new(&self.editor)
+            if let Ok(_) = Command::new(&(*opener).comm)
+                .args(&(*opener).args)
                 .arg(dir.to_str().unwrap())
                 .status()
             {
-                // empty, successfully opened with user's desired editor
+                // empty, successfully opened with opener
             } else {
-                Command::new(consts::EDITOR)
+                Command::new(consts::OPENER)
                     .arg(dir.to_str().unwrap())
                     .status()
                     .expect(&format!(
-                        "Failed to open {} with default editor {}",
+                        "Failed to open {} with default opener {}",
                         dir.to_str().unwrap(),
-                        consts::EDITOR
+                        consts::OPENER
                     ));
             }
         } else {
             util::exit_albuf();
             util::print_path(&dir, (&self.dest_file).as_ref());
-
             exit(0);
         };
 
-        // when an editor exits, it also exits the alternate buffer, and enables cursor, need to
+        // when an opener exits, it also exits the alternate buffer, and enables cursor, need to
         // stay in albuf and hide cursor in trans
         util::enter_albuf();
         util::hide_cursor();
@@ -663,7 +678,26 @@ pub fn new(path: &str, dest_file: Option<String>) -> Browser {
         original_path: PathBuf::from("."),
         mode: Mode::NORMAL,
         search_txt: Vec::new(),
-        editor: util::get_editor(),
+        opener_o: (|(comm, args): (OsString, Option<Vec<OsString>>)| {
+            let mut opener = Opener {
+                comm: comm,
+                args: vec![],
+            };
+            if args.is_some() {
+                opener.args = args.unwrap()
+            }
+            opener
+        })(util::get_opener(Op::ExitCursorO)),
+        opener_enter: (|(comm, args): (OsString, Option<Vec<OsString>>)| {
+            let mut opener = Opener {
+                comm: comm,
+                args: vec![],
+            };
+            if args.is_some() {
+                opener.args = args.unwrap()
+            }
+            opener
+        })(util::get_opener(Op::ExitCursorEnter)),
         dest_file: (|dest_file| match dest_file {
             Some(df) => Some(PathBuf::from(&df)),
             None => None,
