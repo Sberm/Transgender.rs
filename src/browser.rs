@@ -666,7 +666,23 @@ impl Browser {
     }
 }
 
+impl Opener {
+    fn new(comm: OsString, args: Option<Vec<OsString>>) -> Opener {
+        let mut opener = Opener {
+            comm: comm,
+            args: vec![],
+        };
+        if args.is_some() {
+            opener.args = args.unwrap()
+        }
+        opener
+    }
+}
+
 pub fn new(path: &str, dest_file: Option<String>) -> Browser {
+    let (comm_o, args_o) = util::get_opener(Op::ExitCursorO);
+    let (comm_enter, args_enter) = util::get_opener(Op::ExitCursorEnter);
+
     let mut browser = Browser {
         cursor: 0,
         window_start: 0,
@@ -678,26 +694,8 @@ pub fn new(path: &str, dest_file: Option<String>) -> Browser {
         original_path: PathBuf::from("."),
         mode: Mode::NORMAL,
         search_txt: Vec::new(),
-        opener_o: (|(comm, args): (OsString, Option<Vec<OsString>>)| {
-            let mut opener = Opener {
-                comm: comm,
-                args: vec![],
-            };
-            if args.is_some() {
-                opener.args = args.unwrap()
-            }
-            opener
-        })(util::get_opener(Op::ExitCursorO)),
-        opener_enter: (|(comm, args): (OsString, Option<Vec<OsString>>)| {
-            let mut opener = Opener {
-                comm: comm,
-                args: vec![],
-            };
-            if args.is_some() {
-                opener.args = args.unwrap()
-            }
-            opener
-        })(util::get_opener(Op::ExitCursorEnter)),
+        opener_o: Opener::new(comm_o, args_o),
+        opener_enter: Opener::new(comm_enter, args_enter),
         dest_file: (|dest_file| match dest_file {
             Some(df) => Some(PathBuf::from(&df)),
             None => None,
