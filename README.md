@@ -166,6 +166,7 @@ Other themes:
 * [sakura](https://imgur.com/a/5YhgVMG)
 * [vscode](https://github.com/Mofiqul/vscode.nvim)
 * [jesus](https://imgur.com/a/creZltw)
+* [lucius-l](https://imgur.com/a/RyImZYW)
 
 The theme name is case-insensitive; e.g., Catppuccin and catppuccin both work.
 
