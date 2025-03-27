@@ -344,7 +344,7 @@ impl Browser {
         let (_chars, trunc, op) = util::read_chars_or_op(&self.trunc);
         self.trunc = trunc;
         // regular text input
-        if op == Op::Noop {
+        if op == Op::Noop && _chars.is_some() {
             let mut chars = _chars.expect("unwrap char vec failed");
             let first_char = chars[0] as usize;
             // for example, Ctrl + C = 3, Ctrl + I = 9 these characters cannot be displayed, yet
@@ -423,7 +423,7 @@ impl Browser {
                 }
                 self.input_cursor_pos = self.search_txt.len();
             }
-        } else {
+        } else if op == Op::Left || op == Op::Right {
             // left and right arrow
             match op {
                 Op::Left => {

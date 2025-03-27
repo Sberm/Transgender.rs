@@ -326,6 +326,9 @@ pub fn read_chars_or_op(prev_trunc: &Vec<u8>) -> (Option<Vec<char>>, Vec<u8>, Op
     let mut _stdin = stdin();
     _stdin.read(&mut raw).expect("Failed to read");
     let (char_vec, trunc) = parse_utf8(&mut raw, prev_trunc);
+    if char_vec.is_empty() {
+        return (None, trunc, Op::Noop);
+    }
     if char_vec[0] as usize == 27 {
         if char_vec.len() >= 3 && char_vec[1] as usize == 91 {
             match char_vec[2] as usize {
