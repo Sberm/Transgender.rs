@@ -12,7 +12,7 @@ use crate::util;
 use regex_lite::RegexBuilder;
 use std::collections::VecDeque;
 use std::ffi::OsString;
-use std::fs::read_dir;
+use std::fs::{create_dir_all, read_dir, remove_dir_all};
 use std::iter::Rev;
 use std::ops::Range;
 use std::path::PathBuf;
@@ -187,7 +187,7 @@ impl Browser {
         }
     }
 
-    ///  Get directory content preview window as a vector of strings
+    ///  Get directory content preview window
     fn get_preview(&self) -> Vec<String> {
         let empty: Vec<String> = Vec::new();
 
@@ -707,4 +707,54 @@ pub fn new(path: &str, dest_file: Option<String>) -> Browser {
     };
     browser.init(&path);
     browser
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::util::test::random_str;
+
+    #[test]
+    fn test_browser_init() {
+        let mut tmp_dirs: Vec<String> = vec![];
+        let depth = 4;
+        for _ in 0..depth {
+            tmp_dirs.push(format!("ts-test-{}", &random_str()));
+        }
+        let temp_dir = format!(
+            "/tmp/{}/{}/{}/{}",
+            tmp_dirs[0], tmp_dirs[1], tmp_dirs[2], tmp_dirs[3]
+        );
+        create_dir_all(&temp_dir).expect(&format!("create dir {} failed", &temp_dir));
+        let cleanup = |dir| {
+            if remove_dir_all(&format!("/tmp/{}", dir)).is_err() {
+                println!("remove dir failed");
+            }
+        };
+        println!("created dir {}", &temp_dir);
+        let b = new(&temp_dir, None); // browser::new()
+        let past_dir = &b.past_dir;
+        if depth + 2 - 1 != past_dir.len() {
+            cleanup(&tmp_dirs[0]);
+            panic!(
+                "depth + 1 {} != past_dir's length {}",
+                depth + 1,
+                past_dir.len()
+            );
+        }
+        let ans = ["", "tmp", &tmp_dirs[0], &tmp_dirs[1], &tmp_dirs[2]];
+        for i in 0..past_dir.len() {
+            match past_dir[i].as_path().file_name() {
+                Some(_tmp) => {
+                    let past_dir_name = _tmp.to_str().expect("to_str failed");
+                    println!("comparing tmp_dirs {} past_dir {}", ans[i], past_dir_name);
+                    if ans[i] != past_dir_name {
+                        cleanup(&tmp_dirs[0]);
+                        panic!("ans {} != past_dir {}", ans[i], past_dir_name);
+                    }
+                }
+                None => {} // root dir returns None
+            }
+        }
+    }
 }
