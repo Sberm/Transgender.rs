@@ -757,5 +757,6 @@ mod test {
                 None => {} // root dir returns None
             }
         }
+        cleanup(&tmp_dirs[0]);
     }
 }
