@@ -733,8 +733,10 @@ mod test {
             }
         };
         println!("created dir {}", &temp_dir);
+
         let b = new(&temp_dir, None); // browser::new()
         let past_dir = &b.past_dir;
+        // add / and /tmp, but the last directory is not in past_dir
         if depth + 2 - 1 != past_dir.len() {
             cleanup(&tmp_dirs[0]);
             panic!(
@@ -745,17 +747,16 @@ mod test {
         }
         let ans = ["", "tmp", &tmp_dirs[0], &tmp_dirs[1], &tmp_dirs[2]];
         for i in 0..past_dir.len() {
-            match past_dir[i].as_path().file_name() {
-                Some(_tmp) => {
-                    let past_dir_name = _tmp.to_str().expect("to_str failed");
-                    println!("comparing tmp_dirs {} past_dir {}", ans[i], past_dir_name);
-                    if ans[i] != past_dir_name {
-                        cleanup(&tmp_dirs[0]);
-                        panic!("ans {} != past_dir {}", ans[i], past_dir_name);
-                    }
+            let _tmp = past_dir[i].as_path().file_name();
+            if _tmp.is_some() {
+                let past_dir_name = _tmp.unwrap().to_str().expect("to_str failed");
+                println!("comparing tmp_dirs {} past_dir {}", ans[i], past_dir_name);
+                if ans[i] != past_dir_name {
+                    cleanup(&tmp_dirs[0]);
+                    panic!("ans {} != past_dir {}", ans[i], past_dir_name);
                 }
-                None => {} // root dir returns None
             }
+            // root dir returns None
         }
         cleanup(&tmp_dirs[0]);
     }
