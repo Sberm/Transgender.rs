@@ -225,7 +225,7 @@ its users.
 
 ### Todo:
 
-- [ ] Tests
+- [x] Tests
 
 - [x] Support for up arrow for search history, left and right arrow for navigation, and logic to properly display overflowed search text (show the rightmost part)
 
