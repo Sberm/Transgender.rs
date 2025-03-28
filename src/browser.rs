@@ -12,7 +12,7 @@ use crate::util;
 use regex_lite::RegexBuilder;
 use std::collections::VecDeque;
 use std::ffi::OsString;
-use std::fs::{create_dir_all, read_dir, remove_dir_all};
+use std::fs::read_dir;
 use std::iter::Rev;
 use std::ops::Range;
 use std::path::PathBuf;
@@ -713,6 +713,7 @@ pub fn new(path: &str, dest_file: Option<String>) -> Browser {
 mod test {
     use super::*;
     use crate::util::test::random_str;
+    use std::fs::{create_dir_all, remove_dir_all};
 
     #[test]
     fn test_browser_init() {
