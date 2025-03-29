@@ -795,17 +795,22 @@ mod test {
             dir: String::from(&root_dir),
         };
 
+        let mut dirs_files: HashSet<String> = HashSet::new();
         for dir in dirs.iter() {
-            let r = create_dir(&format!("/tmp/{}/{}", root_dir, dir));
+            let tmp = format!("/tmp/{}/{}", root_dir, dir);
+            let r = create_dir(&tmp);
             if r.is_err() {
                 panic!("create directory failed");
             }
+            dirs_files.insert(dir.to_string());
         }
         for file in files.iter() {
-            let r = File::create(&format!("/tmp/{}/{}", root_dir, file));
+            let tmp = format!("/tmp/{}/{}", root_dir, file);
+            let r = File::create(&tmp);
             if r.is_err() {
                 panic!("create file failed");
             }
+            dirs_files.insert(file.to_string());
         }
         let mut b = new("/tmp", None);
         let mut cur_pos = 0;
@@ -817,11 +822,14 @@ mod test {
         }
         b.set_cursor_pos_centered(cur_pos);
         let preview = b.get_preview();
-        let mut set: HashSet<String> = HashSet::new();
+        let mut dedup: HashSet<String> = HashSet::new();
         for p in preview {
             println!("preview {}", p);
-            set.insert(p);
+            if !dirs_files.contains(&p) {
+                panic!("incorrect preview");
+            }
+            dedup.insert(p);
         }
-        assert_eq!(set.len(), files.len() + dirs.len());
+        assert_eq!(dedup.len(), files.len() + dirs.len());
     }
 }
