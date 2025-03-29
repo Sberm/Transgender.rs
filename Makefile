@@ -7,6 +7,7 @@ else
 endif
 
 install_path := /usr/local/bin
+target := target/release/transgender
 
 all: 
 	$(call msg,TRANS,STARTS-BUILDING)
@@ -15,12 +16,12 @@ all:
 
 install:
 	$(call msg,INSTALL,${install_path}/transgender)
-	$(Q)sudo install target/release/transgender ${install_path}
+	$(Q)sudo install ${target} ${install_path}
 
 uninstall:
 	$(call msg,UNINSTALL)
-	$(Q)sudo rm -f /usr/local/bin/transgender
+	$(Q)sudo rm -f ${install_path}/transgender
 
 clean:
 	$(call msg,CLEAN)
-	$(Q)sudo rm -f ./target/release/transgender
+	$(Q)sudo rm -f ${target}

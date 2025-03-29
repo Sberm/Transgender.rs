@@ -8,17 +8,18 @@
 
 #[derive(Default)]
 pub struct Theme {
-    // Highlighted filename when selected
+    // filename when selected
     pub highlight: String,
-    // Highlighted directory name when selected
+    // directory name when selected
     pub highlight_dir: String,
-    // Highlight block background
+    // background of highlighted line
     pub highlight_background: String,
-    // Normal entry names
+    // normal entry names
     pub normal: String,
-    // Background of everything
+    // background of everything
     pub normal_background: String,
-    // These two are optional
+    // these two are optional, if not specified, bottom_bar uses normal, and bottom_bar_background
+    // uses normal_background
     pub bottom_bar: String,
     pub bottom_bar_background: String,
 }
@@ -27,7 +28,6 @@ impl Theme {
     pub fn from(name: &str) -> Self {
         let theme_table = ThemeTable::new();
         let mut theme_i = 0;
-
         // default
         for (i, t) in theme_table.theme_entries.iter().enumerate() {
             if t.name == "lucius" {
@@ -37,14 +37,12 @@ impl Theme {
         }
 
         for (i, t) in theme_table.theme_entries.iter().enumerate() {
-            if t.name == name.to_lowercase() {
+            if t.name == name {
                 theme_i = i;
                 break;
             }
         }
-
         let t = &theme_table.theme_entries[theme_i];
-
         let mut theme = Theme {
             highlight: (*t).color[0].clone(),
             highlight_dir: (*t).color[1].clone(),
@@ -54,7 +52,6 @@ impl Theme {
             bottom_bar: String::new(),
             bottom_bar_background: String::new(),
         };
-
         // optional extra colors for bottom bar
         if !t.color[5].is_empty() {
             theme.bottom_bar = t.color[5].clone();
@@ -62,7 +59,6 @@ impl Theme {
         if !t.color[6].is_empty() {
             theme.bottom_bar_background = t.color[6].clone();
         }
-
         theme
     }
 }
@@ -173,6 +169,16 @@ impl ThemeTable {
                     "\x1b[48;2;36;39;58m",
                     "\x1b[38;2;128;135;162m",
                     "\x1b[48;2;54;58;79m"
+                ],
+                __theme![
+                    "lucius-l",
+                    "\x1b[38;5;130m",
+                    "\x1b[38;5;25m",
+                    "\x1b[48;5;253m",
+                    "\x1b[38;5;238m",
+                    "\x1b[48;5;255m",
+                    "\x1b[38;5;255m",
+                    "\x1b[48;5;244m"
                 ],
             ],
         }

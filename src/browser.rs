@@ -10,6 +10,7 @@ use crate::canvas;
 use crate::ops::{consts, Mode, Op};
 use crate::util;
 use std::collections::VecDeque;
+use std::ffi::OsString;
 use std::fs::read_dir;
 use std::iter::Rev;
 use std::ops::Range;
@@ -18,6 +19,11 @@ use std::process::{exit, Command};
 use std::vec::Vec;
 
 const SEARCH_HISTORY_LEN: usize = 256;
+
+struct Opener {
+    comm: OsString,
+    args: Vec<OsString>,
+}
 
 /// Directory browser
 pub struct Browser {
@@ -31,7 +37,8 @@ pub struct Browser {
     original_path: PathBuf,
     mode: Mode,
     search_txt: Vec<char>,
-    editor: String,
+    opener_o: Opener,
+    opener_enter: Opener,
     dest_file: Option<PathBuf>,
     search_history: VecDeque<Vec<char>>,
     search_history_index: usize,
@@ -128,8 +135,11 @@ impl Browser {
                 Op::Right => {
                     self.right();
                 }
-                Op::ExitCursor => {
-                    self.exit_under_cursor();
+                Op::ExitCursorO => {
+                    self.exit_under_cursor(Op::ExitCursorO);
+                }
+                Op::ExitCursorEnter => {
+                    self.exit_under_cursor(Op::ExitCursorEnter);
                 }
                 Op::Exit => {
                     self.exit_cur_dir();
@@ -176,7 +186,7 @@ impl Browser {
         }
     }
 
-    ///  Get directory content preview window as a vector of strings
+    ///  Get directory content preview window
     fn get_preview(&self) -> Vec<String> {
         let empty: Vec<String> = Vec::new();
 
@@ -327,10 +337,11 @@ impl Browser {
     }
 
     fn search(&mut self, canvas: &mut canvas::Canvas) {
-        let (mut chars, trunc, op) = util::read_chars_or_op(&self.trunc);
+        let (_chars, trunc, op) = util::read_chars_or_op(&self.trunc);
         self.trunc = trunc;
         // regular text input
-        if op == Op::Noop {
+        if op == Op::Noop && _chars.is_some() {
+            let mut chars = _chars.expect("unwrap char vec failed");
             let first_char = chars[0] as usize;
             // for example, Ctrl + C = 3, Ctrl + I = 9 these characters cannot be displayed, yet
             // they will take space in the search text
@@ -377,35 +388,38 @@ impl Browser {
                 self.search_txt = search_txt_inserted;
                 self.input_cursor_pos += chars_len;
             }
-        } else if self.search_txt.len() == 0
-            || (self.search_history_index < self.search_history.len()
-                && (op == Op::Up || op == Op::Down))
-        {
+        } else if op == Op::Up || op == Op::Down {
             // search history
             // ok to scroll: 1. at the end of history, search input is empty
             //               2. currently in the process of scolling through history
-            match op {
-                Op::Up => {
-                    if self.search_history_index > 0 {
-                        self.search_history_index -= 1;
-                    }
-                }
-                Op::Down => {
-                    if self.search_history_index < self.search_history.len() {
-                        self.search_history_index += 1;
-                    }
-                }
-                _ => {}
-            }
+            //
             // when user is not browsing history, search_history_index should be
-            // search_history.len() + 1
-            if self.search_history_index < self.search_history.len() {
-                self.search_txt = self.search_history[self.search_history_index].clone();
-            } else {
-                self.search_txt = Vec::new();
+            // search_history.len()
+            if (self.search_history_index == self.search_history.len()
+                && self.search_txt.len() == 0)
+                || self.search_history_index < self.search_history.len()
+            {
+                match op {
+                    Op::Up => {
+                        if self.search_history_index > 0 {
+                            self.search_history_index -= 1;
+                        }
+                    }
+                    Op::Down => {
+                        if self.search_history_index < self.search_history.len() {
+                            self.search_history_index += 1;
+                        }
+                    }
+                    _ => {}
+                }
+                if self.search_history_index < self.search_history.len() {
+                    self.search_txt = self.search_history[self.search_history_index].clone();
+                } else {
+                    self.search_txt = Vec::new();
+                }
+                self.input_cursor_pos = self.search_txt.len();
             }
-            self.input_cursor_pos = self.search_txt.len();
-        } else {
+        } else if op == Op::Left || op == Op::Right {
             // left and right arrow
             match op {
                 Op::Left => {
@@ -421,7 +435,6 @@ impl Browser {
                 _ => {}
             }
         }
-
         self.next_match(self.cursor, false);
     }
 
@@ -566,38 +579,43 @@ impl Browser {
 
     /// quit trans and goto the directory under the cursor
     ///  or
-    /// open the file under the cursor with a text editor
-    fn exit_under_cursor(&self) {
+    /// open the file under the cursor with opener command
+    fn exit_under_cursor(&self, op: Op) {
         let mut dir = self.current_path.clone();
         dir.push(&self.current_dir[self.cursor]);
+        let opener = match op {
+            Op::ExitCursorO => &self.opener_o,
+            Op::ExitCursorEnter => &self.opener_enter,
+            _ => &self.opener_o,
+        };
 
         if dir.is_dir() == false {
             // reduce color flicking (the flicking color is the bottom bar color)
             util::reduce_flick();
 
-            if let Ok(_) = Command::new(&self.editor)
+            if let Ok(_) = Command::new(&(*opener).comm)
+                .args(&(*opener).args)
                 .arg(dir.to_str().unwrap())
                 .status()
             {
-                // empty, successfully opened with user's desired editor
+                // empty, successfully opened with opener
             } else {
-                Command::new(consts::EDITOR)
+                Command::new(consts::OPENER)
                     .arg(dir.to_str().unwrap())
                     .status()
                     .expect(&format!(
-                        "Failed to open {} with default editor {}",
+                        "Failed to open {} with default opener {}",
                         dir.to_str().unwrap(),
-                        consts::EDITOR
+                        consts::OPENER
                     ));
             }
         } else {
             util::exit_albuf();
             util::print_path(&dir, (&self.dest_file).as_ref());
-
             exit(0);
         };
 
-        // when an editor exits, it also exits the alternate buffer, and enables cursor, need to
+        // when an opener exits, it also exits the alternate buffer, and enables cursor, need to
         // stay in albuf and hide cursor in trans
         util::enter_albuf();
         util::hide_cursor();
@@ -644,7 +662,23 @@ impl Browser {
     }
 }
 
+impl Opener {
+    fn new(comm: OsString, args: Option<Vec<OsString>>) -> Opener {
+        let mut opener = Opener {
+            comm: comm,
+            args: vec![],
+        };
+        if args.is_some() {
+            opener.args = args.unwrap()
+        }
+        opener
+    }
+}
+
 pub fn new(path: &str, dest_file: Option<String>) -> Browser {
+    let (comm_o, args_o) = util::get_opener(Op::ExitCursorO);
+    let (comm_enter, args_enter) = util::get_opener(Op::ExitCursorEnter);
+
     let mut browser = Browser {
         cursor: 0,
         window_start: 0,
@@ -656,7 +690,8 @@ pub fn new(path: &str, dest_file: Option<String>) -> Browser {
         original_path: PathBuf::from("."),
         mode: Mode::NORMAL,
         search_txt: Vec::new(),
-        editor: util::get_editor(),
+        opener_o: Opener::new(comm_o, args_o),
+        opener_enter: Opener::new(comm_enter, args_enter),
         dest_file: (|dest_file| match dest_file {
             Some(df) => Some(PathBuf::from(&df)),
             None => None,
@@ -666,7 +701,131 @@ pub fn new(path: &str, dest_file: Option<String>) -> Browser {
         trunc: Vec::new(),
         input_cursor_pos: 0,
     };
-
     browser.init(&path);
     browser
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use std::collections::HashSet;
+    use std::fs::File;
+    use std::fs::{create_dir, create_dir_all, remove_dir_all};
+    use std::ops::Drop;
+
+    struct CleanupDir {
+        dir: String,
+    }
+
+    impl Drop for CleanupDir {
+        fn drop(&mut self) {
+            if remove_dir_all(&format!("/tmp/{}", &self.dir)).is_err() {
+                println!("remove dir failed");
+            }
+        }
+    }
+
+    #[test]
+    fn test_browser_init() {
+        let mut rand = util::test::Rand::new();
+        let mut tmp_dirs: Vec<String> = vec![];
+        let depth = 4;
+        for _ in 0..depth {
+            tmp_dirs.push(format!("ts-test-{}", &rand.random_str()));
+        }
+        // assert_eq! (when failed) and the end of function will call drop() for cleanup
+        let _cd = CleanupDir {
+            dir: String::from(&tmp_dirs[0]),
+        };
+
+        let temp_dir = format!(
+            "/tmp/{}/{}/{}/{}",
+            tmp_dirs[0], tmp_dirs[1], tmp_dirs[2], tmp_dirs[3]
+        );
+        create_dir_all(&temp_dir).expect(&format!("create dir {} failed", &temp_dir));
+        println!("created dir {}", &temp_dir);
+        let b = new(&temp_dir, None); // browser::new()
+        let past_dir = &b.past_dir;
+        // add / and /tmp, but the last directory is not in past_dir
+        if depth + 2 - 1 != past_dir.len() {
+            assert_eq!(depth + 1, past_dir.len());
+        }
+        let ans = ["", "tmp", &tmp_dirs[0], &tmp_dirs[1], &tmp_dirs[2]];
+        for i in 0..past_dir.len() {
+            let _tmp = past_dir[i].as_path().file_name();
+            if _tmp.is_some() {
+                let past_dir_name = _tmp.unwrap().to_str().expect("to_str failed");
+                println!("comparing tmp_dirs {} past_dir {}", ans[i], past_dir_name);
+                assert_eq!(ans[i], past_dir_name);
+            }
+            // root dir returns None
+        }
+    }
+
+    #[test]
+    fn test_get_preview() {
+        let mut rand = util::test::Rand::new();
+        let files = [
+            format!("f-{}", rand.random_str()),
+            format!("f-{}", rand.random_str()),
+            format!("f-{}", rand.random_str()),
+            format!("f-{}", rand.random_str()),
+            format!("f-{}", rand.random_str()),
+            format!("f-{}", rand.random_str()),
+        ];
+        let dirs = [
+            format!("d-{}", rand.random_str()),
+            format!("d-{}", rand.random_str()),
+            format!("d-{}", rand.random_str()),
+            format!("d-{}", rand.random_str()),
+            format!("d-{}", rand.random_str()),
+            format!("d-{}", rand.random_str()),
+        ];
+        let root_dir = format!("ts-test-{}", rand.random_str());
+        println!("creating root dir {}", &root_dir);
+        let _r = create_dir(&format!("/tmp/{}", &root_dir));
+        if _r.is_err() {
+            panic!("create root dir failed {:?}", _r.unwrap());
+        }
+        let _cd = CleanupDir {
+            dir: String::from(&root_dir),
+        };
+
+        let mut dirs_files: HashSet<String> = HashSet::new();
+        for dir in dirs.iter() {
+            let tmp = format!("/tmp/{}/{}", root_dir, dir);
+            let r = create_dir(&tmp);
+            if r.is_err() {
+                panic!("create directory failed");
+            }
+            dirs_files.insert(dir.to_string());
+        }
+        for file in files.iter() {
+            let tmp = format!("/tmp/{}/{}", root_dir, file);
+            let r = File::create(&tmp);
+            if r.is_err() {
+                panic!("create file failed");
+            }
+            dirs_files.insert(file.to_string());
+        }
+        let mut b = new("/tmp", None);
+        let mut cur_pos = 0;
+        for (i, cd) in b.current_dir.iter().enumerate() {
+            if cd == &root_dir {
+                cur_pos = i;
+                break;
+            }
+        }
+        b.set_cursor_pos_centered(cur_pos);
+        let preview = b.get_preview();
+        let mut dedup: HashSet<String> = HashSet::new();
+        for p in preview {
+            println!("preview {}", p);
+            if !dirs_files.contains(&p) {
+                panic!("incorrect preview");
+            }
+            dedup.insert(p);
+        }
+        assert_eq!(dedup.len(), files.len() + dirs.len());
+    }
 }

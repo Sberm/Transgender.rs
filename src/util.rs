@@ -14,6 +14,7 @@ use self::libc::{
 };
 use crate::ops::{consts, Op};
 use std::env::var;
+use std::ffi::OsString;
 use std::fs::File;
 use std::io::{self, stdin, BufRead, Read, Write};
 use std::mem;
@@ -33,12 +34,11 @@ pub fn show_cursor() {
     print!("\x1b[?25h"); // show cursor
 }
 
-#[allow(dead_code)]
 struct TermSize {
     height: c_ushort,
     width: c_ushort,
-    a: c_ushort,
-    b: c_ushort,
+    _a: c_ushort,
+    _b: c_ushort,
 }
 
 /// Get the height and width of the current terminal window
@@ -147,18 +147,18 @@ pub fn process_input() -> Op {
     }
 
     match input {
-        107 => return Op::Up,         // k
-        106 => return Op::Down,       // j
-        104 => return Op::Left,       // h
-        108 => return Op::Right,      // l
-        111 => return Op::ExitCursor, // o
-        10 => return Op::ExitCursor,  // Enter
-        105 => return Op::Exit,       // i
-        113 => return Op::Quit,       // q
-        47 => return Op::Search,      // /
-        71 => return Op::Bottom,      // G
-        110 => return Op::NextMatch,  // n
-        78 => return Op::PrevMatch,   // N
+        107 => return Op::Up,             // k
+        106 => return Op::Down,           // j
+        104 => return Op::Left,           // h
+        108 => return Op::Right,          // l
+        111 => return Op::ExitCursorO,    // o
+        10 => return Op::ExitCursorEnter, // Enter
+        105 => return Op::Exit,           // i
+        113 => return Op::Quit,           // q
+        47 => return Op::Search,          // /
+        71 => return Op::Bottom,          // G
+        110 => return Op::NextMatch,      // n
+        78 => return Op::PrevMatch,       // N
         _ => return Op::Noop,
     }
 }
@@ -200,14 +200,12 @@ pub fn get_theme() -> String {
     if let Ok(home_dir) = var(consts::HOME_VAR) {
         if let Ok(lines) = read_lines(&format!("{}/{}", home_dir, consts::CONFIG_FILE)) {
             for line in lines.flatten() {
-                let trimmed = line.replace(" ", "");
-
-                let kv = trimmed.split("=").collect::<Vec<&str>>();
+                let kv = line.split("=").collect::<Vec<&str>>();
                 if kv.len() != 2 {
                     continue;
                 }
-                if kv[0].eq(consts::THEME_KEY) {
-                    return String::from(kv[1]);
+                if kv[0].trim().to_lowercase() == consts::THEME_KEY {
+                    return kv[1].trim().to_lowercase();
                 }
             }
         }
@@ -215,29 +213,69 @@ pub fn get_theme() -> String {
     return String::new();
 }
 
-/// Read trans config file to get preferred editor
+/// Read trans config file to get preferred opener
 ///
 /// returns
-///  editor name as a String
-pub fn get_editor() -> String {
+///  opener's command with arguments
+pub fn get_opener(op: Op) -> (OsString, Option<Vec<OsString>>) {
+    let key = match op {
+        Op::ExitCursorO => Some(consts::O_KEY),
+        Op::ExitCursorEnter => Some(consts::ENTER_KEY),
+        _ => None,
+    };
+    let mut comm = OsString::from(consts::OPENER);
+    let mut args: Option<Vec<OsString>> = None;
     if let Ok(home_dir) = var(consts::HOME_VAR) {
         if let Ok(lines) = read_lines(&format!("{}/{}", home_dir, consts::CONFIG_FILE)) {
             for line in lines.flatten() {
-                let trimmed = line.replace(" ", "");
-
-                let kv = trimmed.split("=").collect::<Vec<&str>>();
+                let kv = line.split("=").collect::<Vec<&str>>();
                 if kv.len() != 2 {
                     continue;
                 }
-                if kv[0].eq(consts::EDITOR_KEY) {
-                    return String::from(kv[1]);
+                if key.is_some() {
+                    if kv[0].trim().to_lowercase() == key.unwrap() {
+                        // "key =.*"
+                        let comm_op = kv[1].trim().split(" ").collect::<Vec<&str>>();
+                        if comm_op.len() != 0 {
+                            // key = code.*
+                            comm = OsString::from(comm_op[0]);
+                            args = Some(
+                                comm_op
+                                    .into_iter()
+                                    .skip(1)
+                                    .map(|x| OsString::from(x))
+                                    .collect(),
+                            );
+                            return (comm, args);
+                        }
+                    }
+                }
+                if kv[0].trim().to_lowercase() == consts::EDITOR_KEY
+                    || kv[0].trim().to_lowercase() == consts::OPENER_KEY
+                {
+                    let comm_op = kv[1].trim().split(" ").collect::<Vec<&str>>();
+                    if comm_op.len() != 0 {
+                        // can be overridden by 'o' or 'enter'
+                        comm = OsString::from(comm_op[0]);
+                        args = Some(
+                            comm_op
+                                .into_iter()
+                                .skip(1)
+                                .map(|x| OsString::from(x))
+                                .collect(),
+                        );
+                    }
                 }
             }
         }
     }
-    return String::from(consts::EDITOR);
+    (comm, args)
 }
 
+/// Parse a byte array to a vector of chars
+///
+/// returns
+///  the parsed char array along with trailing truncated bytes for the next parsing
 fn parse_utf8(_raw: &[u8], prev_trunc: &Vec<u8>) -> (Vec<char>, Vec<u8>) {
     let mut res: Vec<char> = Vec::new();
     let mut trunc: Vec<u8> = Vec::new();
@@ -278,21 +316,72 @@ fn parse_utf8(_raw: &[u8], prev_trunc: &Vec<u8>) -> (Vec<char>, Vec<u8>) {
     (res, trunc)
 }
 
-pub fn read_chars_or_op(prev_trunc: &Vec<u8>) -> (Vec<char>, Vec<u8>, Op) {
+/// read characters
+///
+/// returns
+///  either a vector of characters or an Opcode, along with trailing truncated bytes for the next
+///  parsing
+pub fn read_chars_or_op(prev_trunc: &Vec<u8>) -> (Option<Vec<char>>, Vec<u8>, Op) {
     let mut raw = [0_u8; 256];
     let mut _stdin = stdin();
     _stdin.read(&mut raw).expect("Failed to read");
     let (char_vec, trunc) = parse_utf8(&mut raw, prev_trunc);
+    if char_vec.is_empty() {
+        return (None, trunc, Op::Noop);
+    }
     if char_vec[0] as usize == 27 {
         if char_vec.len() >= 3 && char_vec[1] as usize == 91 {
             match char_vec[2] as usize {
-                65 => return (vec![], trunc, Op::Up),
-                66 => return (vec![], trunc, Op::Down),
-                67 => return (vec![], trunc, Op::Right),
-                68 => return (vec![], trunc, Op::Left),
+                65 => return (None, trunc, Op::Up),
+                66 => return (None, trunc, Op::Down),
+                67 => return (None, trunc, Op::Right),
+                68 => return (None, trunc, Op::Left),
                 _ => {}
             };
         }
     }
-    (char_vec, trunc, Op::Noop)
+    (Some(char_vec), trunc, Op::Noop)
+}
+
+#[cfg(test)]
+pub mod test {
+    use std::time::SystemTime;
+
+    pub struct Rand {
+        x_pre: Option<usize>,
+    }
+
+    impl Rand {
+        pub fn new() -> Rand {
+            Rand { x_pre: None }
+        }
+
+        pub fn random_str(&mut self) -> String {
+            let len = 16;
+            let mut rand_str = Vec::from([' '; 16]);
+            let alnums = [
+                'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
+                'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '0', '1', '2', '3', '4', '5',
+                '6', '7', '8', '9', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+            ];
+            let mut x = if self.x_pre.is_none() {
+                SystemTime::now()
+                    .duration_since(SystemTime::UNIX_EPOCH)
+                    .expect("empty duration")
+                    .as_secs() as usize
+            } else {
+                self.x_pre.unwrap()
+            };
+            let m = 129387;
+            let a = 2731;
+            let c = 1195;
+            let al_len = alnums.len();
+            for i in 0..len {
+                rand_str[i] = alnums[x % al_len];
+                x = (a * x + c) % m;
+            }
+            self.x_pre = Some(x);
+            return rand_str.into_iter().collect::<String>();
+        }
+    }
 }
