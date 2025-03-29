@@ -714,6 +714,19 @@ mod test {
     use super::*;
     use crate::util::test::random_str;
     use std::fs::{create_dir_all, remove_dir_all};
+    use std::ops::Drop;
+
+    struct BrowserNewCleanup {
+        dir: String,
+    }
+
+    impl Drop for BrowserNewCleanup {
+        fn drop(&mut self) {
+            if remove_dir_all(&format!("/tmp/{}", &self.dir)).is_err() {
+                println!("remove dir failed");
+            }
+        }
+    }
 
     #[test]
     fn test_browser_init() {
@@ -722,23 +735,21 @@ mod test {
         for _ in 0..depth {
             tmp_dirs.push(format!("ts-test-{}", &random_str()));
         }
+        // panic! and the end of function call drop() for cleanup
+        let _bnc = BrowserNewCleanup {
+            dir: String::from(&tmp_dirs[0]),
+        };
+
         let temp_dir = format!(
             "/tmp/{}/{}/{}/{}",
             tmp_dirs[0], tmp_dirs[1], tmp_dirs[2], tmp_dirs[3]
         );
         create_dir_all(&temp_dir).expect(&format!("create dir {} failed", &temp_dir));
-        let cleanup = |dir| {
-            if remove_dir_all(&format!("/tmp/{}", dir)).is_err() {
-                println!("remove dir failed");
-            }
-        };
         println!("created dir {}", &temp_dir);
-
         let b = new(&temp_dir, None); // browser::new()
         let past_dir = &b.past_dir;
         // add / and /tmp, but the last directory is not in past_dir
         if depth + 2 - 1 != past_dir.len() {
-            cleanup(&tmp_dirs[0]);
             panic!(
                 "depth + 1 {} != past_dir's length {}",
                 depth + 1,
@@ -752,12 +763,10 @@ mod test {
                 let past_dir_name = _tmp.unwrap().to_str().expect("to_str failed");
                 println!("comparing tmp_dirs {} past_dir {}", ans[i], past_dir_name);
                 if ans[i] != past_dir_name {
-                    cleanup(&tmp_dirs[0]);
                     panic!("ans {} != past_dir {}", ans[i], past_dir_name);
                 }
             }
             // root dir returns None
         }
-        cleanup(&tmp_dirs[0]);
     }
 }
