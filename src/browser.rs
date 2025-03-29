@@ -712,15 +712,16 @@ pub fn new(path: &str, dest_file: Option<String>) -> Browser {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::util::test::random_str;
-    use std::fs::{create_dir_all, remove_dir_all};
+    use std::collections::HashSet;
+    use std::fs::File;
+    use std::fs::{create_dir, create_dir_all, remove_dir_all};
     use std::ops::Drop;
 
-    struct BrowserNewCleanup {
+    struct CleanupDir {
         dir: String,
     }
 
-    impl Drop for BrowserNewCleanup {
+    impl Drop for CleanupDir {
         fn drop(&mut self) {
             if remove_dir_all(&format!("/tmp/{}", &self.dir)).is_err() {
                 println!("remove dir failed");
@@ -730,13 +731,14 @@ mod test {
 
     #[test]
     fn test_browser_init() {
+        let mut rand = util::test::Rand::new();
         let mut tmp_dirs: Vec<String> = vec![];
         let depth = 4;
         for _ in 0..depth {
-            tmp_dirs.push(format!("ts-test-{}", &random_str()));
+            tmp_dirs.push(format!("ts-test-{}", &rand.random_str()));
         }
-        // panic! and the end of function call drop() for cleanup
-        let _bnc = BrowserNewCleanup {
+        // assert_eq! (when failed) and the end of function will call drop() for cleanup
+        let _cd = CleanupDir {
             dir: String::from(&tmp_dirs[0]),
         };
 
@@ -750,11 +752,7 @@ mod test {
         let past_dir = &b.past_dir;
         // add / and /tmp, but the last directory is not in past_dir
         if depth + 2 - 1 != past_dir.len() {
-            panic!(
-                "depth + 1 {} != past_dir's length {}",
-                depth + 1,
-                past_dir.len()
-            );
+            assert_eq!(depth + 1, past_dir.len());
         }
         let ans = ["", "tmp", &tmp_dirs[0], &tmp_dirs[1], &tmp_dirs[2]];
         for i in 0..past_dir.len() {
@@ -762,11 +760,68 @@ mod test {
             if _tmp.is_some() {
                 let past_dir_name = _tmp.unwrap().to_str().expect("to_str failed");
                 println!("comparing tmp_dirs {} past_dir {}", ans[i], past_dir_name);
-                if ans[i] != past_dir_name {
-                    panic!("ans {} != past_dir {}", ans[i], past_dir_name);
-                }
+                assert_eq!(ans[i], past_dir_name);
             }
             // root dir returns None
         }
+    }
+
+    #[test]
+    fn test_get_preview() {
+        let mut rand = util::test::Rand::new();
+        let files = [
+            format!("f-{}", rand.random_str()),
+            format!("f-{}", rand.random_str()),
+            format!("f-{}", rand.random_str()),
+            format!("f-{}", rand.random_str()),
+            format!("f-{}", rand.random_str()),
+            format!("f-{}", rand.random_str()),
+        ];
+        let dirs = [
+            format!("d-{}", rand.random_str()),
+            format!("d-{}", rand.random_str()),
+            format!("d-{}", rand.random_str()),
+            format!("d-{}", rand.random_str()),
+            format!("d-{}", rand.random_str()),
+            format!("d-{}", rand.random_str()),
+        ];
+        let root_dir = format!("ts-test-{}", rand.random_str());
+        println!("creating root dir {}", &root_dir);
+        let _r = create_dir(&format!("/tmp/{}", &root_dir));
+        if _r.is_err() {
+            panic!("create root dir failed {:?}", _r.unwrap());
+        }
+        let _cd = CleanupDir {
+            dir: String::from(&root_dir),
+        };
+
+        for dir in dirs.iter() {
+            let r = create_dir(&format!("/tmp/{}/{}", root_dir, dir));
+            if r.is_err() {
+                panic!("create directory failed");
+            }
+        }
+        for file in files.iter() {
+            let r = File::create(&format!("/tmp/{}/{}", root_dir, file));
+            if r.is_err() {
+                panic!("create file failed");
+            }
+        }
+        let mut b = new("/tmp", None);
+        let mut cur_pos = 0;
+        for (i, cd) in b.current_dir.iter().enumerate() {
+            if cd == &root_dir {
+                cur_pos = i;
+                break;
+            }
+        }
+        b.set_cursor_pos_centered(cur_pos);
+        let preview = b.get_preview();
+        let mut set: HashSet<String> = HashSet::new();
+        for p in preview {
+            println!("preview {}", p);
+            set.insert(p);
+        }
+        assert_eq!(set.len(), files.len() + dirs.len());
     }
 }

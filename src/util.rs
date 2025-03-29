@@ -347,26 +347,41 @@ pub fn read_chars_or_op(prev_trunc: &Vec<u8>) -> (Option<Vec<char>>, Vec<u8>, Op
 pub mod test {
     use std::time::SystemTime;
 
-    pub fn random_str() -> String {
-        let len = 16;
-        let mut rand_str = Vec::from([' '; 16]);
-        let alnums = [
-            'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q',
-            'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '0', '1', '2', '3', '4', '5', '6', '7',
-            '8', '9', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
-        ];
-        let mut x = SystemTime::now()
-            .duration_since(SystemTime::UNIX_EPOCH)
-            .expect("empty duration")
-            .as_secs() as usize;
-        let m = 129387;
-        let a = 2731;
-        let c = 1195;
-        let al_len = alnums.len();
-        for i in 0..len {
-            rand_str[i] = alnums[x % al_len];
-            x = (a * x + c) % m;
+    pub struct Rand {
+        x_pre: Option<usize>,
+    }
+
+    impl Rand {
+        pub fn new() -> Rand {
+            Rand { x_pre: None }
         }
-        return rand_str.into_iter().collect::<String>();
+
+        pub fn random_str(&mut self) -> String {
+            let len = 16;
+            let mut rand_str = Vec::from([' '; 16]);
+            let alnums = [
+                'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
+                'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '0', '1', '2', '3', '4', '5',
+                '6', '7', '8', '9', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+            ];
+            let mut x = if self.x_pre.is_none() {
+                SystemTime::now()
+                    .duration_since(SystemTime::UNIX_EPOCH)
+                    .expect("empty duration")
+                    .as_secs() as usize
+            } else {
+                self.x_pre.unwrap()
+            };
+            let m = 129387;
+            let a = 2731;
+            let c = 1195;
+            let al_len = alnums.len();
+            for i in 0..len {
+                rand_str[i] = alnums[x % al_len];
+                x = (a * x + c) % m;
+            }
+            self.x_pre = Some(x);
+            return rand_str.into_iter().collect::<String>();
+        }
     }
 }
