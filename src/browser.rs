@@ -749,6 +749,34 @@ mod test {
         }
     }
 
+    fn random_dirWcontent() -> (Vec<String>, Vec<String>, String, CleanupDir) {
+        let (files, dirs) = random_dirsNfiles();
+        let root_dir = unsafe { format!("ts-test-{}", rand.rand_str()) };
+        println!("creating root dir {}", &root_dir);
+        let _r = create_dir(&format!("/tmp/{}", &root_dir));
+        if _r.is_err() {
+            panic!("create root dir failed {:?}", _r.unwrap());
+        }
+        let _cd = CleanupDir {
+            dir: String::from(&root_dir),
+        };
+        for dir in dirs.iter() {
+            let tmp = format!("/tmp/{}/{}", root_dir, dir);
+            let r = create_dir(&tmp);
+            if r.is_err() {
+                panic!("create directory failed");
+            }
+        }
+        for file in files.iter() {
+            let tmp = format!("/tmp/{}/{}", root_dir, file);
+            let r = File::create(&tmp);
+            if r.is_err() {
+                panic!("create file failed");
+            }
+        }
+        (files, dirs, root_dir, _cd)
+    }
+
     #[test]
     fn test_browser_init() {
         let mut tmp_dirs: Vec<String> = vec![];
@@ -789,33 +817,14 @@ mod test {
 
     #[test]
     fn test_get_preview() {
-        let (files, dirs) = random_dirsNfiles();
-        let root_dir = unsafe { format!("ts-test-{}", rand.rand_str()) };
-        println!("creating root dir /tmp/{}", &root_dir);
-        let _r = create_dir(&format!("/tmp/{}", &root_dir));
-        if _r.is_err() {
-            panic!("create root dir failed {:?}", _r.unwrap());
-        }
-        let _cd = CleanupDir {
-            dir: String::from(&root_dir),
-        };
-
+        // if _cd is instead '_', it will be dropped right away
+        let (files, dirs, root_dir, _cd) = random_dirWcontent();
         let mut dirs_files: HashSet<String> = HashSet::new();
-        for dir in dirs.iter() {
-            let tmp = format!("/tmp/{}/{}", root_dir, dir);
-            let r = create_dir(&tmp);
-            if r.is_err() {
-                panic!("create directory failed");
-            }
-            dirs_files.insert(dir.to_string());
-        }
         for file in files.iter() {
-            let tmp = format!("/tmp/{}/{}", root_dir, file);
-            let r = File::create(&tmp);
-            if r.is_err() {
-                panic!("create file failed");
-            }
             dirs_files.insert(file.to_string());
+        }
+        for dir in dirs.iter() {
+            dirs_files.insert(dir.to_string());
         }
         let mut b = new("/tmp", None);
         let mut cur_pos = 0;
@@ -847,32 +856,7 @@ mod test {
 
     #[test]
     fn test_top() {
-        let (files, dirs) = random_dirsNfiles();
-        let root_dir = unsafe { format!("ts-test-{}", rand.rand_str()) };
-        println!("creating root dir {}", &root_dir);
-        let _r = create_dir(&format!("/tmp/{}", &root_dir));
-        if _r.is_err() {
-            panic!("create root dir failed {:?}", _r.unwrap());
-        }
-        let _cd = CleanupDir {
-            dir: String::from(&root_dir),
-        };
-        for dir in dirs.iter() {
-            let tmp = format!("/tmp/{}/{}", root_dir, dir);
-            let r = create_dir(&tmp);
-            if r.is_err() {
-                panic!("create directory failed");
-            }
-        }
-        for file in files.iter() {
-            let tmp = format!("/tmp/{}/{}", root_dir, file);
-            let r = File::create(&tmp);
-            if r.is_err() {
-                panic!("create file failed");
-            }
-        }
-
-        // all the work, just for this...
+        let (_, _, _, _cd) = random_dirWcontent();
         let mut b = new("/tmp", None);
         b.top();
         assert_eq!(b.cursor, 0);
