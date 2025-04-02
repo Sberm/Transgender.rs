@@ -710,12 +710,16 @@ pub fn new(path: &str, dest_file: Option<String>) -> Browser {
 }
 
 #[cfg(test)]
+#[allow(warnings)] // static rand
 mod test {
     use super::*;
+    use crate::util::test::Rand;
     use std::collections::HashSet;
     use std::fs::File;
     use std::fs::{create_dir, create_dir_all, remove_dir_all};
     use std::ops::Drop;
+
+    static mut rand: Rand = Rand { x_pre: None };
 
     struct CleanupDir {
         dir: String,
@@ -729,13 +733,30 @@ mod test {
         }
     }
 
+    fn random_dirsNfiles() -> (Vec<String>, Vec<String>) {
+        unsafe {
+            let file_nr = rand.rand_uint(0, 10);
+            let dir_nr = rand.rand_uint(0, 10);
+            let mut files = vec![];
+            let mut dirs = vec![];
+            for i in 0..file_nr {
+                files.push(format!("f-{}", rand.rand_str()));
+            }
+            for i in 0..dir_nr {
+                dirs.push(format!("d-{}", rand.rand_str()));
+            }
+            return (files, dirs);
+        }
+    }
+
     #[test]
     fn test_browser_init() {
-        let mut rand = util::test::Rand::new();
         let mut tmp_dirs: Vec<String> = vec![];
         let depth = 4;
-        for _ in 0..depth {
-            tmp_dirs.push(format!("ts-test-{}", &rand.random_str()));
+        unsafe {
+            for _ in 0..depth {
+                tmp_dirs.push(format!("ts-test-{}", &rand.rand_str()));
+            }
         }
         // assert_eq! (when failed) and the end of function will call drop() for cleanup
         let _cd = CleanupDir {
@@ -768,25 +789,9 @@ mod test {
 
     #[test]
     fn test_get_preview() {
-        let mut rand = util::test::Rand::new();
-        let files = [
-            format!("f-{}", rand.random_str()),
-            format!("f-{}", rand.random_str()),
-            format!("f-{}", rand.random_str()),
-            format!("f-{}", rand.random_str()),
-            format!("f-{}", rand.random_str()),
-            format!("f-{}", rand.random_str()),
-        ];
-        let dirs = [
-            format!("d-{}", rand.random_str()),
-            format!("d-{}", rand.random_str()),
-            format!("d-{}", rand.random_str()),
-            format!("d-{}", rand.random_str()),
-            format!("d-{}", rand.random_str()),
-            format!("d-{}", rand.random_str()),
-        ];
-        let root_dir = format!("ts-test-{}", rand.random_str());
-        println!("creating root dir {}", &root_dir);
+        let (files, dirs) = random_dirsNfiles();
+        let root_dir = unsafe { format!("ts-test-{}", rand.rand_str()) };
+        println!("creating root dir /tmp/{}", &root_dir);
         let _r = create_dir(&format!("/tmp/{}", &root_dir));
         if _r.is_err() {
             panic!("create root dir failed {:?}", _r.unwrap());
@@ -820,6 +825,7 @@ mod test {
                 break;
             }
         }
+        // set browser's cursor
         b.set_cursor_pos_centered(cur_pos);
         let preview = b.get_preview();
         let mut dedup: HashSet<String> = HashSet::new();
@@ -830,6 +836,46 @@ mod test {
             }
             dedup.insert(p);
         }
-        assert_eq!(dedup.len(), files.len() + dirs.len());
+        assert_eq!(
+            dedup.len(),
+            files.len() + dirs.len(),
+            "should have {} entries matched, got {}",
+            files.len() + dirs.len(),
+            dedup.len()
+        );
+    }
+
+    #[test]
+    fn test_top() {
+        let (files, dirs) = random_dirsNfiles();
+        let root_dir = unsafe { format!("ts-test-{}", rand.rand_str()) };
+        println!("creating root dir {}", &root_dir);
+        let _r = create_dir(&format!("/tmp/{}", &root_dir));
+        if _r.is_err() {
+            panic!("create root dir failed {:?}", _r.unwrap());
+        }
+        let _cd = CleanupDir {
+            dir: String::from(&root_dir),
+        };
+        for dir in dirs.iter() {
+            let tmp = format!("/tmp/{}/{}", root_dir, dir);
+            let r = create_dir(&tmp);
+            if r.is_err() {
+                panic!("create directory failed");
+            }
+        }
+        for file in files.iter() {
+            let tmp = format!("/tmp/{}/{}", root_dir, file);
+            let r = File::create(&tmp);
+            if r.is_err() {
+                panic!("create file failed");
+            }
+        }
+
+        // all the work, just for this...
+        let mut b = new("/tmp", None);
+        b.top();
+        assert_eq!(b.cursor, 0);
+        assert_eq!(b.window_start, 0);
     }
 }

@@ -348,15 +348,30 @@ pub mod test {
     use std::time::SystemTime;
 
     pub struct Rand {
-        x_pre: Option<usize>,
+        pub x_pre: Option<usize>,
     }
 
+    const M: usize = 387;
+    const A: usize = 2731;
+    const C: usize = 1195;
+
     impl Rand {
-        pub fn new() -> Rand {
-            Rand { x_pre: None }
+        pub fn rand_uint(&mut self, min: usize, max: usize) -> usize {
+            assert!(max >= min);
+            let mut x = if self.x_pre.is_none() {
+                SystemTime::now()
+                    .duration_since(SystemTime::UNIX_EPOCH)
+                    .expect("empty duration")
+                    .as_secs() as usize
+            } else {
+                self.x_pre.unwrap()
+            };
+            x = (A * x + C) % (max - min);
+            self.x_pre = Some(x);
+            return x + min;
         }
 
-        pub fn random_str(&mut self) -> String {
+        pub fn rand_str(&mut self) -> String {
             let len = 16;
             let mut rand_str = Vec::from([' '; 16]);
             let alnums = [
@@ -372,13 +387,10 @@ pub mod test {
             } else {
                 self.x_pre.unwrap()
             };
-            let m = 129387;
-            let a = 2731;
-            let c = 1195;
             let al_len = alnums.len();
             for i in 0..len {
                 rand_str[i] = alnums[x % al_len];
-                x = (a * x + c) % m;
+                x = (A * x + C) % M;
             }
             self.x_pre = Some(x);
             return rand_str.into_iter().collect::<String>();
