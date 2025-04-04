@@ -223,7 +223,10 @@ impl Browser {
     fn set_cursor_pos_centered(&mut self, index: usize) {
         // the bottom line will always be there and cover it, the max display height is always
         // terminal height - 1
-        let h = util::term_size().0 - 1;
+        let mut h = util::term_size().0;
+        if h > 0 {
+            h -= 1
+        }
 
         self.cursor = index;
         self.window_start = if self.cursor as isize - h as isize / 2 > 0 {
@@ -719,8 +722,6 @@ mod test {
     use std::fs::{create_dir, create_dir_all, remove_dir_all};
     use std::ops::Drop;
 
-    static mut rand: Rand = Rand { x_pre: None };
-
     struct CleanupDir {
         dir: String,
     }
@@ -734,6 +735,7 @@ mod test {
     }
 
     fn random_dirsNfiles() -> (Vec<String>, Vec<String>) {
+        let mut rand = Rand::new();
         unsafe {
             let file_nr = rand.rand_uint(0, 10);
             let dir_nr = rand.rand_uint(0, 10);
@@ -750,6 +752,7 @@ mod test {
     }
 
     fn random_dirWcontent() -> (Vec<String>, Vec<String>, String, CleanupDir) {
+        let mut rand = Rand::new();
         let (files, dirs) = random_dirsNfiles();
         let root_dir = unsafe { format!("ts-test-{}", rand.rand_str()) };
         println!("creating root dir {}", &root_dir);
@@ -779,6 +782,7 @@ mod test {
 
     #[test]
     fn test_browser_init() {
+        let mut rand = Rand::new();
         let mut tmp_dirs: Vec<String> = vec![];
         let depth = 4;
         unsafe {
