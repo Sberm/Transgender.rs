@@ -348,27 +348,35 @@ pub mod test {
     use std::time::SystemTime;
 
     pub struct Rand {
-        pub x_pre: Option<usize>,
+        pub x_pre: Option<u128>,
+        pub y_pre: Option<u128>,
     }
 
-    const M: usize = 387;
-    const A: usize = 2731;
-    const C: usize = 1195;
+    const M: u128 = 7919;
+    const A: u128 = 7907;
+    const C: u128 = 7901;
 
     impl Rand {
+        pub fn new() -> Rand {
+            Rand {
+                x_pre: None,
+                y_pre: None,
+            }
+        }
+
         pub fn rand_uint(&mut self, min: usize, max: usize) -> usize {
             assert!(max >= min);
             let mut x = if self.x_pre.is_none() {
                 SystemTime::now()
                     .duration_since(SystemTime::UNIX_EPOCH)
                     .expect("empty duration")
-                    .as_secs() as usize
+                    .as_nanos()
             } else {
                 self.x_pre.unwrap()
             };
-            x = (A * x + C) % (max - min);
+            x = (A * x + C) % ((max - min) as u128);
             self.x_pre = Some(x);
-            return x + min;
+            return x as usize + min;
         }
 
         pub fn rand_str(&mut self) -> String {
@@ -383,16 +391,23 @@ pub mod test {
                 SystemTime::now()
                     .duration_since(SystemTime::UNIX_EPOCH)
                     .expect("empty duration")
-                    .as_secs() as usize
+                    .as_nanos()
             } else {
                 self.x_pre.unwrap()
             };
-            let al_len = alnums.len();
+            let mut y = if self.y_pre.is_none() {
+                (x * x) % M
+            } else {
+                self.y_pre.unwrap()
+            };
+            let al_len = alnums.len() as u128;
             for i in 0..len {
-                rand_str[i] = alnums[x % al_len];
+                rand_str[i] = alnums[((x + y) % al_len) as usize];
                 x = (A * x + C) % M;
+                y = (A * y + C) % M;
             }
             self.x_pre = Some(x);
+            self.y_pre = Some(y);
             return rand_str.into_iter().collect::<String>();
         }
     }
