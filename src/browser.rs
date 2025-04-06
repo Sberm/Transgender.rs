@@ -768,6 +768,8 @@ mod test {
     //                 /f-XXX
     //                 /d-XXX
     //                 /d-XXX
+    //
+    // on MacOS, /tmp is a symlink to /private/tmp
     fn random_dir_wcontent() -> (Vec<String>, Vec<String>, String, CleanupDir) {
         let mut rand = Rand::new();
         let (files, dirs) = random_dirs_nfiles();
@@ -824,7 +826,7 @@ mod test {
         }
         let ans = ["", "tmp", &tmp_dirs[0], &tmp_dirs[1], &tmp_dirs[2]];
         for i in 0..past_dir.len() {
-            let _tmp = past_dir[i].as_path().file_name();
+            let _tmp = past_dir[i].file_name();
             if _tmp.is_some() {
                 let past_dir_name = _tmp.unwrap().to_str().expect("to_str failed");
                 println!("comparing tmp_dirs {} past_dir {}", ans[i], past_dir_name);
@@ -951,15 +953,15 @@ mod test {
         let mut b = new(&format!("/tmp/{}/{}", root_dir, target), None);
         println!(
             "test_left: before {}",
-            b.current_path.as_path().to_str().unwrap()
+            b.current_path.to_str().unwrap()
         );
         b.left();
         println!(
             "test_left: after {}",
-            b.current_path.as_path().to_str().unwrap()
+            b.current_path.to_str().unwrap()
         );
         assert_eq!(
-            b.current_path.as_path().to_str().unwrap(),
+            b.current_path.to_str().unwrap(),
             format!("/tmp/{}", root_dir)
         );
     }
@@ -971,7 +973,7 @@ mod test {
         let mut b = new(&format!("/tmp/{}", root_dir), None);
         println!(
             "test_right: before {}",
-            b.current_path.as_path().to_str().unwrap()
+            b.current_path.to_str().unwrap()
         );
         for (i, dir) in b.content.iter().enumerate() {
             if dir == target {
@@ -982,10 +984,10 @@ mod test {
         b.right();
         println!(
             "test_right: after {}",
-            b.current_path.as_path().to_str().unwrap()
+            b.current_path.to_str().unwrap()
         );
         assert_eq!(
-            b.current_path.as_path().to_str().unwrap(),
+            b.current_path.to_str().unwrap(),
             format!("/tmp/{}/{}", root_dir, target)
         );
     }
