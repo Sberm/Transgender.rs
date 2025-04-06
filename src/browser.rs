@@ -799,7 +799,6 @@ mod test {
         (files, dirs, root_dir, _cd)
     }
 
-    #[test]
     fn test_browser_init() {
         let mut rand = Rand::new();
         let mut tmp_dirs: Vec<String> = vec![];
@@ -820,11 +819,29 @@ mod test {
         println!("created dir {}", &temp_dir);
         let b = new(&temp_dir, None); // browser::new()
         let past_dir = &b.past_dir;
-        // add / and /tmp, but the last directory is not in past_dir
-        if depth + 2 - 1 != past_dir.len() {
-            assert_eq!(depth + 1, past_dir.len());
+
+        #[allow(unused_assignments)]
+        let mut ans = Vec::new();
+        if cfg!(target_os = "macos") {
+            if depth + 3 - 1 != past_dir.len() {
+                assert_eq!(depth + 2, past_dir.len());
+            }
+            ans = vec![
+                "",
+                "private",
+                "tmp",
+                &tmp_dirs[0],
+                &tmp_dirs[1],
+                &tmp_dirs[2],
+            ];
+        } else {
+            // add / and /tmp, but the last directory is not in past_dir
+            if depth + 2 - 1 != past_dir.len() {
+                assert_eq!(depth + 1, past_dir.len());
+            }
+            ans = vec!["", "tmp", &tmp_dirs[0], &tmp_dirs[1], &tmp_dirs[2]];
         }
-        let ans = ["", "tmp", &tmp_dirs[0], &tmp_dirs[1], &tmp_dirs[2]];
+
         for i in 0..past_dir.len() {
             let _tmp = past_dir[i].file_name();
             if _tmp.is_some() {
@@ -836,7 +853,6 @@ mod test {
         }
     }
 
-    #[test]
     fn test_read_content() {
         // if _cd is instead '_', it will be dropped right away
         let (files, dirs, root_dir, _cd) = random_dir_wcontent();
@@ -867,7 +883,6 @@ mod test {
         );
     }
 
-    #[test]
     fn test_get_preview() {
         let (files, dirs, root_dir, _cd) = random_dir_wcontent();
         let mut dirs_files: HashSet<String> = HashSet::new();
@@ -905,7 +920,6 @@ mod test {
         );
     }
 
-    #[test]
     fn test_top() {
         let (_, _, root_dir, _cd) = random_dir_wcontent();
         let mut b = new(&format!("/tmp/{}", root_dir), None);
@@ -914,7 +928,6 @@ mod test {
         assert_eq!(b.window_start, 0);
     }
 
-    #[test]
     fn test_bottom() {
         let (_, _, root_dir, _cd) = random_dir_wcontent();
         let mut b = new(&format!("/tmp/{}", root_dir), None);
@@ -922,7 +935,6 @@ mod test {
         assert_eq!(b.cursor, b.content.len() - 1);
     }
 
-    #[test]
     fn test_up() {
         let (_, _, root_dir, _cd) = random_dir_wcontent();
         let mut b = new(&format!("/tmp/{}", root_dir), None);
@@ -934,7 +946,6 @@ mod test {
         assert_eq!(cur_pos1, cur_pos2 + 1);
     }
 
-    #[test]
     fn test_down() {
         let (_, _, root_dir, _cd) = random_dir_wcontent();
         let mut b = new(&format!("/tmp/{}", root_dir), None);
@@ -946,35 +957,28 @@ mod test {
         assert_eq!(cur_pos1 + 1, cur_pos2);
     }
 
-    #[test]
     fn test_left() {
         let (_, dirs, root_dir, _cd) = random_dir_wcontent();
         let target = &dirs[0];
         let mut b = new(&format!("/tmp/{}/{}", root_dir, target), None);
-        println!(
-            "test_left: before {}",
-            b.current_path.to_str().unwrap()
-        );
+        println!("test_left: before {}", b.current_path.to_str().unwrap());
         b.left();
-        println!(
-            "test_left: after {}",
-            b.current_path.to_str().unwrap()
-        );
+        println!("test_left: after {}", b.current_path.to_str().unwrap());
         assert_eq!(
             b.current_path.to_str().unwrap(),
-            format!("/tmp/{}", root_dir)
+            if cfg!(target_os = "macos") {
+                format!("/private/tmp/{}", root_dir)
+            } else {
+                format!("/tmp/{}", root_dir)
+            }
         );
     }
 
-    #[test]
     fn test_right() {
         let (_, dirs, root_dir, _cd) = random_dir_wcontent();
         let target = &dirs[0];
         let mut b = new(&format!("/tmp/{}", root_dir), None);
-        println!(
-            "test_right: before {}",
-            b.current_path.to_str().unwrap()
-        );
+        println!("test_right: before {}", b.current_path.to_str().unwrap());
         for (i, dir) in b.content.iter().enumerate() {
             if dir == target {
                 b.set_cursor_pos_centered(i);
@@ -982,17 +986,17 @@ mod test {
             }
         }
         b.right();
-        println!(
-            "test_right: after {}",
-            b.current_path.to_str().unwrap()
-        );
+        println!("test_right: after {}", b.current_path.to_str().unwrap());
         assert_eq!(
             b.current_path.to_str().unwrap(),
-            format!("/tmp/{}/{}", root_dir, target)
+            if cfg!(target_os = "macos") {
+                format!("/private/tmp/{}/{}", root_dir, target)
+            } else {
+                format!("/tmp/{}/{}", root_dir, target)
+            }
         );
     }
 
-    #[test]
     fn test_pageup() {
         let (_, _, root_dir, _cd) = random_dir_wcontent();
         // content is guaranteed to not be empty
@@ -1010,7 +1014,6 @@ mod test {
         assert_eq!(expected, cursor_pos2);
     }
 
-    #[test]
     fn test_pagedown() {
         let (_, _, root_dir, _cd) = random_dir_wcontent();
         let mut b = new(&format!("/tmp/{}", root_dir), None);
@@ -1025,5 +1028,21 @@ mod test {
             cursor_pos1 + half_page
         };
         assert_eq!(expected, cursor_pos2);
+    }
+
+    #[test]
+    // make tests sequential to prevent file name collision
+    fn test_seq() {
+        test_browser_init();
+        test_read_content();
+        test_get_preview();
+        test_top();
+        test_bottom();
+        test_up();
+        test_down();
+        test_left();
+        test_right();
+        test_pageup();
+        test_pagedown();
     }
 }
