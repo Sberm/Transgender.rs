@@ -176,16 +176,14 @@ where
 pub fn print_path(_path: &PathBuf, dest_file: Option<&PathBuf>) {
     let path = String::from(
         _path
-            .as_path()
             .to_str()
             .expect("Failed to output file path"),
     ) + "\n";
     if dest_file.is_some() {
-        let mut file = File::create(dest_file.unwrap().as_path()).expect(&format!(
+        let mut file = File::create(dest_file.unwrap()).expect(&format!(
             "Failed to write to temporary destination file {}",
             dest_file
                 .expect("Failed to unwrap dest file")
-                .as_path()
                 .to_str()
                 .expect("Failed to print the temporary destination file")
         ));
