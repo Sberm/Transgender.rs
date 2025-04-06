@@ -63,8 +63,18 @@ impl Iterator for UsizeIter {
     }
 }
 
+#[cfg(test)]
+const TEST_HEIGHT: usize = 10;
+
+// both attributes are for h
+#[allow(unused_mut)]
+#[allow(unused_assignments)]
 fn get_height() -> usize {
-    let h = util::term_size().0;
+    let mut h = util::term_size().0;
+    #[cfg(test)]
+    {
+        h = TEST_HEIGHT;
+    }
     if h > 0 {
         h - 1
     } else {
@@ -647,7 +657,7 @@ impl Browser {
         let height = get_height();
         let half_page = height / 2;
 
-        let pos = if self.cursor as isize - (half_page as isize) < 0 {
+        let pos = if self.cursor < half_page {
             0
         } else {
             self.cursor - half_page
@@ -738,21 +748,19 @@ mod test {
         }
     }
 
-    fn random_dirsNfiles() -> (Vec<String>, Vec<String>) {
+    fn random_dirs_nfiles() -> (Vec<String>, Vec<String>) {
         let mut rand = Rand::new();
-        unsafe {
-            let file_nr = rand.rand_uint(1, 10);
-            let dir_nr = rand.rand_uint(1, 10);
-            let mut files = vec![];
-            let mut dirs = vec![];
-            for i in 0..file_nr {
-                files.push(format!("f-{}", rand.rand_str()));
-            }
-            for i in 0..dir_nr {
-                dirs.push(format!("d-{}", rand.rand_str()));
-            }
-            return (files, dirs);
+        let file_nr = rand.rand_uint(1, 10);
+        let dir_nr = rand.rand_uint(1, 10);
+        let mut files = vec![];
+        let mut dirs = vec![];
+        for _ in 0..file_nr {
+            files.push(format!("f-{}", rand.rand_str()));
         }
+        for _ in 0..dir_nr {
+            dirs.push(format!("d-{}", rand.rand_str()));
+        }
+        return (files, dirs);
     }
 
     // /tmp/ts-test-XXX
@@ -760,10 +768,10 @@ mod test {
     //                 /f-XXX
     //                 /d-XXX
     //                 /d-XXX
-    fn random_dirWcontent() -> (Vec<String>, Vec<String>, String, CleanupDir) {
+    fn random_dir_wcontent() -> (Vec<String>, Vec<String>, String, CleanupDir) {
         let mut rand = Rand::new();
-        let (files, dirs) = random_dirsNfiles();
-        let root_dir = unsafe { format!("ts-test-{}", rand.rand_str()) };
+        let (files, dirs) = random_dirs_nfiles();
+        let root_dir = format!("ts-test-{}", rand.rand_str());
         println!("creating root dir {}", &root_dir);
         let _r = create_dir(&format!("/tmp/{}", &root_dir));
         if _r.is_err() {
@@ -794,10 +802,8 @@ mod test {
         let mut rand = Rand::new();
         let mut tmp_dirs: Vec<String> = vec![];
         let depth = 4;
-        unsafe {
-            for _ in 0..depth {
-                tmp_dirs.push(format!("ts-test-{}", &rand.rand_str()));
-            }
+        for _ in 0..depth {
+            tmp_dirs.push(format!("ts-test-{}", &rand.rand_str()));
         }
         // assert_eq! (when failed) and the end of function will call drop() for cleanup
         let _cd = CleanupDir {
@@ -831,7 +837,7 @@ mod test {
     #[test]
     fn test_read_content() {
         // if _cd is instead '_', it will be dropped right away
-        let (files, dirs, root_dir, _cd) = random_dirWcontent();
+        let (files, dirs, root_dir, _cd) = random_dir_wcontent();
         let mut dirs_files: HashSet<String> = HashSet::new();
         for file in files.iter() {
             dirs_files.insert(file.to_string());
@@ -861,7 +867,7 @@ mod test {
 
     #[test]
     fn test_get_preview() {
-        let (files, dirs, root_dir, _cd) = random_dirWcontent();
+        let (files, dirs, root_dir, _cd) = random_dir_wcontent();
         let mut dirs_files: HashSet<String> = HashSet::new();
         for file in files.iter() {
             dirs_files.insert(file.to_string());
@@ -899,7 +905,7 @@ mod test {
 
     #[test]
     fn test_top() {
-        let (_, _, root_dir, _cd) = random_dirWcontent();
+        let (_, _, root_dir, _cd) = random_dir_wcontent();
         let mut b = new(&format!("/tmp/{}", root_dir), None);
         b.top();
         assert_eq!(b.cursor, 0);
@@ -908,7 +914,7 @@ mod test {
 
     #[test]
     fn test_bottom() {
-        let (_, _, root_dir, _cd) = random_dirWcontent();
+        let (_, _, root_dir, _cd) = random_dir_wcontent();
         let mut b = new(&format!("/tmp/{}", root_dir), None);
         b.bottom();
         assert_eq!(b.cursor, b.content.len() - 1);
@@ -916,7 +922,7 @@ mod test {
 
     #[test]
     fn test_up() {
-        let (_, _, root_dir, _cd) = random_dirWcontent();
+        let (_, _, root_dir, _cd) = random_dir_wcontent();
         let mut b = new(&format!("/tmp/{}", root_dir), None);
         b.bottom();
         let cur_pos1 = b.cursor;
@@ -928,7 +934,7 @@ mod test {
 
     #[test]
     fn test_down() {
-        let (_, _, root_dir, _cd) = random_dirWcontent();
+        let (_, _, root_dir, _cd) = random_dir_wcontent();
         let mut b = new(&format!("/tmp/{}", root_dir), None);
         b.top();
         let cur_pos1 = b.cursor;
@@ -940,7 +946,7 @@ mod test {
 
     #[test]
     fn test_left() {
-        let (_, dirs, root_dir, _cd) = random_dirWcontent();
+        let (_, dirs, root_dir, _cd) = random_dir_wcontent();
         let target = &dirs[0];
         let mut b = new(&format!("/tmp/{}/{}", root_dir, target), None);
         println!(
@@ -960,7 +966,7 @@ mod test {
 
     #[test]
     fn test_right() {
-        let (_, dirs, root_dir, _cd) = random_dirWcontent();
+        let (_, dirs, root_dir, _cd) = random_dir_wcontent();
         let target = &dirs[0];
         let mut b = new(&format!("/tmp/{}", root_dir), None);
         println!(
@@ -982,5 +988,40 @@ mod test {
             b.current_path.as_path().to_str().unwrap(),
             format!("/tmp/{}/{}", root_dir, target)
         );
+    }
+
+    #[test]
+    fn test_pageup() {
+        let (_, _, root_dir, _cd) = random_dir_wcontent();
+        // content is guaranteed to not be empty
+        let mut b = new(&format!("/tmp/{}", root_dir), None);
+        b.bottom();
+        let cursor_pos1 = b.cursor;
+        b.pageup();
+        let cursor_pos2 = b.cursor;
+        let half_page = get_height() / 2;
+        let expected = if cursor_pos1 < half_page {
+            0
+        } else {
+            cursor_pos1 - half_page
+        };
+        assert_eq!(expected, cursor_pos2);
+    }
+
+    #[test]
+    fn test_pagedown() {
+        let (_, _, root_dir, _cd) = random_dir_wcontent();
+        let mut b = new(&format!("/tmp/{}", root_dir), None);
+        b.top();
+        let cursor_pos1 = b.cursor;
+        b.pagedown();
+        let cursor_pos2 = b.cursor;
+        let half_page = get_height() / 2;
+        let expected = if cursor_pos1 + half_page >= b.content.len() {
+            b.content.len() - 1
+        } else {
+            cursor_pos1 + half_page
+        };
+        assert_eq!(expected, cursor_pos2);
     }
 }
