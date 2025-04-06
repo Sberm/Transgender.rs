@@ -718,7 +718,6 @@ pub fn new(path: &str, dest_file: Option<String>) -> Browser {
 }
 
 #[cfg(test)]
-#[allow(warnings)] // static rand
 mod test {
     use super::*;
     use crate::util::test::Rand;
