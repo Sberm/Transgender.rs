@@ -30,7 +30,7 @@ struct Opener {
 pub struct Browser {
     cursor: usize,
     window_start: usize,
-    current_dir: Vec<String>, // String instead of PathBuf for display purposes
+    content: Vec<String>, // String instead of PathBuf for display purposes
     past_dir: Vec<PathBuf>,
     past_cursor: Vec<usize>,
     past_window_start: Vec<usize>,
@@ -63,10 +63,19 @@ impl Iterator for UsizeIter {
     }
 }
 
+fn get_height() -> usize {
+    let h = util::term_size().0;
+    if h > 0 {
+        h - 1
+    } else {
+        h
+    }
+}
+
 impl Browser {
     /// Construct past directory stack according to the current path
     pub fn init(&mut self, path: &str) {
-        self.read_current_dir(path);
+        self.read_content(path);
 
         let mut srcdir = PathBuf::from(path)
             .canonicalize()
@@ -110,7 +119,7 @@ impl Browser {
 
             canvas.draw(
                 self.cursor,
-                &self.current_dir,
+                &self.content,
                 &preview_dir,
                 self.window_start,
                 &self.current_path,
@@ -160,7 +169,7 @@ impl Browser {
                 }
                 Op::NextMatch => {
                     self.next_match(
-                        if self.cursor + 1 < self.current_dir.len() {
+                        if self.cursor + 1 < self.content.len() {
                             self.cursor + 1
                         } else {
                             0
@@ -173,7 +182,7 @@ impl Browser {
                         if self.cursor as isize - 1 >= 0 {
                             self.cursor - 1
                         } else {
-                            self.current_dir.len() - 1
+                            self.content.len() - 1
                         },
                         true,
                     );
@@ -191,12 +200,12 @@ impl Browser {
     fn get_preview(&self) -> Vec<String> {
         let empty: Vec<String> = Vec::new();
 
-        if self.current_dir.len() == 0 {
+        if self.content.len() == 0 {
             return empty;
         }
 
         let mut _dir = self.current_path.clone();
-        _dir.push(&self.current_dir[self.cursor]);
+        _dir.push(&self.content[self.cursor]);
         if _dir.is_dir() == false {
             return empty;
         }
@@ -223,11 +232,7 @@ impl Browser {
     fn set_cursor_pos_centered(&mut self, index: usize) {
         // the bottom line will always be there and cover it, the max display height is always
         // terminal height - 1
-        let mut h = util::term_size().0;
-        if h > 0 {
-            h -= 1
-        }
-
+        let h = get_height();
         self.cursor = index;
         self.window_start = if self.cursor as isize - h as isize / 2 > 0 {
             self.cursor - h / 2
@@ -268,7 +273,7 @@ impl Browser {
         let mut matched = false;
         let mut case_insensitive = true;
 
-        if self.cursor >= self.current_dir.len() {
+        if self.cursor >= self.content.len() {
             return;
         }
 
@@ -313,13 +318,13 @@ impl Browser {
         };
 
         let it1 = if rev == false {
-            UsizeIter::Forward(start..self.current_dir.len())
+            UsizeIter::Forward(start..self.content.len())
         } else {
             UsizeIter::Backward((0..start + 1).rev())
         };
 
         for i in it1 {
-            if re.is_match(&self.current_dir[i]) {
+            if re.is_match(&self.content[i]) {
                 self.set_cursor_pos_centered(i);
                 matched = true;
                 break;
@@ -331,11 +336,11 @@ impl Browser {
             let it2 = if rev == false {
                 UsizeIter::Forward(0..start)
             } else {
-                UsizeIter::Backward((start + 1..self.current_dir.len()).rev())
+                UsizeIter::Backward((start + 1..self.content.len()).rev())
             };
 
             for i in it2 {
-                if re.is_match(&self.current_dir[i]) {
+                if re.is_match(&self.content[i]) {
                     self.set_cursor_pos_centered(i);
                     break;
                 }
@@ -451,11 +456,11 @@ impl Browser {
     }
 
     fn bottom(&mut self) {
-        self.set_cursor_pos_centered(self.current_dir.len() - 1);
+        self.set_cursor_pos_centered(self.content.len() - 1);
     }
 
     fn up(&mut self) {
-        if self.current_dir.is_empty() == true {
+        if self.content.is_empty() == true {
             return;
         }
 
@@ -471,18 +476,18 @@ impl Browser {
     }
 
     fn down(&mut self) {
-        if self.current_dir.is_empty() == true {
+        if self.content.is_empty() == true {
             return;
         }
 
-        let max_len = self.current_dir.len();
+        let max_len = self.content.len();
         self.cursor = if self.cursor + 1 < max_len {
             self.cursor + 1
         } else {
             max_len - 1
         };
 
-        let display_height = util::term_size().0 - 1;
+        let display_height = get_height();
 
         if (self.cursor) as isize > (self.window_start + display_height - 1) as isize {
             self.window_start += 1;
@@ -501,7 +506,7 @@ impl Browser {
             .past_dir
             .pop()
             .expect("Failed to pop from past_dir in when exiting a directory");
-        self.read_current_dir(&self.current_path.to_str().unwrap().to_string());
+        self.read_content(&self.current_path.to_str().unwrap().to_string());
 
         self.cursor = self
             .past_cursor
@@ -523,7 +528,7 @@ impl Browser {
         let mut index: usize = 0;
 
         // find the child dir in parent directories
-        for (i, dir) in self.current_dir.iter().enumerate() {
+        for (i, dir) in self.content.iter().enumerate() {
             if dir.eq(child_filename_str) {
                 self.cursor = i;
                 index = i;
@@ -535,12 +540,12 @@ impl Browser {
     }
 
     fn right(&mut self) {
-        if self.current_dir.len() <= 0 {
+        if self.content.len() <= 0 {
             return;
         }
 
         let mut dir_under_cursor = self.current_path.clone();
-        dir_under_cursor.push(&self.current_dir[self.cursor]);
+        dir_under_cursor.push(&self.content[self.cursor]);
         if dir_under_cursor.is_dir() == false {
             return;
         }
@@ -549,7 +554,7 @@ impl Browser {
         self.past_cursor.push(self.cursor);
         self.past_window_start.push(self.window_start);
         self.current_path = dir_under_cursor.clone();
-        self.read_current_dir(
+        self.read_content(
             &dir_under_cursor
                 .to_str()
                 .expect("Failed to call to_str() for the dir under cursor")
@@ -559,8 +564,8 @@ impl Browser {
     }
 
     /// Read the file and directory names in the current directory
-    fn read_current_dir(&mut self, path: &str) {
-        self.current_dir = match read_dir(path) {
+    fn read_content(&mut self, path: &str) {
+        self.content = match read_dir(path) {
             Ok(entries) => entries
                 .map(|_e| match _e {
                     Ok(e) => match e.file_name().into_string() {
@@ -573,7 +578,7 @@ impl Browser {
             Err(_) => Vec::new(),
         };
 
-        self.current_dir
+        self.content
             .sort_by(|d1, d2| d1.to_lowercase().cmp(&d2.to_lowercase()));
     }
 
@@ -589,7 +594,7 @@ impl Browser {
     /// open the file under the cursor with opener command
     fn exit_under_cursor(&self, op: Op) {
         let mut dir = self.current_path.clone();
-        dir.push(&self.current_dir[self.cursor]);
+        dir.push(&self.content[self.cursor]);
         let opener = match op {
             Op::ExitCursorO => &self.opener_o,
             Op::ExitCursorEnter => &self.opener_enter,
@@ -635,11 +640,11 @@ impl Browser {
     }
 
     fn pageup(&mut self) {
-        if self.current_dir.is_empty() == true {
+        if self.content.is_empty() == true {
             return;
         }
 
-        let height = util::term_size().0 - 1;
+        let height = get_height();
         let half_page = height / 2;
 
         let pos = if self.cursor as isize - (half_page as isize) < 0 {
@@ -652,15 +657,15 @@ impl Browser {
     }
 
     fn pagedown(&mut self) {
-        if self.current_dir.is_empty() == true {
+        if self.content.is_empty() == true {
             return;
         }
 
-        let height = util::term_size().0 - 1;
+        let height = get_height();
         let half_page = height / 2;
 
-        let pos = if self.cursor + half_page >= self.current_dir.len() {
-            self.current_dir.len() - 1
+        let pos = if self.cursor + half_page >= self.content.len() {
+            self.content.len() - 1
         } else {
             self.cursor + half_page
         };
@@ -689,7 +694,7 @@ pub fn new(path: &str, dest_file: Option<String>) -> Browser {
     let mut browser = Browser {
         cursor: 0,
         window_start: 0,
-        current_dir: Vec::new(),
+        content: Vec::new(),
         past_dir: Vec::new(),
         past_cursor: Vec::new(),
         past_window_start: Vec::new(),
@@ -737,8 +742,8 @@ mod test {
     fn random_dirsNfiles() -> (Vec<String>, Vec<String>) {
         let mut rand = Rand::new();
         unsafe {
-            let file_nr = rand.rand_uint(0, 10);
-            let dir_nr = rand.rand_uint(0, 10);
+            let file_nr = rand.rand_uint(1, 10);
+            let dir_nr = rand.rand_uint(1, 10);
             let mut files = vec![];
             let mut dirs = vec![];
             for i in 0..file_nr {
@@ -751,6 +756,11 @@ mod test {
         }
     }
 
+    // /tmp/ts-test-XXX
+    //                 /f-XXX
+    //                 /f-XXX
+    //                 /d-XXX
+    //                 /d-XXX
     fn random_dirWcontent() -> (Vec<String>, Vec<String>, String, CleanupDir) {
         let mut rand = Rand::new();
         let (files, dirs) = random_dirsNfiles();
@@ -820,8 +830,38 @@ mod test {
     }
 
     #[test]
-    fn test_get_preview() {
+    fn test_read_content() {
         // if _cd is instead '_', it will be dropped right away
+        let (files, dirs, root_dir, _cd) = random_dirWcontent();
+        let mut dirs_files: HashSet<String> = HashSet::new();
+        for file in files.iter() {
+            dirs_files.insert(file.to_string());
+        }
+        for dir in dirs.iter() {
+            dirs_files.insert(dir.to_string());
+        }
+        let mut b = new(&format!("/tmp/{}", root_dir), None);
+        b.read_content(&b.current_path.to_str().unwrap().to_string());
+        let content = b.content.clone();
+        let mut dedup: HashSet<String> = HashSet::new();
+        for c in content.iter() {
+            println!("content {}", c);
+            if !dirs_files.contains(c) {
+                panic!("incorrect content");
+            }
+            dedup.insert(c.clone());
+        }
+        assert_eq!(
+            dedup.len(),
+            dirs_files.len(),
+            "should have {} entries matched, got {}",
+            dirs_files.len(),
+            dedup.len()
+        );
+    }
+
+    #[test]
+    fn test_get_preview() {
         let (files, dirs, root_dir, _cd) = random_dirWcontent();
         let mut dirs_files: HashSet<String> = HashSet::new();
         for file in files.iter() {
@@ -832,7 +872,7 @@ mod test {
         }
         let mut b = new("/tmp", None);
         let mut cur_pos = 0;
-        for (i, cd) in b.current_dir.iter().enumerate() {
+        for (i, cd) in b.content.iter().enumerate() {
             if cd == &root_dir {
                 cur_pos = i;
                 break;
@@ -851,19 +891,97 @@ mod test {
         }
         assert_eq!(
             dedup.len(),
-            files.len() + dirs.len(),
+            dirs_files.len(),
             "should have {} entries matched, got {}",
-            files.len() + dirs.len(),
+            dirs_files.len(),
             dedup.len()
         );
     }
 
     #[test]
     fn test_top() {
-        let (_, _, _, _cd) = random_dirWcontent();
-        let mut b = new("/tmp", None);
+        let (_, _, root_dir, _cd) = random_dirWcontent();
+        let mut b = new(&format!("/tmp/{}", root_dir), None);
         b.top();
         assert_eq!(b.cursor, 0);
         assert_eq!(b.window_start, 0);
+    }
+
+    #[test]
+    fn test_bottom() {
+        let (_, _, root_dir, _cd) = random_dirWcontent();
+        let mut b = new(&format!("/tmp/{}", root_dir), None);
+        b.bottom();
+        assert_eq!(b.cursor, b.content.len() - 1);
+    }
+
+    #[test]
+    fn test_up() {
+        let (_, _, root_dir, _cd) = random_dirWcontent();
+        let mut b = new(&format!("/tmp/{}", root_dir), None);
+        b.bottom();
+        let cur_pos1 = b.cursor;
+        b.up();
+        let cur_pos2 = b.cursor;
+        // guarantee to have some files and dirs
+        assert_eq!(cur_pos1, cur_pos2 + 1);
+    }
+
+    #[test]
+    fn test_down() {
+        let (_, _, root_dir, _cd) = random_dirWcontent();
+        let mut b = new(&format!("/tmp/{}", root_dir), None);
+        b.top();
+        let cur_pos1 = b.cursor;
+        b.down();
+        let cur_pos2 = b.cursor;
+        // guarantee to have some files and dirs
+        assert_eq!(cur_pos1 + 1, cur_pos2);
+    }
+
+    #[test]
+    fn test_left() {
+        let (_, dirs, root_dir, _cd) = random_dirWcontent();
+        let target = &dirs[0];
+        let mut b = new(&format!("/tmp/{}/{}", root_dir, target), None);
+        println!(
+            "test_left: before {}",
+            b.current_path.as_path().to_str().unwrap()
+        );
+        b.left();
+        println!(
+            "test_left: after {}",
+            b.current_path.as_path().to_str().unwrap()
+        );
+        assert_eq!(
+            b.current_path.as_path().to_str().unwrap(),
+            format!("/tmp/{}", root_dir)
+        );
+    }
+
+    #[test]
+    fn test_right() {
+        let (_, dirs, root_dir, _cd) = random_dirWcontent();
+        let target = &dirs[0];
+        let mut b = new(&format!("/tmp/{}", root_dir), None);
+        println!(
+            "test_right: before {}",
+            b.current_path.as_path().to_str().unwrap()
+        );
+        for (i, dir) in b.content.iter().enumerate() {
+            if dir == target {
+                b.set_cursor_pos_centered(i);
+                break;
+            }
+        }
+        b.right();
+        println!(
+            "test_right: after {}",
+            b.current_path.as_path().to_str().unwrap()
+        );
+        assert_eq!(
+            b.current_path.as_path().to_str().unwrap(),
+            format!("/tmp/{}/{}", root_dir, target)
+        );
     }
 }
