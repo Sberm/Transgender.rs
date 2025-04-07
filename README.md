@@ -196,10 +196,12 @@ make install
 
 ### Uninstallation
 
-if you want to uninstall `Transgender.rs`
+if you want to uninstall `Transgender.rs`, run
 ```
 make uninstall
 ```
+
+and delete the `eval "$(transgender --sh)"` in your `.bashrc` or `.zshrc` file
 
 <br/>
 
