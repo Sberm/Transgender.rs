@@ -750,8 +750,8 @@ mod test {
 
     fn random_dirs_nfiles() -> (Vec<String>, Vec<String>) {
         let mut rand = Rand::new();
-        let file_nr = rand.rand_uint(1, 10);
-        let dir_nr = rand.rand_uint(1, 10);
+        let file_nr = rand.rand_uint(1, 15);
+        let dir_nr = rand.rand_uint(1, 15);
         let mut files = vec![];
         let mut dirs = vec![];
         for _ in 0..file_nr {
