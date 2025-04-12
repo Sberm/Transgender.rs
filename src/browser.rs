@@ -750,8 +750,8 @@ mod test {
 
     fn random_dirs_nfiles() -> (Vec<String>, Vec<String>) {
         let mut rand = Rand::new();
-        let file_nr = rand.rand_uint(1, 15);
-        let dir_nr = rand.rand_uint(1, 15);
+        let file_nr = rand.rand_uint(2, 15);
+        let dir_nr = rand.rand_uint(2, 15);
         let mut files = vec![];
         let mut dirs = vec![];
         for _ in 0..file_nr {
@@ -770,6 +770,7 @@ mod test {
     //                 /d-XXX
     //
     // on MacOS, /tmp is a symlink to /private/tmp
+    // files, dirs, root_dir, cleanup
     fn random_dir_wcontent() -> (Vec<String>, Vec<String>, String, CleanupDir) {
         let mut rand = Rand::new();
         let (files, dirs) = random_dirs_nfiles();
@@ -1030,6 +1031,27 @@ mod test {
         assert_eq!(expected, cursor_pos2);
     }
 
+    // matching a complete filename
+    fn test_search() {
+        let (files, _, root_dir, _cd) = random_dir_wcontent();
+        let mut rand = Rand::new();
+        let f = files[rand.rand_uint(0, files.len() - 1)].clone();
+        let mut b = new(&format!("/tmp/{}", root_dir), None);
+        let content = b.content.clone();
+        println!("filename to search {}", f);
+        let mut answer = content.len();
+        for (i, c) in content.iter().enumerate() {
+            if c == &f {
+                answer = i;
+                break;
+            }
+        }
+        b.search_txt = f.chars().collect::<Vec<char>>();
+        b.next_match(b.cursor, false);
+        println!("search result {}", &b.content[b.cursor]);
+        assert_eq!(b.cursor, answer);
+    }
+
     #[test]
     // make tests sequential to prevent file name collision
     fn test_seq() {
@@ -1044,5 +1066,6 @@ mod test {
         test_right();
         test_pageup();
         test_pagedown();
+        test_search();
     }
 }
