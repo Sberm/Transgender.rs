@@ -184,13 +184,8 @@ impl Canvas {
         i: usize,
         j: usize,
         cursor: usize,
-        r_w_l: usize,
         is_dir: bool,
     ) {
-        if j != 0 && j != r_w_l {
-            return;
-        }
-
         if i == 0 && j == 0 {
             str_to_draw.push_str(&self.theme.normal);
             str_to_draw.push_str(&self.theme.normal_background);
@@ -416,40 +411,40 @@ impl Canvas {
                     break;
                 }
 
-                // decide if the directory highlight should be added, this applies to both the left
-                // window and the right preview window
-                let is_dir = if !do_preview {
-                    if i + window_start >= content.len() {
-                        false
+                if j == 0 || j == r_w_l {
+                    // decide if the directory highlight should be added, this applies to both the left
+                    // window and the right preview window
+                    let is_dir = if !do_preview {
+                        if i + window_start >= content.len() {
+                            false
+                        } else {
+                            let mut tmp_path = current_path.clone();
+                            tmp_path.push(&content[i + window_start]);
+                            tmp_path.is_dir()
+                        }
                     } else {
                         let mut tmp_path = current_path.clone();
-                        tmp_path.push(&content[i + window_start]);
-                        tmp_path.is_dir()
-                    }
-                } else {
-                    let mut tmp_path = current_path.clone();
-                    tmp_path.push(&content[cursor]);
-                    if i >= preview_dir.len() {
-                        false
-                    } else {
-                        tmp_path.push(&preview_dir[i]);
-                        tmp_path.is_dir()
-                    }
-                };
+                        tmp_path.push(&content[cursor]);
+                        if i >= preview_dir.len() {
+                            false
+                        } else {
+                            tmp_path.push(&preview_dir[i]);
+                            tmp_path.is_dir()
+                        }
+                    };
 
-                // checks both windows
-                self.check_insert_highlight(
-                    &mut str_to_draw,
-                    i,
-                    j,
-                    cursor - window_start,
-                    r_w_l,
-                    is_dir,
-                );
-
+                    // checks both windows
+                    self.check_insert_highlight(
+                        &mut str_to_draw,
+                        i,
+                        j,
+                        cursor - window_start,
+                        is_dir,
+                    );
+                }
                 str_to_draw.push(self.pixels[i][j]);
                 j += 1;
-            } // loop
+            } // loop j
 
             str_to_draw.push_str(&(0..complement).map(|_| ' ').collect::<String>());
 
