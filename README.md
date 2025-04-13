@@ -196,10 +196,12 @@ make install
 
 ### Uninstallation
 
-if you want to uninstall `Transgender.rs`
+if you want to uninstall `Transgender.rs`, run
 ```
 make uninstall
 ```
+
+and delete the `eval "$(transgender --sh)"` in your `.bashrc` or `.zshrc` file
 
 <br/>
 
@@ -220,25 +222,3 @@ attractive. Additionally, ranger is not a good
 software; it is filled with bad designs that irritate
 its users.
 ```
-
-<br/>
-
-### Todo:
-
-- [x] Tests
-
-- [x] Support for up arrow for search history, left and right arrow for navigation, and logic to properly display overflowed search text (show the rightmost part)
-
-- [x] Decouple the utf8 length function get_utf8_len(), and use fewer .clone() in the new arrow key feature
-
-- [x] Add support for zsh and other shells
-
-- [x] Opening files with "open" command and so on
-
-- [x] Bash completion
-
-- [x] Read utf-8 input
-
-- [x] Better full-width character handling
-
-- [x] Config file to change text editor(default to vi)

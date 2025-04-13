@@ -174,18 +174,12 @@ where
 /// Print path to stderr (although stdin and stdout are switched in ts shell function) for cd to
 /// consume.
 pub fn print_path(_path: &PathBuf, dest_file: Option<&PathBuf>) {
-    let path = String::from(
-        _path
-            .as_path()
-            .to_str()
-            .expect("Failed to output file path"),
-    ) + "\n";
+    let path = String::from(_path.to_str().expect("Failed to output file path")) + "\n";
     if dest_file.is_some() {
-        let mut file = File::create(dest_file.unwrap().as_path()).expect(&format!(
+        let mut file = File::create(dest_file.unwrap()).expect(&format!(
             "Failed to write to temporary destination file {}",
             dest_file
                 .expect("Failed to unwrap dest file")
-                .as_path()
                 .to_str()
                 .expect("Failed to print the temporary destination file")
         ));
@@ -348,15 +342,38 @@ pub mod test {
     use std::time::SystemTime;
 
     pub struct Rand {
-        x_pre: Option<usize>,
+        pub x_pre: Option<u128>,
+        pub y_pre: Option<u128>,
     }
+
+    const M: u128 = 7919;
+    const A: u128 = 7907;
+    const C: u128 = 7901;
 
     impl Rand {
         pub fn new() -> Rand {
-            Rand { x_pre: None }
+            Rand {
+                x_pre: None,
+                y_pre: None,
+            }
         }
 
-        pub fn random_str(&mut self) -> String {
+        pub fn rand_uint(&mut self, min: usize, max: usize) -> usize {
+            assert!(max >= min);
+            let mut x = if self.x_pre.is_none() {
+                SystemTime::now()
+                    .duration_since(SystemTime::UNIX_EPOCH)
+                    .expect("empty duration")
+                    .as_nanos()
+            } else {
+                self.x_pre.unwrap()
+            };
+            x = (A * x + C) % ((max - min) as u128);
+            self.x_pre = Some(x);
+            return x as usize + min;
+        }
+
+        pub fn rand_str(&mut self) -> String {
             let len = 16;
             let mut rand_str = Vec::from([' '; 16]);
             let alnums = [
@@ -368,19 +385,23 @@ pub mod test {
                 SystemTime::now()
                     .duration_since(SystemTime::UNIX_EPOCH)
                     .expect("empty duration")
-                    .as_secs() as usize
+                    .as_nanos()
             } else {
                 self.x_pre.unwrap()
             };
-            let m = 129387;
-            let a = 2731;
-            let c = 1195;
-            let al_len = alnums.len();
+            let mut y = if self.y_pre.is_none() {
+                (x * x) % M
+            } else {
+                self.y_pre.unwrap()
+            };
+            let al_len = alnums.len() as u128;
             for i in 0..len {
-                rand_str[i] = alnums[x % al_len];
-                x = (a * x + c) % m;
+                rand_str[i] = alnums[((x + y) % al_len) as usize];
+                x = (A * x + C) % M;
+                y = (A * y + C) % M;
             }
             self.x_pre = Some(x);
+            self.y_pre = Some(y);
             return rand_str.into_iter().collect::<String>();
         }
     }
