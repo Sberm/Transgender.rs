@@ -5,7 +5,15 @@
 [version-badge]: https://img.shields.io/github/v/release/sberm/Transgender.rs
 [version-url]: https://github.com/Sberm/Transgender.rs/releases
 
-A minimalistic TUI file explorer with **minimal dependencies**, written by a [ranger](https://github.com/ranger/ranger) hater, works on Linux & MacOS.
+A minimalistic file explorer with **minimal dependencies**, written by a [ranger](https://github.com/ranger/ranger) hater, works on Linux & MacOS.
+
+### Features:
+
+* File exploration
+* File searching
+* Switching directories
+* Opening files
+* Multiple themes
 
 ![](img/catppuccin.png)
 
@@ -204,14 +212,6 @@ make uninstall
 and delete the `eval "$(transgender --sh)"` in your `.bashrc` or `.zshrc` file
 
 <br/>
-
-### Features:
-
-* File exploration
-* Changing directories
-* Searching by file name
-* Opening files with a preferred editor
-* Multiple themes
 
 ```
 WHY DID I MAKE TRANS?
