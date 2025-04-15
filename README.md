@@ -15,11 +15,9 @@ A minimalistic file explorer with **minimal dependencies**, written by a [ranger
 * Opening files
 * Multiple themes
 
+<br/>
+
 ![](img/catppuccin.png)
-
-![](img/trans_.jpg)
-
-![](img/lucius.jpg)
 
 ## Quick start
 
@@ -143,21 +141,7 @@ enter = emacs -nbc --no-desktop --title I-Love-Emacs
 o = code --sync on --disable-lcd-text --disable-gpu
 ```
 
-#### Editor
-
-The specified editor will open when `o` or `ENTER` is pressed while the cursor is on a
-file.
-
-The default editor is `vi`; You can change it to `vscode` by adding this line into your
-`~/.tsrc` file:
-```tsrc
-editor = code
-```
-
-`o` and `ENTER` can open different editors and programs, for example, press `o` to open `vim`,
-and `enter` to open `emacs`. See the guide above for how to configure them using `.tsrc`.
-
-#### Theme
+### Theme
 
 The default theme is `lucius`.
 
@@ -177,6 +161,20 @@ Other themes:
 * [lucius-l](https://imgur.com/a/RyImZYW)
 
 The theme name is case-insensitive; e.g., Catppuccin and catppuccin both work.
+
+### Editor
+
+The specified editor will open when `o` or `ENTER` is pressed while the cursor is on a
+file.
+
+The default editor is `vi`; You can change it to `vscode` by adding this line into your
+`~/.tsrc` file:
+```tsrc
+editor = code
+```
+
+`o` and `ENTER` can open different editors and programs, for example, press `o` to open `vim`,
+and `enter` to open `emacs`. See the guide above for how to configure them using `.tsrc`.
 
 <br/>
 
