@@ -732,8 +732,7 @@ mod test {
     use super::*;
     use crate::util::test::Rand;
     use std::collections::HashSet;
-    use std::fs::File;
-    use std::fs::{create_dir, create_dir_all, remove_dir_all};
+    use std::fs::{create_dir, create_dir_all, exists, remove_dir_all, File};
     use std::ops::Drop;
 
     struct CleanupDir {
@@ -774,7 +773,14 @@ mod test {
     fn random_dir_wcontent() -> (Vec<String>, Vec<String>, String, CleanupDir) {
         let mut rand = Rand::new();
         let (files, dirs) = random_dirs_nfiles();
-        let root_dir = format!("ts-test-{}", rand.rand_str());
+        let mut root_dir: String;
+        loop {
+            root_dir = format!("ts-test-{}", rand.rand_str());
+            let _root_dir = format!("/tmp/{}", &root_dir);
+            if !exists(&_root_dir).expect("don't know if exists") {
+                break;
+            }
+        }
         println!("creating root dir {}", &root_dir);
         let _r = create_dir(&format!("/tmp/{}", &root_dir));
         if _r.is_err() {
@@ -800,6 +806,7 @@ mod test {
         (files, dirs, root_dir, _cd)
     }
 
+    #[test]
     fn test_browser_init() {
         let mut rand = Rand::new();
         let mut tmp_dirs: Vec<String> = vec![];
@@ -807,6 +814,16 @@ mod test {
         for _ in 0..depth {
             tmp_dirs.push(format!("ts-test-{}", &rand.rand_str()));
         }
+
+        let mut root_dir;
+        loop {
+            root_dir = format!("ts-test-{}", rand.rand_str());
+            let _root_dir = format!("/tmp/{}", &root_dir);
+            if !exists(&root_dir).expect("don't know if exists") {
+                break;
+            }
+        }
+        tmp_dirs[0] = root_dir;
         // assert_eq! (when failed) and the end of function will call drop() for cleanup
         let _cd = CleanupDir {
             dir: String::from(&tmp_dirs[0]),
@@ -816,6 +833,7 @@ mod test {
             "/tmp/{}/{}/{}/{}",
             tmp_dirs[0], tmp_dirs[1], tmp_dirs[2], tmp_dirs[3]
         );
+        // we care about the first file
         create_dir_all(&temp_dir).expect(&format!("create dir {} failed", &temp_dir));
         println!("created dir {}", &temp_dir);
         let b = new(&temp_dir, None); // browser::new()
@@ -854,6 +872,7 @@ mod test {
         }
     }
 
+    #[test]
     fn test_read_content() {
         // if _cd is instead '_', it will be dropped right away
         let (files, dirs, root_dir, _cd) = random_dir_wcontent();
@@ -884,6 +903,7 @@ mod test {
         );
     }
 
+    #[test]
     fn test_get_preview() {
         let (files, dirs, root_dir, _cd) = random_dir_wcontent();
         let mut dirs_files: HashSet<String> = HashSet::new();
@@ -921,6 +941,7 @@ mod test {
         );
     }
 
+    #[test]
     fn test_top() {
         let (_, _, root_dir, _cd) = random_dir_wcontent();
         let mut b = new(&format!("/tmp/{}", root_dir), None);
@@ -929,6 +950,7 @@ mod test {
         assert_eq!(b.window_start, 0);
     }
 
+    #[test]
     fn test_bottom() {
         let (_, _, root_dir, _cd) = random_dir_wcontent();
         let mut b = new(&format!("/tmp/{}", root_dir), None);
@@ -936,6 +958,7 @@ mod test {
         assert_eq!(b.cursor, b.content.len() - 1);
     }
 
+    #[test]
     fn test_up() {
         let (_, _, root_dir, _cd) = random_dir_wcontent();
         let mut b = new(&format!("/tmp/{}", root_dir), None);
@@ -947,6 +970,7 @@ mod test {
         assert_eq!(cur_pos1, cur_pos2 + 1);
     }
 
+    #[test]
     fn test_down() {
         let (_, _, root_dir, _cd) = random_dir_wcontent();
         let mut b = new(&format!("/tmp/{}", root_dir), None);
@@ -958,6 +982,7 @@ mod test {
         assert_eq!(cur_pos1 + 1, cur_pos2);
     }
 
+    #[test]
     fn test_left() {
         let (_, dirs, root_dir, _cd) = random_dir_wcontent();
         let target = &dirs[0];
@@ -975,6 +1000,7 @@ mod test {
         );
     }
 
+    #[test]
     fn test_right() {
         let (_, dirs, root_dir, _cd) = random_dir_wcontent();
         let target = &dirs[0];
@@ -998,6 +1024,7 @@ mod test {
         );
     }
 
+    #[test]
     fn test_pageup() {
         let (_, _, root_dir, _cd) = random_dir_wcontent();
         // content is guaranteed to not be empty
@@ -1015,6 +1042,7 @@ mod test {
         assert_eq!(expected, cursor_pos2);
     }
 
+    #[test]
     fn test_pagedown() {
         let (_, _, root_dir, _cd) = random_dir_wcontent();
         let mut b = new(&format!("/tmp/{}", root_dir), None);
@@ -1032,6 +1060,7 @@ mod test {
     }
 
     // matching a complete filename
+    #[test]
     fn test_search() {
         let (files, _, root_dir, _cd) = random_dir_wcontent();
         let mut rand = Rand::new();
@@ -1050,22 +1079,5 @@ mod test {
         b.next_match(b.cursor, false);
         println!("search result {}", &b.content[b.cursor]);
         assert_eq!(b.cursor, answer);
-    }
-
-    #[test]
-    // make tests sequential to prevent file name collision
-    fn test_seq() {
-        test_browser_init();
-        test_read_content();
-        test_get_preview();
-        test_top();
-        test_bottom();
-        test_up();
-        test_down();
-        test_left();
-        test_right();
-        test_pageup();
-        test_pagedown();
-        test_search();
     }
 }
