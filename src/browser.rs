@@ -45,6 +45,7 @@ pub struct Browser {
     search_history_index: usize,
     trunc: Vec<u8>,
     input_cursor_pos: usize,
+    rev_search: bool,
 }
 
 pub enum UsizeIter {
@@ -122,6 +123,22 @@ impl Browser {
         self.top();
     }
 
+    fn cursor_add_one(&mut self) -> usize {
+        if self.cursor + 1 < self.content.len() {
+            self.cursor + 1
+        } else {
+            0
+        }
+    }
+
+    fn cursor_minus_one(&mut self) -> usize {
+        if self.cursor as isize - 1 >= 0 {
+            self.cursor - 1
+        } else {
+            self.content.len() - 1
+        }
+    }
+
     /// Window display update loop
     pub fn start_loop(&mut self, canvas: &mut canvas::Canvas) {
         loop {
@@ -138,7 +155,7 @@ impl Browser {
                 self.input_cursor_pos,
             );
 
-            if matches!(self.mode, Mode::SEARCH) {
+            if matches!(self.mode, Mode::Search) || matches!(self.mode, Mode::RevSearch) {
                 self.search(canvas);
                 continue;
             }
@@ -175,27 +192,29 @@ impl Browser {
                 }
                 Op::Search => {
                     self.search_txt = Vec::new();
-                    self.mode = Mode::SEARCH;
+                    self.mode = Mode::Search;
+                    self.rev_search = false;
+                }
+                Op::RevSearch => {
+                    self.search_txt = Vec::new();
+                    self.mode = Mode::RevSearch; // for canvas to print out '?'
+                    self.rev_search = true;
                 }
                 Op::NextMatch => {
-                    self.next_match(
-                        if self.cursor + 1 < self.content.len() {
-                            self.cursor + 1
-                        } else {
-                            0
-                        },
-                        false,
-                    );
+                    let start = if self.rev_search {
+                        self.cursor_minus_one()
+                    } else {
+                        self.cursor_add_one()
+                    };
+                    self.next_match(start, false);
                 }
                 Op::PrevMatch => {
-                    self.next_match(
-                        if self.cursor as isize - 1 >= 0 {
-                            self.cursor - 1
-                        } else {
-                            self.content.len() - 1
-                        },
-                        true,
-                    );
+                    let start = if self.rev_search {
+                        self.cursor_add_one()
+                    } else {
+                        self.cursor_minus_one()
+                    };
+                    self.next_match(start, true);
                 }
                 Op::PageUp => self.pageup(),
                 Op::PageDown => self.pagedown(),
@@ -275,9 +294,13 @@ impl Browser {
     }
 
     /// Next search match, can be a reversed search
-    fn next_match(&mut self, start: usize, rev: bool) {
+    fn next_match(&mut self, start: usize, mut rev: bool) {
         if self.search_txt.len() == 0 {
             return;
+        }
+
+        if matches!(self.mode, Mode::RevSearch) || self.rev_search == true {
+            rev = !rev;
         }
 
         let mut matched = false;
@@ -375,7 +398,7 @@ impl Browser {
             }
             if first_char == 27 {
                 // esc
-                self.mode = Mode::NORMAL;
+                self.mode = Mode::Normal;
                 self.search_history_index = self.search_history.len();
                 self.input_cursor_pos = 0;
                 canvas.reset_bottom_bar();
@@ -396,7 +419,7 @@ impl Browser {
             } else if first_char == 10 {
                 // enter
                 self.save_history();
-                self.mode = Mode::NORMAL;
+                self.mode = Mode::Normal;
                 self.input_cursor_pos = 0;
                 canvas.reset_bottom_bar();
                 return;
@@ -710,7 +733,7 @@ pub fn new(path: &str, dest_file: Option<String>) -> Browser {
         past_window_start: Vec::new(),
         current_path: PathBuf::new(),
         original_path: PathBuf::from("."),
-        mode: Mode::NORMAL,
+        mode: Mode::Normal,
         search_txt: Vec::new(),
         opener_o: Opener::new(comm_o, args_o),
         opener_enter: Opener::new(comm_enter, args_enter),
@@ -722,6 +745,7 @@ pub fn new(path: &str, dest_file: Option<String>) -> Browser {
         search_history_index: 0,
         trunc: Vec::new(),
         input_cursor_pos: 0,
+        rev_search: false,
     };
     browser.init(&path);
     browser

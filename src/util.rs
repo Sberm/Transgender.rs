@@ -156,6 +156,7 @@ pub fn process_input() -> Op {
         105 => return Op::Exit,           // i
         113 => return Op::Quit,           // q
         47 => return Op::Search,          // /
+        63 => return Op::RevSearch,       // ?
         71 => return Op::Bottom,          // G
         110 => return Op::NextMatch,      // n
         78 => return Op::PrevMatch,       // N
