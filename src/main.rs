@@ -29,11 +29,11 @@ fn main() {
     let print_help_message = || {
         let help_message = r###"
   transgender
-    --dest         FILE file that transgender outputs the destination to
-    -v, --version  Print current version
-    -h, --help     Show this message
-    --sh           Print transgender configuration shell script
-    -c, --conf     Config file path (default: ~/.tsrc)
+    --dest <file>   File that transgender outputs the destination path to
+    -v, --version   Print current version
+    -h, --help      Show this message
+    --sh            Print transgender configuration shell script
+    -c, --conf      Config file path (default: ~/.tsrc)
 
     Use transgender <DIR> to start transgender in DIR directory
 
