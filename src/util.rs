@@ -191,9 +191,14 @@ pub fn print_path(_path: &PathBuf, dest_file: Option<&PathBuf>) {
     }
 }
 
-pub fn get_theme() -> String {
+pub fn get_theme(_config_path: Option<&str>) -> String {
     if let Ok(home_dir) = var(consts::HOME_VAR) {
-        if let Ok(lines) = read_lines(&format!("{}/{}", home_dir, consts::CONFIG_FILE)) {
+        let config_path = if _config_path.is_some() {
+            _config_path.unwrap()
+        } else {
+            consts::CONFIG_FILE
+        };
+        if let Ok(lines) = read_lines(&format!("{}/{}", home_dir, config_path)) {
             for line in lines.flatten() {
                 let kv = line.split("=").collect::<Vec<&str>>();
                 if kv.len() != 2 {
@@ -212,16 +217,21 @@ pub fn get_theme() -> String {
 ///
 /// returns
 ///  opener's command with arguments
-pub fn get_opener(op: Op) -> (OsString, Option<Vec<OsString>>) {
+pub fn get_opener(op: Op, _config_path: Option<&str>) -> (OsString, Option<Vec<OsString>>) {
     let key = match op {
         Op::ExitCursorO => Some(consts::O_KEY),
         Op::ExitCursorEnter => Some(consts::ENTER_KEY),
         _ => None,
     };
+    let config_path = if _config_path.is_some() {
+        _config_path.unwrap()
+    } else {
+        consts::CONFIG_FILE
+    };
     let mut comm = OsString::from(consts::OPENER);
     let mut args: Option<Vec<OsString>> = None;
     if let Ok(home_dir) = var(consts::HOME_VAR) {
-        if let Ok(lines) = read_lines(&format!("{}/{}", home_dir, consts::CONFIG_FILE)) {
+        if let Ok(lines) = read_lines(&format!("{}/{}", home_dir, config_path)) {
             for line in lines.flatten() {
                 let kv = line.split("=").collect::<Vec<&str>>();
                 if kv.len() != 2 {

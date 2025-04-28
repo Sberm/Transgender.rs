@@ -22,6 +22,8 @@ const VERSION: &str = "1.4.2";
 fn main() {
     let mut path = String::from(".");
     let mut dest_file: Option<String> = None;
+    let mut config_path: String;
+    let mut config_path_op: Option<&str> = None;
 
     let mut args = env::args();
     let print_help_message = || {
@@ -31,6 +33,7 @@ fn main() {
     -v, --version  Print current version
     -h, --help     Show this message
     --sh           Print transgender configuration shell script
+    -c, --conf     Config file path (default: ~/.tsrc)
 
     Use transgender <DIR> to start transgender in DIR directory
 
@@ -87,6 +90,21 @@ fi
         } else if s.eq("-h") || s.eq("--help") {
             print_help_message();
             exit(0);
+        } else if s.eq("-c") || s.eq("--config") {
+            let _one_more = args.next();
+            let conf_err = || {
+                println!("-c/--config: Please provide the path to the configuration file");
+                print_help_message();
+                exit(0);
+            };
+            if _one_more.is_none() {
+                conf_err();
+            }
+            config_path = _one_more.expect("Failed to get config file path");
+            if !Path::new(&config_path).is_file() {
+                conf_err();
+            }
+            config_path_op = Some(&config_path);
         } else {
             // the starting path with no argument name
             let p = Path::new(&s);
@@ -97,8 +115,8 @@ fi
     }
 
     // multiple arguments with random order
-    let mut canvas = canvas::new();
-    let mut browser = browser::new(&path, dest_file);
+    let mut canvas = canvas::new(config_path_op);
+    let mut browser = browser::new(&path, dest_file, config_path_op);
 
     util::enter_albuf();
     browser.start_loop(&mut canvas);

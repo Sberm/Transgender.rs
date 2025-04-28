@@ -471,12 +471,12 @@ impl Canvas {
     }
 }
 
-pub fn new() -> Canvas {
+pub fn new(config_path: Option<&str>) -> Canvas {
     Canvas {
         height: 0,
         width: 0,
         pixels: Vec::new(),
-        theme: theme::Theme::from(&util::get_theme()),
+        theme: theme::Theme::from(&util::get_theme(config_path)),
         utf8_table: WcLookupTable::new(),
         bottom_start: 0,
         add_algnmt: false,

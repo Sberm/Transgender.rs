@@ -720,9 +720,9 @@ impl Opener {
     }
 }
 
-pub fn new(path: &str, dest_file: Option<String>) -> Browser {
-    let (comm_o, args_o) = util::get_opener(Op::ExitCursorO);
-    let (comm_enter, args_enter) = util::get_opener(Op::ExitCursorEnter);
+pub fn new(path: &str, dest_file: Option<String>, config_path: Option<&str>) -> Browser {
+    let (comm_o, args_o) = util::get_opener(Op::ExitCursorO, config_path);
+    let (comm_enter, args_enter) = util::get_opener(Op::ExitCursorEnter, config_path);
 
     let mut browser = Browser {
         cursor: 0,
