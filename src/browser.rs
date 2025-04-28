@@ -860,7 +860,7 @@ mod test {
         // we care about the first file
         create_dir_all(&temp_dir).expect(&format!("create dir {} failed", &temp_dir));
         println!("created dir {}", &temp_dir);
-        let b = new(&temp_dir, None); // browser::new()
+        let b = new(&temp_dir, None, None); // browser::new()
         let past_dir = &b.past_dir;
 
         #[allow(unused_assignments)]
@@ -907,7 +907,7 @@ mod test {
         for dir in dirs.iter() {
             dirs_files.insert(dir.to_string());
         }
-        let mut b = new(&format!("/tmp/{}", root_dir), None);
+        let mut b = new(&format!("/tmp/{}", root_dir), None, None);
         b.read_content(&b.current_path.to_str().unwrap().to_string());
         let content = b.content.clone();
         let mut dedup: HashSet<String> = HashSet::new();
@@ -937,7 +937,7 @@ mod test {
         for dir in dirs.iter() {
             dirs_files.insert(dir.to_string());
         }
-        let mut b = new("/tmp", None);
+        let mut b = new("/tmp", None, None);
         let mut cur_pos = 0;
         for (i, cd) in b.content.iter().enumerate() {
             if cd == &root_dir {
@@ -968,7 +968,7 @@ mod test {
     #[test]
     fn test_top() {
         let (_, _, root_dir, _cd) = random_dir_wcontent();
-        let mut b = new(&format!("/tmp/{}", root_dir), None);
+        let mut b = new(&format!("/tmp/{}", root_dir), None, None);
         b.top();
         assert_eq!(b.cursor, 0);
         assert_eq!(b.window_start, 0);
@@ -977,7 +977,7 @@ mod test {
     #[test]
     fn test_bottom() {
         let (_, _, root_dir, _cd) = random_dir_wcontent();
-        let mut b = new(&format!("/tmp/{}", root_dir), None);
+        let mut b = new(&format!("/tmp/{}", root_dir), None, None);
         b.bottom();
         assert_eq!(b.cursor, b.content.len() - 1);
     }
@@ -985,7 +985,7 @@ mod test {
     #[test]
     fn test_up() {
         let (_, _, root_dir, _cd) = random_dir_wcontent();
-        let mut b = new(&format!("/tmp/{}", root_dir), None);
+        let mut b = new(&format!("/tmp/{}", root_dir), None, None);
         b.bottom();
         let cur_pos1 = b.cursor;
         b.up();
@@ -997,7 +997,7 @@ mod test {
     #[test]
     fn test_down() {
         let (_, _, root_dir, _cd) = random_dir_wcontent();
-        let mut b = new(&format!("/tmp/{}", root_dir), None);
+        let mut b = new(&format!("/tmp/{}", root_dir), None, None);
         b.top();
         let cur_pos1 = b.cursor;
         b.down();
@@ -1010,7 +1010,7 @@ mod test {
     fn test_left() {
         let (_, dirs, root_dir, _cd) = random_dir_wcontent();
         let target = &dirs[0];
-        let mut b = new(&format!("/tmp/{}/{}", root_dir, target), None);
+        let mut b = new(&format!("/tmp/{}/{}", root_dir, target), None, None);
         println!("test_left: before {}", b.current_path.to_str().unwrap());
         b.left();
         println!("test_left: after {}", b.current_path.to_str().unwrap());
@@ -1028,7 +1028,7 @@ mod test {
     fn test_right() {
         let (_, dirs, root_dir, _cd) = random_dir_wcontent();
         let target = &dirs[0];
-        let mut b = new(&format!("/tmp/{}", root_dir), None);
+        let mut b = new(&format!("/tmp/{}", root_dir), None, None);
         println!("test_right: before {}", b.current_path.to_str().unwrap());
         for (i, dir) in b.content.iter().enumerate() {
             if dir == target {
@@ -1052,7 +1052,7 @@ mod test {
     fn test_pageup() {
         let (_, _, root_dir, _cd) = random_dir_wcontent();
         // content is guaranteed to not be empty
-        let mut b = new(&format!("/tmp/{}", root_dir), None);
+        let mut b = new(&format!("/tmp/{}", root_dir), None, None);
         b.bottom();
         let cursor_pos1 = b.cursor;
         b.pageup();
@@ -1069,7 +1069,7 @@ mod test {
     #[test]
     fn test_pagedown() {
         let (_, _, root_dir, _cd) = random_dir_wcontent();
-        let mut b = new(&format!("/tmp/{}", root_dir), None);
+        let mut b = new(&format!("/tmp/{}", root_dir), None, None);
         b.top();
         let cursor_pos1 = b.cursor;
         b.pagedown();
@@ -1089,7 +1089,7 @@ mod test {
         let (files, _, root_dir, _cd) = random_dir_wcontent();
         let mut rand = Rand::new();
         let f = files[rand.rand_uint(0, files.len() - 1)].clone();
-        let mut b = new(&format!("/tmp/{}", root_dir), None);
+        let mut b = new(&format!("/tmp/{}", root_dir), None, None);
         let content = b.content.clone();
         println!("filename to search {}", f);
         let mut answer = content.len();
