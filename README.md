@@ -84,6 +84,7 @@ ts
 | i                                | go to the current directory (in the left window)                    |
 | q                                | quit                                                                |
 | /                                | search                                                              |
+| ?                                | reverse search                                                      |
 | n / N                            | jump to the next/previous search match                              |
 | Ctrl + U / Ctrl + D              | half pageup/pagedown                                                |
 | (when in search mode) arrow keys | up/down for search history, left/right for editing the search query |
@@ -183,7 +184,7 @@ and `enter` to open `emacs`. See the guide above for how to configure them using
 Searching is case-insensitive by default, use `<search term>\C` to search
 case-sensitively. e.g. `README\C` will return the search result for `README.md`.
 
-Now supports `>> regular expression <<`
+`Transgender.rs` supports **regular expression**.
 
 `Trangender.rs` performs a search whenever a key is pressed in search mode
 
