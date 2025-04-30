@@ -33,6 +33,7 @@ pub enum Op {
     Top,
     Bottom,
     Search,
+    RevSearch,
     NextMatch,
     PrevMatch,
     PageUp,
@@ -41,6 +42,7 @@ pub enum Op {
 
 #[derive(Copy, Clone)]
 pub enum Mode {
-    NORMAL,
-    SEARCH,
+    Normal,
+    Search,
+    RevSearch,
 }

@@ -44,6 +44,7 @@ pub struct Browser {
     search_history_index: usize,
     trunc: Vec<u8>,
     input_cursor_pos: usize,
+    rev_search: bool,
 }
 
 pub enum UsizeIter {
@@ -121,6 +122,22 @@ impl Browser {
         self.top();
     }
 
+    fn cursor_add_one(&mut self) -> usize {
+        if self.cursor + 1 < self.content.len() {
+            self.cursor + 1
+        } else {
+            0
+        }
+    }
+
+    fn cursor_minus_one(&mut self) -> usize {
+        if self.cursor as isize - 1 >= 0 {
+            self.cursor - 1
+        } else {
+            self.content.len() - 1
+        }
+    }
+
     /// Window display update loop
     pub fn start_loop(&mut self, canvas: &mut canvas::Canvas) {
         loop {
@@ -137,7 +154,7 @@ impl Browser {
                 self.input_cursor_pos,
             );
 
-            if matches!(self.mode, Mode::SEARCH) {
+            if matches!(self.mode, Mode::Search) || matches!(self.mode, Mode::RevSearch) {
                 self.search(canvas);
                 continue;
             }
@@ -174,27 +191,29 @@ impl Browser {
                 }
                 Op::Search => {
                     self.search_txt = Vec::new();
-                    self.mode = Mode::SEARCH;
+                    self.mode = Mode::Search;
+                    self.rev_search = false;
+                }
+                Op::RevSearch => {
+                    self.search_txt = Vec::new();
+                    self.mode = Mode::RevSearch; // for canvas to print out '?'
+                    self.rev_search = true;
                 }
                 Op::NextMatch => {
-                    self.next_match(
-                        if self.cursor + 1 < self.content.len() {
-                            self.cursor + 1
-                        } else {
-                            0
-                        },
-                        false,
-                    );
+                    let start = if self.rev_search {
+                        self.cursor_minus_one()
+                    } else {
+                        self.cursor_add_one()
+                    };
+                    self.next_match(start, false);
                 }
                 Op::PrevMatch => {
-                    self.next_match(
-                        if self.cursor as isize - 1 >= 0 {
-                            self.cursor - 1
-                        } else {
-                            self.content.len() - 1
-                        },
-                        true,
-                    );
+                    let start = if self.rev_search {
+                        self.cursor_add_one()
+                    } else {
+                        self.cursor_minus_one()
+                    };
+                    self.next_match(start, true);
                 }
                 Op::PageUp => self.pageup(),
                 Op::PageDown => self.pagedown(),
@@ -282,9 +301,13 @@ impl Browser {
     }
 
     /// Next search match, can be a reversed search
-    fn next_match(&mut self, start: usize, rev: bool) {
+    fn next_match(&mut self, start: usize, mut rev: bool) {
         if self.search_txt.len() == 0 {
             return;
+        }
+
+        if matches!(self.mode, Mode::RevSearch) || self.rev_search == true {
+            rev = !rev;
         }
 
         let mut matched = false;
@@ -371,7 +394,7 @@ impl Browser {
             }
             if first_char == 27 {
                 // esc
-                self.mode = Mode::NORMAL;
+                self.mode = Mode::Normal;
                 self.search_history_index = self.search_history.len();
                 self.input_cursor_pos = 0;
                 canvas.reset_bottom_bar();
@@ -392,7 +415,7 @@ impl Browser {
             } else if first_char == 10 {
                 // enter
                 self.save_history();
-                self.mode = Mode::NORMAL;
+                self.mode = Mode::Normal;
                 self.input_cursor_pos = 0;
                 canvas.reset_bottom_bar();
                 return;
@@ -693,9 +716,9 @@ impl Opener {
     }
 }
 
-pub fn new(path: &str, dest_file: Option<String>) -> Browser {
-    let (comm_o, args_o) = util::get_opener(Op::ExitCursorO);
-    let (comm_enter, args_enter) = util::get_opener(Op::ExitCursorEnter);
+pub fn new(path: &str, dest_file: Option<String>, config_path: Option<&str>) -> Browser {
+    let (comm_o, args_o) = util::get_opener(Op::ExitCursorO, config_path);
+    let (comm_enter, args_enter) = util::get_opener(Op::ExitCursorEnter, config_path);
 
     let mut browser = Browser {
         cursor: 0,
@@ -706,7 +729,7 @@ pub fn new(path: &str, dest_file: Option<String>) -> Browser {
         past_window_start: Vec::new(),
         current_path: PathBuf::new(),
         original_path: PathBuf::from("."),
-        mode: Mode::NORMAL,
+        mode: Mode::Normal,
         search_txt: Vec::new(),
         opener_o: Opener::new(comm_o, args_o),
         opener_enter: Opener::new(comm_enter, args_enter),
@@ -718,6 +741,7 @@ pub fn new(path: &str, dest_file: Option<String>) -> Browser {
         search_history_index: 0,
         trunc: Vec::new(),
         input_cursor_pos: 0,
+        rev_search: false,
     };
     browser.init(&path);
     browser
@@ -728,8 +752,7 @@ mod test {
     use super::*;
     use crate::util::test::Rand;
     use std::collections::HashSet;
-    use std::fs::File;
-    use std::fs::{create_dir, create_dir_all, remove_dir_all};
+    use std::fs::{create_dir, create_dir_all, exists, remove_dir_all, File};
     use std::ops::Drop;
 
     struct CleanupDir {
@@ -770,7 +793,14 @@ mod test {
     fn random_dir_wcontent() -> (Vec<String>, Vec<String>, String, CleanupDir) {
         let mut rand = Rand::new();
         let (files, dirs) = random_dirs_nfiles();
-        let root_dir = format!("ts-test-{}", rand.rand_str());
+        let mut root_dir: String;
+        loop {
+            root_dir = format!("ts-test-{}", rand.rand_str());
+            let _root_dir = format!("/tmp/{}", &root_dir);
+            if !exists(&_root_dir).expect("don't know if exists") {
+                break;
+            }
+        }
         println!("creating root dir {}", &root_dir);
         let _r = create_dir(&format!("/tmp/{}", &root_dir));
         if _r.is_err() {
@@ -796,6 +826,7 @@ mod test {
         (files, dirs, root_dir, _cd)
     }
 
+    #[test]
     fn test_browser_init() {
         let mut rand = Rand::new();
         let mut tmp_dirs: Vec<String> = vec![];
@@ -803,6 +834,16 @@ mod test {
         for _ in 0..depth {
             tmp_dirs.push(format!("ts-test-{}", &rand.rand_str()));
         }
+
+        let mut root_dir;
+        loop {
+            root_dir = format!("ts-test-{}", rand.rand_str());
+            let _root_dir = format!("/tmp/{}", &root_dir);
+            if !exists(&root_dir).expect("don't know if exists") {
+                break;
+            }
+        }
+        tmp_dirs[0] = root_dir;
         // assert_eq! (when failed) and the end of function will call drop() for cleanup
         let _cd = CleanupDir {
             dir: String::from(&tmp_dirs[0]),
@@ -812,9 +853,10 @@ mod test {
             "/tmp/{}/{}/{}/{}",
             tmp_dirs[0], tmp_dirs[1], tmp_dirs[2], tmp_dirs[3]
         );
+        // we care about the first file
         create_dir_all(&temp_dir).expect(&format!("create dir {} failed", &temp_dir));
         println!("created dir {}", &temp_dir);
-        let b = new(&temp_dir, None); // browser::new()
+        let b = new(&temp_dir, None, None); // browser::new()
         let past_dir = &b.past_dir;
 
         #[allow(unused_assignments)]
@@ -850,6 +892,7 @@ mod test {
         }
     }
 
+    #[test]
     fn test_read_content() {
         // if _cd is instead '_', it will be dropped right away
         let (files, dirs, root_dir, _cd) = random_dir_wcontent();
@@ -860,7 +903,7 @@ mod test {
         for dir in dirs.iter() {
             dirs_files.insert(dir.to_string());
         }
-        let mut b = new(&format!("/tmp/{}", root_dir), None);
+        let mut b = new(&format!("/tmp/{}", root_dir), None, None);
         b.read_content(&b.current_path.to_str().unwrap().to_string());
         let content = b.content.clone();
         let mut dedup: HashSet<String> = HashSet::new();
@@ -880,6 +923,7 @@ mod test {
         );
     }
 
+    #[test]
     fn test_get_preview() {
         let (files, dirs, root_dir, _cd) = random_dir_wcontent();
         let mut dirs_files: HashSet<String> = HashSet::new();
@@ -889,7 +933,7 @@ mod test {
         for dir in dirs.iter() {
             dirs_files.insert(dir.to_string());
         }
-        let mut b = new("/tmp", None);
+        let mut b = new("/tmp", None, None);
         let mut cur_pos = 0;
         for (i, cd) in b.content.iter().enumerate() {
             if cd == &root_dir {
@@ -917,24 +961,27 @@ mod test {
         );
     }
 
+    #[test]
     fn test_top() {
         let (_, _, root_dir, _cd) = random_dir_wcontent();
-        let mut b = new(&format!("/tmp/{}", root_dir), None);
+        let mut b = new(&format!("/tmp/{}", root_dir), None, None);
         b.top();
         assert_eq!(b.cursor, 0);
         assert_eq!(b.window_start, 0);
     }
 
+    #[test]
     fn test_bottom() {
         let (_, _, root_dir, _cd) = random_dir_wcontent();
-        let mut b = new(&format!("/tmp/{}", root_dir), None);
+        let mut b = new(&format!("/tmp/{}", root_dir), None, None);
         b.bottom();
         assert_eq!(b.cursor, b.content.len() - 1);
     }
 
+    #[test]
     fn test_up() {
         let (_, _, root_dir, _cd) = random_dir_wcontent();
-        let mut b = new(&format!("/tmp/{}", root_dir), None);
+        let mut b = new(&format!("/tmp/{}", root_dir), None, None);
         b.bottom();
         let cur_pos1 = b.cursor;
         b.up();
@@ -943,9 +990,10 @@ mod test {
         assert_eq!(cur_pos1, cur_pos2 + 1);
     }
 
+    #[test]
     fn test_down() {
         let (_, _, root_dir, _cd) = random_dir_wcontent();
-        let mut b = new(&format!("/tmp/{}", root_dir), None);
+        let mut b = new(&format!("/tmp/{}", root_dir), None, None);
         b.top();
         let cur_pos1 = b.cursor;
         b.down();
@@ -954,10 +1002,11 @@ mod test {
         assert_eq!(cur_pos1 + 1, cur_pos2);
     }
 
+    #[test]
     fn test_left() {
         let (_, dirs, root_dir, _cd) = random_dir_wcontent();
         let target = &dirs[0];
-        let mut b = new(&format!("/tmp/{}/{}", root_dir, target), None);
+        let mut b = new(&format!("/tmp/{}/{}", root_dir, target), None, None);
         println!("test_left: before {}", b.current_path.to_str().unwrap());
         b.left();
         println!("test_left: after {}", b.current_path.to_str().unwrap());
@@ -971,10 +1020,11 @@ mod test {
         );
     }
 
+    #[test]
     fn test_right() {
         let (_, dirs, root_dir, _cd) = random_dir_wcontent();
         let target = &dirs[0];
-        let mut b = new(&format!("/tmp/{}", root_dir), None);
+        let mut b = new(&format!("/tmp/{}", root_dir), None, None);
         println!("test_right: before {}", b.current_path.to_str().unwrap());
         for (i, dir) in b.content.iter().enumerate() {
             if dir == target {
@@ -994,10 +1044,11 @@ mod test {
         );
     }
 
+    #[test]
     fn test_pageup() {
         let (_, _, root_dir, _cd) = random_dir_wcontent();
         // content is guaranteed to not be empty
-        let mut b = new(&format!("/tmp/{}", root_dir), None);
+        let mut b = new(&format!("/tmp/{}", root_dir), None, None);
         b.bottom();
         let cursor_pos1 = b.cursor;
         b.pageup();
@@ -1011,9 +1062,10 @@ mod test {
         assert_eq!(expected, cursor_pos2);
     }
 
+    #[test]
     fn test_pagedown() {
         let (_, _, root_dir, _cd) = random_dir_wcontent();
-        let mut b = new(&format!("/tmp/{}", root_dir), None);
+        let mut b = new(&format!("/tmp/{}", root_dir), None, None);
         b.top();
         let cursor_pos1 = b.cursor;
         b.pagedown();
@@ -1028,11 +1080,12 @@ mod test {
     }
 
     // matching a complete filename
+    #[test]
     fn test_search() {
         let (files, _, root_dir, _cd) = random_dir_wcontent();
         let mut rand = Rand::new();
         let f = files[rand.rand_uint(0, files.len() - 1)].clone();
-        let mut b = new(&format!("/tmp/{}", root_dir), None);
+        let mut b = new(&format!("/tmp/{}", root_dir), None, None);
         let content = b.content.clone();
         println!("filename to search {}", f);
         let mut answer = content.len();
@@ -1046,22 +1099,5 @@ mod test {
         b.next_match(b.cursor, false);
         println!("search result {}", &b.content[b.cursor]);
         assert_eq!(b.cursor, answer);
-    }
-
-    #[test]
-    // make tests sequential to prevent file name collision
-    fn test_seq() {
-        test_browser_init();
-        test_read_content();
-        test_get_preview();
-        test_top();
-        test_bottom();
-        test_up();
-        test_down();
-        test_left();
-        test_right();
-        test_pageup();
-        test_pagedown();
-        test_search();
     }
 }

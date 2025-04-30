@@ -53,7 +53,7 @@ impl Canvas {
         let mut bottom_line = String::new();
         let mut has_extra_slash = false;
 
-        if matches!(mode, Mode::SEARCH) {
+        if matches!(mode, Mode::Search) || matches!(mode, Mode::RevSearch) {
             has_extra_slash = true; // we will prepend the slash later
             bottom_line.push_str(&search_txt.into_iter().collect::<String>());
         } else {
@@ -146,7 +146,11 @@ impl Canvas {
             result.insert(0, '>');
         }
         if has_extra_slash {
-            result.insert(0, '/');
+            match mode {
+                Mode::Search => result.insert(0, '/'),
+                Mode::RevSearch => result.insert(0, '?'),
+                _ => {}
+            }
         }
         result
     }
@@ -237,7 +241,7 @@ impl Canvas {
         let content = self.bottom_line_configure(current_path, search_txt, mode, input_cursor_pos);
         str_to_draw.push_str(&content);
 
-        if matches!(mode, Mode::SEARCH) {
+        if matches!(mode, Mode::Search) || matches!(mode, Mode::RevSearch) {
             // show the cursor when searching
             str_to_draw.push_str(&csi("?25h"));
             let mut real_len = 0;
@@ -467,12 +471,12 @@ impl Canvas {
     }
 }
 
-pub fn new() -> Canvas {
+pub fn new(config_path: Option<&str>) -> Canvas {
     Canvas {
         height: 0,
         width: 0,
         pixels: Vec::new(),
-        theme: theme::Theme::from(&util::get_theme()),
+        theme: theme::Theme::from(&util::get_theme(config_path)),
         utf8_table: WcLookupTable::new(),
         bottom_start: 0,
         add_algnmt: false,
