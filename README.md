@@ -1,7 +1,7 @@
 # Transgender.rs
 
 <p align="center">
-  <img src="img/logo.svg"/>
+  <img style="height:200px;" src="img/logo.png"/>
 </p>
 
 [![version][version-badge]][version-url]
