@@ -19,6 +19,9 @@ A minimalistic file explorer with **minimal dependencies**, written by a [ranger
 * Opening files
 * Multiple themes
 
+> [!TIP]
+> Documentation is [here](https://sberm.cn/trans).
+
 <br/>
 
 ![](img/catppuccin.png)
