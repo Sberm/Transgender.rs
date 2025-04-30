@@ -228,3 +228,10 @@ attractive. Additionally, ranger is not a good
 software; it is filled with bad designs that irritate
 its users.
 ```
+
+<br/>
+
+#### Chris the Sea Slug
+
+On the logo of `Transgender.rs` is Chris the Sea Slug. He likes to use Clang, and his favorite rapper is LL Cool J.
+By the way, sea slugs are hermaphrodites, meaning they are both male and female.
