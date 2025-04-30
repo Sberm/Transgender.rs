@@ -1,5 +1,9 @@
 # Transgender.rs
 
+<p align="center">
+  <img src="img/logo.svg"/>
+</p>
+
 [![version][version-badge]][version-url]
 
 [version-badge]: https://img.shields.io/github/v/release/sberm/Transgender.rs
