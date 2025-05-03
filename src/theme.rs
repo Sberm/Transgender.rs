@@ -184,3 +184,34 @@ impl ThemeTable {
         }
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_theme() {
+        let theme_name = "trans";
+        let theme = Theme::from(theme_name);
+        let theme_table = ThemeTable::new();
+        let mut theme_entry: Option<&ThemeEntry> = None;
+        for t in theme_table.theme_entries.iter() {
+            if theme_name == t.name {
+                theme_entry = Some(t);
+            }
+        }
+        if theme_entry.is_some() {
+            let te_ref = theme_entry.unwrap();
+            assert_eq!((*te_ref).name, theme_name);
+            assert_eq!((*te_ref).color[0], theme.highlight);
+            assert_eq!((*te_ref).color[1], theme.highlight_dir);
+            assert_eq!((*te_ref).color[2], theme.highlight_background);
+            assert_eq!((*te_ref).color[3], theme.normal);
+            assert_eq!((*te_ref).color[4], theme.normal_background);
+            assert_eq!((*te_ref).color[5], theme.bottom_bar);
+            assert_eq!((*te_ref).color[6], theme.bottom_bar_background);
+        } else {
+            panic!("failed to get trans theme");
+        }
+    }
+}
