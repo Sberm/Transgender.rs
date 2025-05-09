@@ -192,21 +192,20 @@ pub fn print_path(_path: &PathBuf, dest_file: Option<&PathBuf>) {
 }
 
 pub fn get_theme(_config_path: Option<&str>) -> String {
-    if let Ok(home_dir) = var(consts::HOME_VAR) {
-        let config_path = if _config_path.is_some() {
-            _config_path.unwrap()
-        } else {
-            consts::CONFIG_FILE
-        };
-        if let Ok(lines) = read_lines(&format!("{}/{}", home_dir, config_path)) {
-            for line in lines.flatten() {
-                let kv = line.split("=").collect::<Vec<&str>>();
-                if kv.len() != 2 {
-                    continue;
-                }
-                if kv[0].trim().to_lowercase() == consts::THEME_KEY {
-                    return kv[1].trim().to_lowercase();
-                }
+    let config_path = if _config_path.is_some() {
+        _config_path.unwrap().to_string()
+    } else {
+        let home_dir = var(consts::HOME_VAR).expect("failed to get HOME env");
+        format!("{}/{}", home_dir, consts::CONFIG_FILE)
+    };
+    if let Ok(lines) = read_lines(&config_path) {
+        for line in lines.flatten() {
+            let kv = line.split("=").collect::<Vec<&str>>();
+            if kv.len() != 2 {
+                continue;
+            }
+            if kv[0].trim().to_lowercase() == consts::THEME_KEY {
+                return kv[1].trim().to_lowercase();
             }
         }
     }
@@ -224,43 +223,25 @@ pub fn get_opener(op: Op, _config_path: Option<&str>) -> (OsString, Option<Vec<O
         _ => None,
     };
     let config_path = if _config_path.is_some() {
-        _config_path.unwrap()
+        _config_path.unwrap().to_string()
     } else {
-        consts::CONFIG_FILE
+        let home_dir = var(consts::HOME_VAR).expect("failed to get HOME env");
+        format!("{}/{}", home_dir, consts::CONFIG_FILE)
     };
     let mut comm = OsString::from(consts::OPENER);
     let mut args: Option<Vec<OsString>> = None;
-    if let Ok(home_dir) = var(consts::HOME_VAR) {
-        if let Ok(lines) = read_lines(&format!("{}/{}", home_dir, config_path)) {
-            for line in lines.flatten() {
-                let kv = line.split("=").collect::<Vec<&str>>();
-                if kv.len() != 2 {
-                    continue;
-                }
-                if key.is_some() {
-                    if kv[0].trim().to_lowercase() == key.unwrap() {
-                        // "key =.*"
-                        let comm_op = kv[1].trim().split(" ").collect::<Vec<&str>>();
-                        if comm_op.len() != 0 {
-                            // key = code.*
-                            comm = OsString::from(comm_op[0]);
-                            args = Some(
-                                comm_op
-                                    .into_iter()
-                                    .skip(1)
-                                    .map(|x| OsString::from(x))
-                                    .collect(),
-                            );
-                            return (comm, args);
-                        }
-                    }
-                }
-                if kv[0].trim().to_lowercase() == consts::EDITOR_KEY
-                    || kv[0].trim().to_lowercase() == consts::OPENER_KEY
-                {
+    if let Ok(lines) = read_lines(&config_path) {
+        for line in lines.flatten() {
+            let kv = line.split("=").collect::<Vec<&str>>();
+            if kv.len() != 2 {
+                continue;
+            }
+            if key.is_some() {
+                if kv[0].trim().to_lowercase() == key.unwrap() {
+                    // "key =.*"
                     let comm_op = kv[1].trim().split(" ").collect::<Vec<&str>>();
                     if comm_op.len() != 0 {
-                        // can be overridden by 'o' or 'enter'
+                        // key = code.*
                         comm = OsString::from(comm_op[0]);
                         args = Some(
                             comm_op
@@ -269,7 +250,24 @@ pub fn get_opener(op: Op, _config_path: Option<&str>) -> (OsString, Option<Vec<O
                                 .map(|x| OsString::from(x))
                                 .collect(),
                         );
+                        return (comm, args);
                     }
+                }
+            }
+            if kv[0].trim().to_lowercase() == consts::EDITOR_KEY
+                || kv[0].trim().to_lowercase() == consts::OPENER_KEY
+            {
+                let comm_op = kv[1].trim().split(" ").collect::<Vec<&str>>();
+                if comm_op.len() != 0 {
+                    // can be overridden by 'o' or 'enter'
+                    comm = OsString::from(comm_op[0]);
+                    args = Some(
+                        comm_op
+                            .into_iter()
+                            .skip(1)
+                            .map(|x| OsString::from(x))
+                            .collect(),
+                    );
                 }
             }
         }
