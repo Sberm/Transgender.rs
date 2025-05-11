@@ -482,3 +482,34 @@ pub fn new(config_path: Option<&str>) -> Canvas {
         add_algnmt: false,
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use std::fs::{remove_file, File};
+    use util::test::Rand;
+
+    #[test]
+    fn test_csi() {
+        assert_eq!(csi("foo"), "\x1b[foo");
+    }
+
+    #[test]
+    fn test_new() {
+        // create a temporary config file
+        let mut rand = Rand::new();
+        let conf = format!("/tmp/ts-temp-conf-{}", rand.rand_str());
+        let mut file = File::create(&conf).expect("failed to create config file");
+        let _ = file.write_all(b"theme = trans");
+        let canvas = new(Some(&conf));
+        assert_eq!(canvas.height, 0);
+        assert_eq!(canvas.width, 0);
+        assert_eq!(canvas.pixels.is_empty(), true);
+        // trans' highlight value
+        assert_eq!(canvas.theme.highlight, "\x1b[0;37m");
+        assert_eq!(canvas.utf8_table.table.len(), 65536);
+        assert_eq!(canvas.bottom_start, 0);
+        assert_eq!(canvas.add_algnmt, false);
+        let _ = remove_file(conf);
+    }
+}
