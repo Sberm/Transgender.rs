@@ -486,8 +486,9 @@ pub fn new(config_path: Option<&str>) -> Canvas {
 #[cfg(test)]
 mod test {
     use super::*;
+    use crate::ops::Mode;
+    use crate::util::test::Rand;
     use std::fs::{remove_file, File};
-    use util::test::Rand;
 
     #[test]
     fn test_csi() {
@@ -512,4 +513,105 @@ mod test {
         assert_eq!(canvas.add_algnmt, false);
         let _ = remove_file(conf);
     }
+
+    #[test]
+    fn test_set() {
+        let mut canvas = new(None);
+        let mut rand = Rand::new();
+        let n = rand.rand_uint(0, 50);
+        canvas.width = n;
+        canvas.height = n;
+        canvas.pixels = vec![vec!['X'; n]; n];
+        canvas.set(n / 2, n / 2, 'Y');
+        assert_eq!(canvas.pixels[n / 2][n / 2], 'Y');
+    }
+
+    #[test]
+    fn test_reset_bottom_bar() {
+        let mut canvas = new(None);
+        canvas.reset_bottom_bar();
+        assert_eq!(canvas.bottom_start, 0);
+        assert_eq!(canvas.add_algnmt, false);
+    }
+
+    #[test]
+    fn test_bottom_line_configure() {
+        let texts = [
+            "Ċ昃.鱁ᔡԝv6tղЈ液ϋxꖷA㣌₡i䔸긫qަ쬸쒽mUǦ裊[⿇::žҟ掕",
+            "汉皇重色思倾国，御宇多年求不得。杨家有女初长成，养在深闺人未识。
+             天生丽质难自弃，一朝选在君王侧。回眸一笑百媚生，六宫粉黛无颜色。
+             春寒赐浴华清池，温泉水滑洗凝脂。侍儿扶起娇无力，始是新承恩泽时。
+             云鬓花颜金步摇，芙蓉帐暖度春宵。春宵苦短日高起，从此君王不早朝。
+             承欢侍宴无闲暇，春从春游夜专夜。后宫佳丽三千人，三千宠爱在一身。
+             金屋妆成娇侍夜，玉楼宴罢醉和春。姊妹弟兄皆列土，可怜光彩生门户。
+             遂令天下父母心，不重生男重生女。骊宫高处入青云，仙乐风飘处处闻。
+             缓歌慢舞凝丝竹，尽日君王看不足。渔阳鼙鼓动地来，惊破霓裳羽衣曲。",
+            "And all the graven images thereof shall be$ beaten to pieces, and all the hires thereof
+             shall be burned with the fire, and all the idols thereof will I lay desolate: for she
+             gathered it of the hire of an harlot, and they shall return to the hire of an harlot."
+        ];
+        let texts_configured = [
+            "/ᔡԝv6tղЈ液ϋxꖷA㣌₡i䔸긫qަ쬸쒽mUǦ裊[⿇::žҟ",
+            "/思倾国，御宇多年求不得。杨家有女初长成",
+            "/all the graven images thereof shall be$",
+        ];
+        let texts_configured_rev = [
+            "?ᔡԝv6tղЈ液ϋxꖷA㣌₡i䔸긫qަ쬸쒽mUǦ裊[⿇::žҟ",
+            "?思倾国，御宇多年求不得。杨家有女初长成",
+            "?all the graven images thereof shall be$",
+        ];
+        let mut canvas = new(None);
+        let width = 40;
+        canvas.width = width;
+        canvas.bottom_start = 4;
+        let mut i = 0;
+        for st in texts.iter() {
+            let search_txt = st.chars().collect::<Vec<char>>();
+            let bottom_line_str =
+                canvas.bottom_line_configure("", &search_txt, Mode::Search, canvas.bottom_start);
+            assert_eq!(bottom_line_str, texts_configured[i]);
+            i += 1;
+        }
+        // reverse search
+        i = 0;
+        for st in texts.iter() {
+            let search_txt = st.chars().collect::<Vec<char>>();
+            let bottom_line_str =
+                canvas.bottom_line_configure("", &search_txt, Mode::RevSearch, canvas.bottom_start);
+            assert_eq!(bottom_line_str, texts_configured_rev[i]);
+            i += 1;
+        }
+    }
+
+    #[test]
+    fn test_line_get_utf8_len() {
+        let canvas = new(None);
+        assert_eq!(canvas.get_utf8_len('𰻝'), 2);
+        assert_eq!(canvas.get_utf8_len('ぎ'), 2);
+        assert_eq!(canvas.get_utf8_len(')'), 1);
+    }
+
+    #[test]
+    fn test_clear_pixels() {
+        let mut canvas = new(None);
+        let n = 10;
+        let v = vec![vec![' '; n]; n];
+        canvas.pixels = v.clone();
+        canvas.pixels[0][0] = '&';
+        canvas.pixels[n - 1][n - 1] = '^';
+        canvas.height = n;
+        canvas.width = n;
+        canvas.clear_pixels();
+        assert_eq!(canvas.pixels, v);
+    }
+
+    // TODO: More tests to be done
+    #[test]
+    fn test_check_insert_highlight() {}
+
+    #[test]
+    fn test_draw_bottom_line() {}
+
+    #[test]
+    fn test_draw() {}
 }
