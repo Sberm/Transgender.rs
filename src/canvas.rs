@@ -195,15 +195,11 @@ impl Canvas {
             str_to_draw.push_str(&self.theme.normal_background);
         }
 
-        // This will be overwritten by highlight, if cursor is on it
-        if !is_dir {
-            str_to_draw.push_str(&self.theme.normal);
-        }
-
         if i == cursor && j == 0 {
             str_to_draw.push_str(&self.theme.highlight);
             str_to_draw.push_str(&self.theme.highlight_background);
         } else {
+            str_to_draw.push_str(&self.theme.normal);
             str_to_draw.push_str(&self.theme.normal_background);
         }
 
