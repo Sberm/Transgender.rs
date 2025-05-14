@@ -190,11 +190,6 @@ impl Canvas {
         cursor: usize,
         is_dir: bool,
     ) {
-        if i == 0 && j == 0 {
-            str_to_draw.push_str(&self.theme.normal);
-            str_to_draw.push_str(&self.theme.normal_background);
-        }
-
         if i == cursor && j == 0 {
             str_to_draw.push_str(&self.theme.highlight);
             str_to_draw.push_str(&self.theme.highlight_background);
@@ -601,9 +596,53 @@ mod test {
         assert_eq!(canvas.pixels, v);
     }
 
-    // TODO: More tests to be done
     #[test]
-    fn test_check_insert_highlight() {}
+    fn test_check_insert_highlight() {
+        let canvas = new(None);
+
+        let mut string_to_draw = String::new();
+        // cursor is on it, regular file
+        canvas.check_insert_highlight(&mut string_to_draw, 0, 0, 0, false);
+        assert_eq!(
+            string_to_draw,
+            format!(
+                "{}{}",
+                canvas.theme.highlight, canvas.theme.highlight_background
+            )
+        );
+
+        // cursor is not on it, regular file
+        string_to_draw = String::new();
+        canvas.check_insert_highlight(&mut string_to_draw, 0, 0, 1, false);
+        assert_eq!(
+            string_to_draw,
+            format!("{}{}", canvas.theme.normal, canvas.theme.normal_background)
+        );
+
+        // cursor is on it, directory
+        string_to_draw = String::new();
+        canvas.check_insert_highlight(&mut string_to_draw, 0, 0, 0, true);
+        assert_eq!(
+            string_to_draw,
+            format!(
+                "{}{}{}",
+                canvas.theme.highlight,
+                canvas.theme.highlight_background,
+                canvas.theme.highlight_dir
+            )
+        );
+
+        // cursor is not on it, directory
+        string_to_draw = String::new();
+        canvas.check_insert_highlight(&mut string_to_draw, 0, 0, 1, true);
+        assert_eq!(
+            string_to_draw,
+            format!(
+                "{}{}{}",
+                canvas.theme.normal, canvas.theme.normal_background, canvas.theme.highlight_dir
+            )
+        );
+    }
 
     #[test]
     fn test_draw_bottom_line() {}
