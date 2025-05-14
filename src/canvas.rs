@@ -217,9 +217,6 @@ impl Canvas {
         str_to_draw.push_str(&csi(&format!("{}H", self.height)));
         str_to_draw.push_str(&csi("0K"));
 
-        str_to_draw.push_str(&self.theme.normal);
-        str_to_draw.push_str(&self.theme.normal_background);
-
         str_to_draw.push_str(&self.theme.bottom_bar);
         str_to_draw.push_str(&self.theme.bottom_bar_background);
 
@@ -645,7 +642,29 @@ mod test {
     }
 
     #[test]
-    fn test_draw_bottom_line() {}
+    fn test_draw_bottom_line() {
+        let mut canvas = new(None);
+        // in normal mode, print current path
+        let mut str_to_draw = String::new();
+        let current_path = "dummy_path";
+        canvas.width = current_path.len();
+        canvas.draw_bottom_line(&mut str_to_draw, Mode::Normal, current_path, &Vec::new(), 0);
+        assert_eq!(
+            str_to_draw,
+            format!(
+                "{}{}{}{}{}{}{}{}",
+                &csi("0H"),
+                &csi("0K"),
+                &canvas.theme.bottom_bar,
+                &canvas.theme.bottom_bar_background,
+                &(0..canvas.width).map(|_| " ").collect::<String>(),
+                &csi("0H"),
+                &csi("0K"),
+                current_path
+            )
+        );
+        // TODO: add more cases, such as search mode, and cropped scenario etc...
+    }
 
     #[test]
     fn test_draw() {}
