@@ -845,5 +845,10 @@ mod test {
     }
 
     #[test]
-    fn test_draw() {}
+    fn test_draw() {
+        // TODO: Consider these cases:
+        // normal
+        // search
+        // UTF8 cropping
+    }
 }
