@@ -647,7 +647,7 @@ mod test {
         // in normal mode, print current path
         let mut str_to_draw = String::new();
         let current_path = "dummy_path";
-        canvas.width = current_path.len();
+        canvas.width = current_path.chars().count();
         canvas.draw_bottom_line(&mut str_to_draw, Mode::Normal, current_path, &Vec::new(), 0);
         assert_eq!(
             str_to_draw,
@@ -663,7 +663,6 @@ mod test {
                 current_path
             )
         );
-
         // cropped
         let to_crop = 2;
         str_to_draw = String::new();
@@ -686,7 +685,163 @@ mod test {
                     .collect::<String>()
             )
         );
-        // TODO: add more cases, such as search mode
+        // search no crop
+        str_to_draw = String::new();
+        let text = "foobar";
+        let search_txt = text.chars().collect::<Vec<char>>();
+        canvas.width = search_txt.len() + 3;
+        let cursor_pos = search_txt.len() / 2;
+        canvas.draw_bottom_line(&mut str_to_draw, Mode::Search, "", &search_txt, cursor_pos);
+        assert_eq!(
+            str_to_draw,
+            format!(
+                "{}{}{}{}{}{}{}/{}{}{}",
+                &csi("0H"),
+                &csi("0K"),
+                canvas.theme.bottom_bar,
+                canvas.theme.bottom_bar_background,
+                (0..canvas.width).map(|_| " ").collect::<String>(),
+                &csi("0H"),
+                &csi("0K"),
+                text,
+                &csi("?25h"),
+                &csi(&format!(
+                    "0;{}H",
+                    search_txt.len() / 2 + 2 + if canvas.add_algnmt { 1 } else { 0 }
+                ))
+            )
+        );
+        // search cropped
+        canvas.reset_bottom_bar();
+        str_to_draw = String::new();
+        let text = "foobarfoobar";
+        let search_txt = text.chars().collect::<Vec<char>>();
+        let cursor_pos = 0;
+        canvas.width = search_txt.len() / 2;
+        canvas.draw_bottom_line(&mut str_to_draw, Mode::Search, "", &search_txt, cursor_pos);
+        assert_eq!(
+            str_to_draw,
+            format!(
+                "{}{}{}{}{}{}{}/{}{}{}",
+                &csi("0H"),
+                &csi("0K"),
+                canvas.theme.bottom_bar,
+                canvas.theme.bottom_bar_background,
+                (0..canvas.width).map(|_| " ").collect::<String>(),
+                &csi("0H"),
+                &csi("0K"),
+                text.chars()
+                    .take(canvas.width - (1 + if canvas.add_algnmt { 1 } else { 0 }))
+                    .collect::<String>(),
+                &csi("?25h"),
+                &csi(&format!(
+                    "0;{}H",
+                    cursor_pos + 2 + if canvas.add_algnmt { 1 } else { 0 }
+                ))
+            )
+        );
+        // search cropped and non-zero cursor placement
+        canvas.reset_bottom_bar();
+        str_to_draw = String::new();
+        let text = "foobarfoobar";
+        let search_txt = text.chars().collect::<Vec<char>>();
+        let cursor_pos = search_txt.len() - 2; // on the 'a'
+        canvas.width = search_txt.len() / 2;
+        canvas.draw_bottom_line(&mut str_to_draw, Mode::Search, "", &search_txt, cursor_pos);
+        assert_eq!(
+            str_to_draw,
+            format!(
+                "{}{}{}{}{}{}{}/{}{}{}",
+                &csi("0H"),
+                &csi("0K"),
+                canvas.theme.bottom_bar,
+                canvas.theme.bottom_bar_background,
+                (0..canvas.width).map(|_| " ").collect::<String>(),
+                &csi("0H"),
+                &csi("0K"),
+                "fooba",
+                &csi("?25h"),
+                &csi(&format!("0;{}H", canvas.width))
+            )
+        );
+        // search cropped and non-zero cursor placement and UTF8 character
+        canvas.reset_bottom_bar();
+        str_to_draw = String::new();
+        let text = "从此君王不早朝aaab";
+        let search_txt = text.chars().collect::<Vec<char>>();
+        let cursor_pos = search_txt.len();
+        canvas.width = 18;
+        canvas.draw_bottom_line(&mut str_to_draw, Mode::Search, "", &search_txt, cursor_pos);
+        assert_eq!(
+            str_to_draw,
+            format!(
+                "{}{}{}{}{}{}{}/{}{}{}",
+                &csi("0H"),
+                &csi("0K"),
+                canvas.theme.bottom_bar,
+                canvas.theme.bottom_bar_background,
+                (0..canvas.width).map(|_| " ").collect::<String>(),
+                &csi("0H"),
+                &csi("0K"),
+                "此君王不早朝aaab",
+                &csi("?25h"),
+                &csi(&format!("0;{}H", canvas.width))
+            )
+        );
+        // search cropped and non-zero cursor placement and UTF8 character and alignment '>'
+        canvas.reset_bottom_bar();
+        str_to_draw = String::new();
+        let text = "从此君王不早朝aaab";
+        let search_txt = text.chars().collect::<Vec<char>>();
+        let cursor_pos = search_txt.len();
+        canvas.width = 19;
+        canvas.draw_bottom_line(&mut str_to_draw, Mode::Search, "", &search_txt, cursor_pos);
+        assert_eq!(
+            str_to_draw,
+            format!(
+                "{}{}{}{}{}{}{}/{}{}{}",
+                &csi("0H"),
+                &csi("0K"),
+                canvas.theme.bottom_bar,
+                canvas.theme.bottom_bar_background,
+                (0..canvas.width).map(|_| " ").collect::<String>(),
+                &csi("0H"),
+                &csi("0K"),
+                ">此君王不早朝aaab",
+                &csi("?25h"),
+                &csi(&format!("0;{}H", canvas.width))
+            )
+        );
+        // reverse search/slash
+        canvas.reset_bottom_bar();
+        str_to_draw = String::new();
+        let text = "从此君王不早朝aaab";
+        let search_txt = text.chars().collect::<Vec<char>>();
+        let cursor_pos = search_txt.len();
+        canvas.width = 18;
+        canvas.draw_bottom_line(
+            &mut str_to_draw,
+            Mode::RevSearch,
+            "",
+            &search_txt,
+            cursor_pos,
+        );
+        assert_eq!(
+            str_to_draw,
+            format!(
+                "{}{}{}{}{}{}{}?{}{}{}",
+                &csi("0H"),
+                &csi("0K"),
+                canvas.theme.bottom_bar,
+                canvas.theme.bottom_bar_background,
+                (0..canvas.width).map(|_| " ").collect::<String>(),
+                &csi("0H"),
+                &csi("0K"),
+                "此君王不早朝aaab",
+                &csi("?25h"),
+                &csi(&format!("0;{}H", canvas.width))
+            )
+        );
     }
 
     #[test]
