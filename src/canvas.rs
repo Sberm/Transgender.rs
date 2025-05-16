@@ -663,7 +663,30 @@ mod test {
                 current_path
             )
         );
-        // TODO: add more cases, such as search mode, and cropped scenario etc...
+
+        // cropped
+        let to_crop = 2;
+        str_to_draw = String::new();
+        canvas.width -= to_crop;
+        canvas.draw_bottom_line(&mut str_to_draw, Mode::Normal, current_path, &Vec::new(), 0);
+        assert_eq!(
+            str_to_draw,
+            format!(
+                "{}{}{}{}{}{}{}{}",
+                &csi("0H"),
+                &csi("0K"),
+                &canvas.theme.bottom_bar,
+                &canvas.theme.bottom_bar_background,
+                &(0..canvas.width).map(|_| " ").collect::<String>(),
+                &csi("0H"),
+                &csi("0K"),
+                current_path
+                    .chars()
+                    .take(current_path.len() - to_crop)
+                    .collect::<String>()
+            )
+        );
+        // TODO: add more cases, such as search mode
     }
 
     #[test]
