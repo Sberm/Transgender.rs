@@ -754,81 +754,9 @@ pub fn new(path: &str, dest_file: Option<String>, config_path: Option<&str>) -> 
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::util::test::Rand;
+    use crate::util::test::{random_dir_wcontent, CleanupDir, Rand};
     use std::collections::HashSet;
-    use std::fs::{create_dir, create_dir_all, exists, remove_dir_all, File};
-    use std::ops::Drop;
-
-    struct CleanupDir {
-        dir: String,
-    }
-
-    impl Drop for CleanupDir {
-        fn drop(&mut self) {
-            if remove_dir_all(&format!("/tmp/{}", &self.dir)).is_err() {
-                println!("remove dir failed");
-            }
-        }
-    }
-
-    fn random_dirs_nfiles() -> (Vec<String>, Vec<String>) {
-        let mut rand = Rand::new();
-        let file_nr = rand.rand_uint(2, 15);
-        let dir_nr = rand.rand_uint(2, 15);
-        let mut files = vec![];
-        let mut dirs = vec![];
-        for _ in 0..file_nr {
-            files.push(format!("f-{}", rand.rand_str()));
-        }
-        for _ in 0..dir_nr {
-            dirs.push(format!("d-{}", rand.rand_str()));
-        }
-        return (files, dirs);
-    }
-
-    // /tmp/ts-test-XXX
-    //                 /f-XXX
-    //                 /f-XXX
-    //                 /d-XXX
-    //                 /d-XXX
-    //
-    // on MacOS, /tmp is a symlink to /private/tmp
-    // files, dirs, root_dir, cleanup
-    fn random_dir_wcontent() -> (Vec<String>, Vec<String>, String, CleanupDir) {
-        let mut rand = Rand::new();
-        let (files, dirs) = random_dirs_nfiles();
-        let mut root_dir: String;
-        loop {
-            root_dir = format!("ts-test-{}", rand.rand_str());
-            let _root_dir = format!("/tmp/{}", &root_dir);
-            if !exists(&_root_dir).expect("don't know if exists") {
-                break;
-            }
-        }
-        println!("creating root dir {}", &root_dir);
-        let _r = create_dir(&format!("/tmp/{}", &root_dir));
-        if _r.is_err() {
-            panic!("create root dir failed {:?}", _r.unwrap());
-        }
-        let _cd = CleanupDir {
-            dir: String::from(&root_dir),
-        };
-        for dir in dirs.iter() {
-            let tmp = format!("/tmp/{}/{}", root_dir, dir);
-            let r = create_dir(&tmp);
-            if r.is_err() {
-                panic!("create directory failed");
-            }
-        }
-        for file in files.iter() {
-            let tmp = format!("/tmp/{}/{}", root_dir, file);
-            let r = File::create(&tmp);
-            if r.is_err() {
-                panic!("create file failed");
-            }
-        }
-        (files, dirs, root_dir, _cd)
-    }
+    use std::fs::{create_dir_all, exists};
 
     #[test]
     fn test_browser_init() {
