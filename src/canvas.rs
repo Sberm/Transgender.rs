@@ -256,6 +256,7 @@ impl Canvas {
         mode: Mode,
         search_txt: &Vec<char>,
         input_cursor_pos: usize,
+        _test_out: Option<&mut String>,
     ) {
         let (h, w) = util::term_size();
 
@@ -454,8 +455,15 @@ impl Canvas {
             input_cursor_pos,
         );
 
-        print!("{}", str_to_draw);
-        let _ = io::stdout().flush();
+        #[cfg(not(test))]
+        {
+            print!("{}", str_to_draw);
+            let _ = io::stdout().flush();
+        }
+        #[cfg(test)]
+        {
+            *_test_out.expect("failed to unwrap test output") = str_to_draw.clone();
+        }
     }
 }
 
@@ -475,8 +483,8 @@ pub fn new(config_path: Option<&str>) -> Canvas {
 mod test {
     use super::*;
     use crate::ops::Mode;
-    use crate::util::test::Rand;
-    use std::fs::{remove_file, File};
+    use crate::util::test::{CleanupDir, Rand};
+    use std::fs::{create_dir, remove_file, File};
 
     #[test]
     fn test_csi() {
@@ -846,9 +854,83 @@ mod test {
 
     #[test]
     fn test_draw() {
-        // TODO: Consider these cases:
+        let new_canvas = || {
+            let mut canvas = new(None);
+            canvas.width = 159;
+            canvas.height = 39;
+            canvas
+        };
+        let to_vec = |slice1: &[&str], slice2: &[&str]| {
+            let mut v = Vec::new();
+            for s in slice1 {
+                v.push(s.to_string());
+            }
+            for s in slice2 {
+                v.push(s.to_string());
+            }
+            v
+        };
+        let mut cleanups: Vec<CleanupDir> = Vec::new();
+        //
         // normal
+        //
+        let mut canvas = new_canvas();
+        // create a directory named /tmp/ts-test-draw
+        let parent_wo_tmp = "ts-test-draw";
+        let parent = &format!("/tmp/{}", parent_wo_tmp);
+        cleanups.push(CleanupDir {
+            dir: parent_wo_tmp.to_owned(),
+        });
+        let _ = create_dir(parent);
+        // put 4 directories in it, and 3 files
+        let d_depth1 = ["d1", "d2", "d3", "d4"];
+        let f_depth1 = ["f1", "f2", "f3"];
+        for d in d_depth1 {
+            let tmp = format!("{}/{}", parent, d);
+            let _ = create_dir(&tmp);
+        }
+        for f in f_depth1 {
+            let tmp = format!("{}/{}", parent, f);
+            let _ = File::create(&tmp);
+        }
+        let child = d_depth1[0];
+        // create 4 directories as the sub-directories of the first directory, and create 3 files
+        // in that parent directory as well
+        let d_depth2 = ["dd1", "dd2", "dd3", "dd4"];
+        let f_depth2 = ["ff1", "ff2", "ff3"];
+        for d in d_depth2 {
+            let tmp = format!("{}/{}/{}", parent, child, d);
+            let _ = create_dir(&tmp);
+        }
+        for f in f_depth2 {
+            let tmp = format!("{}/{}/{}", parent, child, f);
+            let _ = File::create(&tmp);
+        }
+        // put the cursor on the first directory, and render the result
+        // NOTE: d1 is lexicographically the first entry, so no need to move the cursor
+        let current_path = PathBuf::from(parent);
+        let mut test_out = String::new();
+        let content = to_vec(&d_depth1, &f_depth1);
+        let preview = to_vec(&d_depth2, &f_depth2);
+        canvas.draw(
+            0,
+            &content,
+            &preview,
+            0,
+            &current_path,
+            Mode::Normal,
+            &Vec::new(),
+            0,
+            Some(&mut test_out),
+        );
+        assert_eq!("\u{1b}[1H\u{1b}[?25l\u{1b}[38;5;187m\u{1b}[48;5;238m\u{1b}[38;5;117md1                                  \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117mdd1                           \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117md2                                  \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117mdd2                           \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117md3                                  \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117mdd3                           \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117md4                                  \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117mdd4                           \u{1b}[38;5;188m\u{1b}[48;5;236mf1                                  \u{1b}[38;5;188m\u{1b}[48;5;236mff1                           \u{1b}[38;5;188m\u{1b}[48;5;236mf2                                  \u{1b}[38;5;188m\u{1b}[48;5;236mff2                           \u{1b}[38;5;188m\u{1b}[48;5;236mf3                                  \u{1b}[38;5;188m\u{1b}[48;5;236mff3                           \u{1b}[38;5;188m\u{1b}[48;5;236m                                    \u{1b}[38;5;188m\u{1b}[48;5;236m                              \u{1b}[38;5;188m\u{1b}[48;5;236m                                    \u{1b}[38;5;188m\u{1b}[48;5;236m                              \u{1b}[38;5;188m\u{1b}[48;5;236m                                    \u{1b}[38;5;188m\u{1b}[48;5;236m                              \u{1b}[38;5;188m\u{1b}[48;5;236m                                    \u{1b}[38;5;188m\u{1b}[48;5;236m                              \u{1b}[38;5;188m\u{1b}[48;5;236m                                    \u{1b}[38;5;188m\u{1b}[48;5;236m                              \u{1b}[38;5;188m\u{1b}[48;5;236m                                    \u{1b}[38;5;188m\u{1b}[48;5;236m                              \u{1b}[38;5;188m\u{1b}[48;5;236m                                    \u{1b}[38;5;188m\u{1b}[48;5;236m                              \u{1b}[38;5;188m\u{1b}[48;5;236m                                    \u{1b}[38;5;188m\u{1b}[48;5;236m                              \u{1b}[38;5;188m\u{1b}[48;5;236m                                    \u{1b}[38;5;188m\u{1b}[48;5;236m                              \u{1b}[38;5;188m\u{1b}[48;5;236m                                    \u{1b}[38;5;188m\u{1b}[48;5;236m                              \u{1b}[38;5;188m\u{1b}[48;5;236m                                    \u{1b}[38;5;188m\u{1b}[48;5;236m                              \u{1b}[38;5;188m\u{1b}[48;5;236m                                    \u{1b}[38;5;188m\u{1b}[48;5;236m                              \u{1b}[38;5;188m\u{1b}[48;5;236m                                    \u{1b}[38;5;188m\u{1b}[48;5;236m                              \u{1b}[38;5;188m\u{1b}[48;5;236m                                    \u{1b}[38;5;188m\u{1b}[48;5;236m                              \u{1b}[38;5;188m\u{1b}[48;5;236m                                    \u{1b}[38;5;188m\u{1b}[48;5;236m                              \u{1b}[38;5;188m\u{1b}[48;5;236m                                    \u{1b}[38;5;188m\u{1b}[48;5;236m                              \u{1b}[38;5;188m\u{1b}[48;5;236m                                    \u{1b}[38;5;188m\u{1b}[48;5;236m                              \u{1b}[38;5;188m\u{1b}[48;5;236m                                    \u{1b}[38;5;188m\u{1b}[48;5;236m                              \u{1b}[38;5;188m\u{1b}[48;5;236m                                    \u{1b}[38;5;188m\u{1b}[48;5;236m                              \u{1b}[38;5;188m\u{1b}[48;5;236m                                    \u{1b}[38;5;188m\u{1b}[48;5;236m                              \u{1b}[38;5;188m\u{1b}[48;5;236m                                    \u{1b}[38;5;188m\u{1b}[48;5;236m                              \u{1b}[38;5;188m\u{1b}[48;5;236m                                    \u{1b}[38;5;188m\u{1b}[48;5;236m                              \u{1b}[38;5;188m\u{1b}[48;5;236m                                    \u{1b}[38;5;188m\u{1b}[48;5;236m                              \u{1b}[38;5;188m\u{1b}[48;5;236m                                    \u{1b}[38;5;188m\u{1b}[48;5;236m                              \u{1b}[38;5;188m\u{1b}[48;5;236m                                    \u{1b}[38;5;188m\u{1b}[48;5;236m                              \u{1b}[38;5;188m\u{1b}[48;5;236m                                    \u{1b}[38;5;188m\u{1b}[48;5;236m                              \u{1b}[33H\u{1b}[0K\u{1b}[38;5;188m\u{1b}[48;5;238m                                                                  \u{1b}[33H\u{1b}[0K/tmp/ts-test-draw", test_out)
+        //
         // search
+        //
+
+        //
         // UTF8 cropping
+        //
+        // create a different set of files and directories
     }
 }

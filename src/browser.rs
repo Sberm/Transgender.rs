@@ -153,6 +153,7 @@ impl Browser {
                 self.mode,
                 &self.search_txt,
                 self.input_cursor_pos,
+                None,
             );
 
             if matches!(self.mode, Mode::Search) || matches!(self.mode, Mode::RevSearch) {
