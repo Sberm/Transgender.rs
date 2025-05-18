@@ -428,9 +428,9 @@ impl Browser {
                 // input characters
                 let mut search_txt_inserted = vec![];
                 let chars_len = chars.len();
-                search_txt_inserted.extend_from_slice(&self.search_txt[0..self.input_cursor_pos]);
+                search_txt_inserted.extend(&self.search_txt[0..self.input_cursor_pos]);
                 search_txt_inserted.append(&mut chars);
-                search_txt_inserted.extend_from_slice(&self.search_txt[self.input_cursor_pos..]);
+                search_txt_inserted.extend(&self.search_txt[self.input_cursor_pos..]);
                 self.search_txt = search_txt_inserted;
                 self.input_cursor_pos += chars_len;
             }

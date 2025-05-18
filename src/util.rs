@@ -285,7 +285,7 @@ fn parse_utf8(_raw: &[u8], prev_trunc: &Vec<u8>) -> (Vec<char>, Vec<u8>) {
     let mut bytes_cnt = 0;
     let mut i = 0;
     let mut raw = prev_trunc.clone();
-    raw.extend_from_slice(_raw);
+    raw.extend(_raw);
     while i < raw.len() {
         let this_byte = raw[i];
         if this_byte == 0 {
@@ -302,7 +302,7 @@ fn parse_utf8(_raw: &[u8], prev_trunc: &Vec<u8>) -> (Vec<char>, Vec<u8>) {
         }
         // truncate bytes
         if i + bytes_cnt > raw.len() {
-            trunc.extend_from_slice(&raw[i..raw.len()]);
+            trunc.extend(&raw[i..raw.len()]);
             break;
         }
         let s = String::from(
