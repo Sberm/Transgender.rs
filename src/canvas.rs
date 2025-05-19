@@ -889,7 +889,8 @@ mod test {
         });
         let _ = create_dir(parent);
         // put 4 directories in it, and 3 files
-        let d_depth1 = ["d1", "d2", "d3", "d4"];
+        let comp_dir = "zComplicatedDirectoryName";
+        let d_depth1 = ["d1", "d2", "d3", "d4", comp_dir];
         let f_depth1 = ["f1", "f2", "f3"];
         for d in d_depth1 {
             let tmp = format!("{}/{}", parent, d);
@@ -912,11 +913,11 @@ mod test {
             let tmp = format!("{}/{}/{}", parent, child, f);
             let _ = File::create(&tmp);
         }
-        // put the cursor on the first directory, and render the result
-        // NOTE: d1 is lexicographically the first entry, so no need to move the cursor
+        // put the cursor on the first directory, and render the result I didn't sort the
+        // directories, so d1 is the first entry, no need to change the value of the cursor
         let current_path = PathBuf::from(parent);
         let mut test_out = String::new();
-        let content = to_vec(&d_depth1, &f_depth1);
+        let mut content = to_vec(&d_depth1, &f_depth1);
         let preview = to_vec(&d_depth2, &f_depth2);
         assert_eq!(canvas.width, width);
         assert_eq!(canvas.height, height);
@@ -931,14 +932,51 @@ mod test {
             0,
             Some(&mut test_out),
         );
-        assert_eq!("\u{1b}[1H\u{1b}[?25l\u{1b}[38;5;187m\u{1b}[48;5;238m\u{1b}[38;5;117md1                \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117mdd1         \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117md2                \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117mdd2         \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117md3                \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117mdd3         \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117md4                \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117mdd4         \u{1b}[38;5;188m\u{1b}[48;5;236mf1                \u{1b}[38;5;188m\u{1b}[48;5;236mff1         \u{1b}[38;5;188m\u{1b}[48;5;236mf2                \u{1b}[38;5;188m\u{1b}[48;5;236mff2         \u{1b}[38;5;188m\u{1b}[48;5;236mf3                \u{1b}[38;5;188m\u{1b}[48;5;236mff3         \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[14H\u{1b}[0K\u{1b}[38;5;188m\u{1b}[48;5;238m                              \u{1b}[14H\u{1b}[0K/tmp/ts-test-draw", test_out)
+        assert_eq!(test_out, "\u{1b}[1H\u{1b}[?25l\u{1b}[38;5;187m\u{1b}[48;5;238m\u{1b}[38;5;117md1                \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117mdd1         \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117md2                \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117mdd2         \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117md3                \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117mdd3         \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117md4                \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117mdd4         \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117mzComplicatedDirect\u{1b}[38;5;188m\u{1b}[48;5;236mff1         \u{1b}[38;5;188m\u{1b}[48;5;236mf1                \u{1b}[38;5;188m\u{1b}[48;5;236mff2         \u{1b}[38;5;188m\u{1b}[48;5;236mf2                \u{1b}[38;5;188m\u{1b}[48;5;236mff3         \u{1b}[38;5;188m\u{1b}[48;5;236mf3                \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[14H\u{1b}[0K\u{1b}[38;5;188m\u{1b}[48;5;238m                              \u{1b}[14H\u{1b}[0K/tmp/ts-test-draw");
         //
         // search
         //
-
+        // browser is not involved so no searching is performed, but move the cursor to the
+        // target position by hand just for the sake of it
+        let mut pos = 0;
+        for d in d_depth1 {
+            if d == comp_dir {
+                break;
+            }
+            pos += 1;
+        }
+        // preview is empty (again, no browser is involved, just an imitation)
+        canvas.draw(
+            pos,
+            &content,
+            &Vec::new(),
+            0,
+            &current_path,
+            Mode::Search,
+            &comp_dir.chars().collect::<Vec<char>>(),
+            0,
+            Some(&mut test_out),
+        );
+        assert_eq!(test_out, "\u{1b}[1H\u{1b}[?25l\u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117md1                \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117md2                \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117md3                \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117md4                \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;187m\u{1b}[48;5;238m\u{1b}[38;5;117mzComplicatedDirect\u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236mf1                \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236mf2                \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236mf3                \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[14H\u{1b}[0K\u{1b}[38;5;188m\u{1b}[48;5;238m                              \u{1b}[14H\u{1b}[0K/zComplicatedDirectoryName\u{1b}[?25h\u{1b}[14;2H");
         //
-        // UTF8 cropping
+        // UTF8 characters
         //
-        // create a different set of files and directories
+        // maximum 18 characters in the left window. 'X' is displayed, '-' is ignored
+        // :::冬川や家鴨四五羽に
+        // XXXXXXXXXXXXXXXXX----
+        let utf8_filename = ":::冬川や家鴨四五羽に足らぬ水:::";
+        content.push(utf8_filename.to_owned());
+        canvas.draw(
+            pos,
+            &content,
+            &Vec::new(),
+            0,
+            &current_path,
+            Mode::Normal,
+            &Vec::new(),
+            0,
+            Some(&mut test_out),
+        );
+        assert_eq!(test_out, "\u{1b}[1H\u{1b}[?25l\u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117md1                \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117md2                \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117md3                \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117md4                \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;187m\u{1b}[48;5;238m\u{1b}[38;5;117mzComplicatedDirect\u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236mf1                \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236mf2                \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236mf3                \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m:::冬川や家鴨四五 \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[14H\u{1b}[0K\u{1b}[38;5;188m\u{1b}[48;5;238m                              \u{1b}[14H\u{1b}[0K/tmp/ts-test-draw");
     }
 }
