@@ -258,12 +258,15 @@ impl Canvas {
         input_cursor_pos: usize,
         _test_out: Option<&mut String>,
     ) {
-        let (h, w) = util::term_size();
-
-        if self.height != h || self.width != w {
-            self.height = h;
-            self.width = w;
-            self.pixels = vec![vec![' '; self.width]; self.height];
+        #[cfg(not(test))]
+        {
+            // user may change the size of the terminal
+            let (h, w) = util::term_size();
+            if self.height != h || self.width != w {
+                self.height = h;
+                self.width = w;
+                self.pixels = vec![vec![' '; self.width]; self.height];
+            }
         }
 
         let mut str_to_draw = String::from("");
@@ -854,10 +857,13 @@ mod test {
 
     #[test]
     fn test_draw() {
+        let width = 30;
+        let height = 14;
         let new_canvas = || {
             let mut canvas = new(None);
-            canvas.width = 159;
-            canvas.height = 39;
+            canvas.width = width;
+            canvas.height = height;
+            canvas.pixels = vec![vec![' '; width]; height];
             canvas
         };
         let to_vec = |slice1: &[&str], slice2: &[&str]| {
@@ -912,6 +918,8 @@ mod test {
         let mut test_out = String::new();
         let content = to_vec(&d_depth1, &f_depth1);
         let preview = to_vec(&d_depth2, &f_depth2);
+        assert_eq!(canvas.width, width);
+        assert_eq!(canvas.height, height);
         canvas.draw(
             0,
             &content,
@@ -923,7 +931,7 @@ mod test {
             0,
             Some(&mut test_out),
         );
-        assert_eq!("\u{1b}[1H\u{1b}[?25l\u{1b}[38;5;187m\u{1b}[48;5;238m\u{1b}[38;5;117md1                                  \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117mdd1                           \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117md2                                  \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117mdd2                           \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117md3                                  \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117mdd3                           \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117md4                                  \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117mdd4                           \u{1b}[38;5;188m\u{1b}[48;5;236mf1                                  \u{1b}[38;5;188m\u{1b}[48;5;236mff1                           \u{1b}[38;5;188m\u{1b}[48;5;236mf2                                  \u{1b}[38;5;188m\u{1b}[48;5;236mff2                           \u{1b}[38;5;188m\u{1b}[48;5;236mf3                                  \u{1b}[38;5;188m\u{1b}[48;5;236mff3                           \u{1b}[38;5;188m\u{1b}[48;5;236m                                    \u{1b}[38;5;188m\u{1b}[48;5;236m                              \u{1b}[38;5;188m\u{1b}[48;5;236m                                    \u{1b}[38;5;188m\u{1b}[48;5;236m                              \u{1b}[38;5;188m\u{1b}[48;5;236m                                    \u{1b}[38;5;188m\u{1b}[48;5;236m                              \u{1b}[38;5;188m\u{1b}[48;5;236m                                    \u{1b}[38;5;188m\u{1b}[48;5;236m                              \u{1b}[38;5;188m\u{1b}[48;5;236m                                    \u{1b}[38;5;188m\u{1b}[48;5;236m                              \u{1b}[38;5;188m\u{1b}[48;5;236m                                    \u{1b}[38;5;188m\u{1b}[48;5;236m                              \u{1b}[38;5;188m\u{1b}[48;5;236m                                    \u{1b}[38;5;188m\u{1b}[48;5;236m                              \u{1b}[38;5;188m\u{1b}[48;5;236m                                    \u{1b}[38;5;188m\u{1b}[48;5;236m                              \u{1b}[38;5;188m\u{1b}[48;5;236m                                    \u{1b}[38;5;188m\u{1b}[48;5;236m                              \u{1b}[38;5;188m\u{1b}[48;5;236m                                    \u{1b}[38;5;188m\u{1b}[48;5;236m                              \u{1b}[38;5;188m\u{1b}[48;5;236m                                    \u{1b}[38;5;188m\u{1b}[48;5;236m                              \u{1b}[38;5;188m\u{1b}[48;5;236m                                    \u{1b}[38;5;188m\u{1b}[48;5;236m                              \u{1b}[38;5;188m\u{1b}[48;5;236m                                    \u{1b}[38;5;188m\u{1b}[48;5;236m                              \u{1b}[38;5;188m\u{1b}[48;5;236m                                    \u{1b}[38;5;188m\u{1b}[48;5;236m                              \u{1b}[38;5;188m\u{1b}[48;5;236m                                    \u{1b}[38;5;188m\u{1b}[48;5;236m                              \u{1b}[38;5;188m\u{1b}[48;5;236m                                    \u{1b}[38;5;188m\u{1b}[48;5;236m                              \u{1b}[38;5;188m\u{1b}[48;5;236m                                    \u{1b}[38;5;188m\u{1b}[48;5;236m                              \u{1b}[38;5;188m\u{1b}[48;5;236m                                    \u{1b}[38;5;188m\u{1b}[48;5;236m                              \u{1b}[38;5;188m\u{1b}[48;5;236m                                    \u{1b}[38;5;188m\u{1b}[48;5;236m                              \u{1b}[38;5;188m\u{1b}[48;5;236m                                    \u{1b}[38;5;188m\u{1b}[48;5;236m                              \u{1b}[38;5;188m\u{1b}[48;5;236m                                    \u{1b}[38;5;188m\u{1b}[48;5;236m                              \u{1b}[38;5;188m\u{1b}[48;5;236m                                    \u{1b}[38;5;188m\u{1b}[48;5;236m                              \u{1b}[38;5;188m\u{1b}[48;5;236m                                    \u{1b}[38;5;188m\u{1b}[48;5;236m                              \u{1b}[38;5;188m\u{1b}[48;5;236m                                    \u{1b}[38;5;188m\u{1b}[48;5;236m                              \u{1b}[38;5;188m\u{1b}[48;5;236m                                    \u{1b}[38;5;188m\u{1b}[48;5;236m                              \u{1b}[38;5;188m\u{1b}[48;5;236m                                    \u{1b}[38;5;188m\u{1b}[48;5;236m                              \u{1b}[33H\u{1b}[0K\u{1b}[38;5;188m\u{1b}[48;5;238m                                                                  \u{1b}[33H\u{1b}[0K/tmp/ts-test-draw", test_out)
+        assert_eq!("\u{1b}[1H\u{1b}[?25l\u{1b}[38;5;187m\u{1b}[48;5;238m\u{1b}[38;5;117md1                \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117mdd1         \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117md2                \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117mdd2         \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117md3                \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117mdd3         \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117md4                \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117mdd4         \u{1b}[38;5;188m\u{1b}[48;5;236mf1                \u{1b}[38;5;188m\u{1b}[48;5;236mff1         \u{1b}[38;5;188m\u{1b}[48;5;236mf2                \u{1b}[38;5;188m\u{1b}[48;5;236mff2         \u{1b}[38;5;188m\u{1b}[48;5;236mf3                \u{1b}[38;5;188m\u{1b}[48;5;236mff3         \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[14H\u{1b}[0K\u{1b}[38;5;188m\u{1b}[48;5;238m                              \u{1b}[14H\u{1b}[0K/tmp/ts-test-draw", test_out)
         //
         // search
         //
