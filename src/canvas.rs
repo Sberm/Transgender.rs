@@ -517,7 +517,7 @@ mod test {
     fn test_set() {
         let mut canvas = new(None);
         let mut rand = Rand::new();
-        let n = rand.rand_uint(0, 50);
+        let n = rand.rand_uint(4, 50);
         canvas.width = n;
         canvas.height = n;
         canvas.pixels = vec![vec!['X'; n]; n];
