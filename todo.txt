@@ -3,3 +3,4 @@
 profiling and optimization
 [O]test coverage in canvas, theme and util
 [OK]Use libc's mktemp to create temporary files and directories
+Add fast installation script
