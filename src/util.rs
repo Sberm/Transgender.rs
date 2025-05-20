@@ -193,6 +193,7 @@ pub fn print_path(_path: &PathBuf, dest_file: Option<&PathBuf>) {
 
 pub fn get_theme(_config_path: Option<&str>) -> String {
     let config_path = if _config_path.is_some() {
+        println!("[debug] _config_path: {}", _config_path.unwrap());
         _config_path.unwrap().to_string()
     } else {
         let home_dir = var(consts::HOME_VAR).expect("failed to get HOME env");
@@ -348,7 +349,9 @@ pub fn read_chars_or_op(prev_trunc: &Vec<u8>) -> (Option<Vec<char>>, Vec<u8>, Op
 
 #[cfg(test)]
 pub mod test {
-    use std::fs::{create_dir, exists, remove_dir_all, File};
+    use super::*;
+    use std::fs::{create_dir, exists, remove_dir_all, remove_file, File};
+    use std::io::Write;
     use std::time::SystemTime;
 
     pub struct Rand {
@@ -422,8 +425,20 @@ pub mod test {
 
     impl Drop for CleanupDir {
         fn drop(&mut self) {
-            if remove_dir_all(&format!("/tmp/{}", &self.dir)).is_err() {
-                println!("remove dir failed");
+            if remove_dir_all(&self.dir).is_err() {
+                println!("remove dir {} failed", self.dir);
+            }
+        }
+    }
+
+    pub struct CleanupFile {
+        pub file: String,
+    }
+
+    impl Drop for CleanupFile {
+        fn drop(&mut self) {
+            if remove_file(&self.file).is_err() {
+                println!("remove file {} failed", self.file);
             }
         }
     }
@@ -462,13 +477,12 @@ pub mod test {
                 break;
             }
         }
-        println!("creating root dir {}", &root_dir);
         let _r = create_dir(&format!("/tmp/{}", &root_dir));
         if _r.is_err() {
             panic!("create root dir failed {:?}", _r.unwrap());
         }
         let _cd = CleanupDir {
-            dir: String::from(&root_dir),
+            dir: String::from("/tmp/".to_owned() + &root_dir),
         };
         for dir in dirs.iter() {
             let tmp = format!("/tmp/{}/{}", root_dir, dir);
@@ -485,5 +499,50 @@ pub mod test {
             }
         }
         (files, dirs, root_dir, _cd)
+    }
+
+    pub fn mktemp_conf() -> String {
+        let mut rand = Rand::new();
+        let mut conf;
+        loop {
+            let _conf = format!("ts-temp-conf-{}", rand.rand_str());
+            conf = "/tmp/".to_owned() + &_conf;
+            if !exists(&conf).expect("don't know if the config file exists") {
+                break;
+            }
+        }
+        conf
+    }
+
+    #[test]
+    fn test_get_theme() {
+        let conf = mktemp_conf();
+        let mut file = File::create(&conf).expect("failed to create config file");
+        let _cf = CleanupFile { file: conf.clone() };
+        let target = "lucius";
+        let _ = file.write(&("theme = ".to_owned() + target).into_bytes());
+        assert_eq!(get_theme(Some(&conf)), target);
+    }
+
+    #[test]
+    fn test_get_opener() {
+        let conf = mktemp_conf();
+        let mut file = File::create(&conf).expect("failed to create config file");
+        let _cf = CleanupFile { file: conf.clone() };
+        let _ = file.write(&("o = vim -R -es -m -b -A -V -D -q ".to_owned() + &conf).into_bytes());
+        let (comm, args) = get_opener(Op::ExitCursorO, Some(&conf));
+        assert_eq!(comm, "vim");
+        assert_eq!(
+            args.expect("failed to get args for assertion"),
+            ["-R", "-es", "-m", "-b", "-A", "-V", "-D", "-q", &conf]
+        );
+    }
+
+    #[test]
+    fn test_parse_utf8() {
+        let raw: [u8; 4] = [232, 145, 137, 232];
+        let (cs, trunc) = parse_utf8(&raw, &Vec::new());
+        assert_eq!(cs, ['葉']);
+        assert_eq!(trunc, [232]);
     }
 }

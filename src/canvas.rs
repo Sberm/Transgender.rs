@@ -486,8 +486,8 @@ pub fn new(config_path: Option<&str>) -> Canvas {
 mod test {
     use super::*;
     use crate::ops::Mode;
-    use crate::util::test::{CleanupDir, Rand};
-    use std::fs::{create_dir, remove_file, File};
+    use crate::util::test::{mktemp_conf, CleanupDir, CleanupFile, Rand};
+    use std::fs::{create_dir, File};
 
     #[test]
     fn test_csi() {
@@ -496,11 +496,10 @@ mod test {
 
     #[test]
     fn test_new() {
-        // create a temporary config file
-        let mut rand = Rand::new();
-        let conf = format!("/tmp/ts-temp-conf-{}", rand.rand_str());
+        let conf = mktemp_conf();
         let mut file = File::create(&conf).expect("failed to create config file");
-        let _ = file.write_all(b"theme = trans");
+        let _cf = CleanupFile { file: conf.clone() };
+        let _ = file.write(b"theme = trans\n");
         let canvas = new(Some(&conf));
         assert_eq!(canvas.height, 0);
         assert_eq!(canvas.width, 0);
@@ -510,7 +509,6 @@ mod test {
         assert_eq!(canvas.utf8_table.table.len(), 65536);
         assert_eq!(canvas.bottom_start, 0);
         assert_eq!(canvas.add_algnmt, false);
-        let _ = remove_file(conf);
     }
 
     #[test]
@@ -857,10 +855,14 @@ mod test {
 
     #[test]
     fn test_draw() {
+        let conf = mktemp_conf();
+        let mut file = File::create(&conf).expect("failed to create config file");
+        let _cf = CleanupFile { file: conf.clone() };
+        let _ = file.write(b"theme = lucius\n");
         let width = 30;
         let height = 14;
         let new_canvas = || {
-            let mut canvas = new(None);
+            let mut canvas = new(Some(&conf));
             canvas.width = width;
             canvas.height = height;
             canvas.pixels = vec![vec![' '; width]; height];
@@ -882,10 +884,9 @@ mod test {
         //
         let mut canvas = new_canvas();
         // create a directory named /tmp/ts-test-draw
-        let parent_wo_tmp = "ts-test-draw";
-        let parent = &format!("/tmp/{}", parent_wo_tmp);
+        let parent = "/tmp/ts-test-draw";
         cleanups.push(CleanupDir {
-            dir: parent_wo_tmp.to_owned(),
+            dir: parent.to_owned(),
         });
         let _ = create_dir(parent);
         // put 4 directories in it, and 3 files
