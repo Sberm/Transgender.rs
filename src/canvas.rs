@@ -496,8 +496,11 @@ mod test {
 
     #[test]
     fn test_new() {
-        let conf = mktemp_conf();
-        let mut file = File::create(&conf).expect("failed to create config file");
+        let (conf, _file) = mktemp_conf();
+        if _file.is_none() {
+            panic!("failed to create temp file");
+        }
+        let mut file = _file.unwrap();
         let _cf = CleanupFile { file: conf.clone() };
         let _ = file.write(b"theme = trans\n");
         let canvas = new(Some(&conf));
@@ -855,8 +858,11 @@ mod test {
 
     #[test]
     fn test_draw() {
-        let conf = mktemp_conf();
-        let mut file = File::create(&conf).expect("failed to create config file");
+        let (conf, _file) = mktemp_conf();
+        if _file.is_none() {
+            panic!("failed to create temp file");
+        }
+        let mut file = _file.unwrap();
         let _cf = CleanupFile { file: conf.clone() };
         let _ = file.write(b"theme = lucius\n");
         let width = 30;

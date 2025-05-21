@@ -4,4 +4,4 @@ profiling and optimization
 [OK]test coverage in canvas, theme and util
 [OK]Use libc's mktemp to create temporary files and directories
 Add fast installation script
-Get-filename-and-create logic in tests may be flawed, consider retry creation if failed
+[OK]Get-filename-and-create logic in tests may be flawed, consider retry creation if failed

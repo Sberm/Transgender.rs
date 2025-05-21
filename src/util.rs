@@ -473,13 +473,12 @@ pub mod test {
         loop {
             root_dir = format!("ts-test-{}", rand.rand_str());
             let _root_dir = format!("/tmp/{}", &root_dir);
-            if !exists(&_root_dir).expect("don't know if exists") {
+            if !exists(&_root_dir).expect("don't know if tmp dir exists") {
+                if create_dir(&format!("/tmp/{}", &root_dir)).is_err() {
+                    continue;
+                }
                 break;
             }
-        }
-        let _r = create_dir(&format!("/tmp/{}", &root_dir));
-        if _r.is_err() {
-            panic!("create root dir failed {:?}", _r.unwrap());
         }
         let _cd = CleanupDir {
             dir: String::from("/tmp/".to_owned() + &root_dir),
@@ -501,23 +500,32 @@ pub mod test {
         (files, dirs, root_dir, _cd)
     }
 
-    pub fn mktemp_conf() -> String {
+    pub fn mktemp_conf() -> (String, Option<File>) {
         let mut rand = Rand::new();
         let mut conf;
+        let file: Option<File>;
         loop {
             let _conf = format!("ts-temp-conf-{}", rand.rand_str());
             conf = "/tmp/".to_owned() + &_conf;
             if !exists(&conf).expect("don't know if the config file exists") {
+                let _f = File::create(&conf);
+                if _f.is_err() {
+                    continue;
+                }
+                file = Some(_f.unwrap());
                 break;
             }
         }
-        conf
+        (conf, file)
     }
 
     #[test]
     fn test_get_theme() {
-        let conf = mktemp_conf();
-        let mut file = File::create(&conf).expect("failed to create config file");
+        let (conf, _file) = mktemp_conf();
+        if _file.is_none() {
+            panic!("failed to create temp file");
+        }
+        let mut file = _file.unwrap();
         let _cf = CleanupFile { file: conf.clone() };
         let target = "lucius";
         let _ = file.write(&("theme = ".to_owned() + target).into_bytes());
@@ -526,8 +534,11 @@ pub mod test {
 
     #[test]
     fn test_get_opener() {
-        let conf = mktemp_conf();
-        let mut file = File::create(&conf).expect("failed to create config file");
+        let (conf, _file) = mktemp_conf();
+        if _file.is_none() {
+            panic!("failed to create temp file");
+        }
+        let mut file = _file.unwrap();
         let _cf = CleanupFile { file: conf.clone() };
         let _ = file.write(&("o = vim -R -es -m -b -A -V -D -q ".to_owned() + &conf).into_bytes());
         let (comm, args) = get_opener(Op::ExitCursorO, Some(&conf));
