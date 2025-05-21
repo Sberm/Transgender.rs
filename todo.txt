@@ -1,6 +1,6 @@
 [OK]reduce the amount of statx system calls(.is_dir()), by calling once and saving to a bit
 [OK]? for reverse search
-profiling and optimization
+[OK]profiling and optimization
 [OK]test coverage in canvas, theme and util
 [OK]Use libc's mktemp to create temporary files and directories
 Add fast installation script
