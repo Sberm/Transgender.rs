@@ -17,7 +17,7 @@ use std::env;
 use std::path::Path;
 use std::process::exit;
 
-const VERSION: &str = "1.4.3";
+const VERSION: &str = "1.5.0";
 
 fn main() {
     let mut path = String::from(".");
