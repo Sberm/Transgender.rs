@@ -768,18 +768,19 @@ mod test {
             tmp_dirs.push(format!("ts-test-{}", &rand.rand_str()));
         }
 
+        let mut _root_dir;
         let mut root_dir;
         loop {
             root_dir = format!("ts-test-{}", rand.rand_str());
-            let _root_dir = format!("/tmp/{}", &root_dir);
-            if !exists(&root_dir).expect("don't know if exists") {
+            _root_dir = format!("/tmp/{}", &root_dir);
+            if !exists(&_root_dir).expect("don't know if exists") {
                 break;
             }
         }
         tmp_dirs[0] = root_dir;
         // assert_eq! (when failed) and the end of function will call drop() for cleanup
         let _cd = CleanupDir {
-            dir: String::from(&tmp_dirs[0]),
+            dir: String::from(&_root_dir),
         };
 
         let temp_dir = format!(
@@ -788,7 +789,6 @@ mod test {
         );
         // we care about the first file
         create_dir_all(&temp_dir).expect(&format!("create dir {} failed", &temp_dir));
-        println!("created dir {}", &temp_dir);
         let b = new(&temp_dir, None, None); // browser::new()
         let past_dir = &b.past_dir;
 
@@ -818,7 +818,6 @@ mod test {
             let _tmp = past_dir[i].file_name();
             if _tmp.is_some() {
                 let past_dir_name = _tmp.unwrap().to_str().expect("to_str failed");
-                println!("comparing tmp_dirs {} past_dir {}", ans[i], past_dir_name);
                 assert_eq!(ans[i], past_dir_name);
             }
             // root dir returns None
@@ -841,7 +840,6 @@ mod test {
         let content = b.content.clone();
         let mut dedup: HashSet<String> = HashSet::new();
         for c in content.iter() {
-            println!("content {}", c);
             if !dirs_files.contains(c) {
                 panic!("incorrect content");
             }
@@ -879,7 +877,6 @@ mod test {
         let preview = b.get_preview();
         let mut dedup: HashSet<String> = HashSet::new();
         for p in preview {
-            println!("preview {}", p);
             if !dirs_files.contains(&p) {
                 panic!("incorrect preview");
             }
@@ -940,9 +937,7 @@ mod test {
         let (_, dirs, root_dir, _cd) = random_dir_wcontent();
         let target = &dirs[0];
         let mut b = new(&format!("/tmp/{}/{}", root_dir, target), None, None);
-        println!("test_left: before {}", b.current_path.to_str().unwrap());
         b.left();
-        println!("test_left: after {}", b.current_path.to_str().unwrap());
         assert_eq!(
             b.current_path.to_str().unwrap(),
             if cfg!(target_os = "macos") {
@@ -958,7 +953,6 @@ mod test {
         let (_, dirs, root_dir, _cd) = random_dir_wcontent();
         let target = &dirs[0];
         let mut b = new(&format!("/tmp/{}", root_dir), None, None);
-        println!("test_right: before {}", b.current_path.to_str().unwrap());
         for (i, dir) in b.content.iter().enumerate() {
             if dir == target {
                 b.set_cursor_pos_centered(i);
@@ -966,7 +960,6 @@ mod test {
             }
         }
         b.right();
-        println!("test_right: after {}", b.current_path.to_str().unwrap());
         assert_eq!(
             b.current_path.to_str().unwrap(),
             if cfg!(target_os = "macos") {
@@ -1020,7 +1013,6 @@ mod test {
         let f = files[rand.rand_uint(0, files.len() - 1)].clone();
         let mut b = new(&format!("/tmp/{}", root_dir), None, None);
         let content = b.content.clone();
-        println!("filename to search {}", f);
         let mut answer = content.len();
         for (i, c) in content.iter().enumerate() {
             if c == &f {
@@ -1030,7 +1022,6 @@ mod test {
         }
         b.search_txt = f.chars().collect::<Vec<char>>();
         b.next_match(b.cursor, false);
-        println!("search result {}", &b.content[b.cursor]);
         assert_eq!(b.cursor, answer);
     }
 }

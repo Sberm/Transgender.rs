@@ -193,7 +193,6 @@ pub fn print_path(_path: &PathBuf, dest_file: Option<&PathBuf>) {
 
 pub fn get_theme(_config_path: Option<&str>) -> String {
     let config_path = if _config_path.is_some() {
-        println!("[debug] _config_path: {}", _config_path.unwrap());
         _config_path.unwrap().to_string()
     } else {
         let home_dir = var(consts::HOME_VAR).expect("failed to get HOME env");
@@ -426,7 +425,7 @@ pub mod test {
     impl Drop for CleanupDir {
         fn drop(&mut self) {
             if remove_dir_all(&self.dir).is_err() {
-                println!("remove dir {} failed", self.dir);
+                panic!("remove dir {} failed", self.dir);
             }
         }
     }
