@@ -22,7 +22,7 @@ build riscv64gc-unknown-linux-gnu   riscv64gc-linux-gnu
 
 #### How to use the release binary
 #~~~sh
-#cp transgender-<version>-<arch> /usr/local/bin
+#sudo cp transgender-<version>-<arch> /usr/local/bin/transgender
 #echo 'eval "$(transgender --sh)"' >> ~/.bashrc
 ## on zsh
 #echo 'eval "$(transgender --sh)"' >> ~/.zshrc
