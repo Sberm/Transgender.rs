@@ -16,7 +16,7 @@ checksum = "53a49587ad06b26609c52e423de037e7f57f20d53535d66e08c695f347df952a"
 
 [[package]]
 name = "transgender"
-version = "1.5.0"
+version = "1.5.1"
 dependencies = [
  "libc",
  "regex-lite",
