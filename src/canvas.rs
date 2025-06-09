@@ -968,9 +968,7 @@ mod test {
 
         // UTF8
         //
-        // maximum 18 characters in the left window. 'X' is displayed, '-' is ignored
-        // :::冬川や家鴨四五羽に
-        // XXXXXXXXXXXXXXXXX----
+        // maximum 18 characters in the left window
         let utf8_filename = ":::冬川や家鴨四五羽に足らぬ水:::";
         content.push(utf8_filename.to_owned());
         canvas.draw(
