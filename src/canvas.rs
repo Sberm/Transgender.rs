@@ -11,7 +11,9 @@ use crate::ops::Mode;
 use crate::theme;
 use crate::util;
 use crate::widechar_width::{WcLookupTable, WcWidth};
-use std::io::{self, Write};
+#[cfg(not(test))]
+use std::io::stdout;
+use std::io::Write;
 
 pub struct Canvas {
     pub height: usize,
@@ -268,26 +270,11 @@ impl Canvas {
 
         self.clear_pixels();
 
-        // No files in directory
-        if browser.content.len() == 0 {
-            str_to_draw.push_str(&self.theme.normal);
-            str_to_draw.push_str(&self.theme.normal_background);
-
-            // Empty lines still need to be drawn
-            for line in &self.pixels {
-                let tmp_s = line.iter().collect::<String>();
-                str_to_draw.push_str(&tmp_s);
-            }
-
-            self.draw_bottom_line(&mut str_to_draw, &browser);
-
-            print!("{}", str_to_draw);
-            let _ = io::stdout().flush();
-            return;
-        }
-
         // left window
         for i in 0..=self.height - 1 {
+            if dir_i >= browser.content.len() {
+                break;
+            }
             let c_a = browser.content[dir_i].chars().collect::<Vec<char>>();
             ch_i = 0;
             for j in l_w_l..=l_w_r {
@@ -326,7 +313,6 @@ impl Canvas {
         let mut actual_len: usize = 0;
         let mut do_preview: bool = false;
         let mut complement: usize = 0;
-
         for i in 0..self.height {
             let mut j = 0;
             // Iterate the column, j is jumpable so make it a loop instead of a for
@@ -394,13 +380,17 @@ impl Canvas {
                             tmp_path.is_dir()
                         }
                     } else {
-                        let mut tmp_path = browser.current_path.clone();
-                        tmp_path.push(&browser.content[browser.cursor]);
-                        if i >= browser.preview_dir.len() {
+                        if browser.cursor >= browser.content.len() {
                             false
                         } else {
-                            tmp_path.push(&browser.preview_dir[i]);
-                            tmp_path.is_dir()
+                            let mut tmp_path = browser.current_path.clone();
+                            tmp_path.push(&browser.content[browser.cursor]);
+                            if i >= browser.preview_dir.len() {
+                                false
+                            } else {
+                                tmp_path.push(&browser.preview_dir[i]);
+                                tmp_path.is_dir()
+                            }
                         }
                     };
 
@@ -430,7 +420,7 @@ impl Canvas {
         #[cfg(not(test))]
         {
             print!("{}", str_to_draw);
-            let _ = io::stdout().flush();
+            let _ = stdout().flush();
         }
         #[cfg(test)]
         {
