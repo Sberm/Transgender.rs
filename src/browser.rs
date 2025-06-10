@@ -28,24 +28,25 @@ struct Opener {
 
 /// Directory browser
 pub struct Browser {
-    cursor: usize,
-    window_start: usize,
-    content: Vec<String>, // String instead of PathBuf for display purposes
+    pub cursor: usize,
+    pub window_start: usize,
+    pub content: Vec<String>, // String instead of PathBuf for display purposes
     past_dir: Vec<PathBuf>,
     past_cursor: Vec<usize>,
     past_window_start: Vec<usize>,
-    current_path: PathBuf,
+    pub current_path: PathBuf,
     original_path: PathBuf,
-    mode: Mode,
-    search_txt: Vec<char>,
+    pub mode: Mode,
+    pub search_txt: Vec<char>,
     opener_o: Opener,
     opener_enter: Opener,
     dest_file: Option<PathBuf>,
     search_history: VecDeque<Vec<char>>,
     search_history_index: usize,
     trunc: Vec<u8>,
-    input_cursor_pos: usize,
+    pub input_cursor_pos: usize,
     rev_search: bool,
+    pub preview_dir: Vec<String>,
 }
 
 pub enum UsizeIter {
@@ -142,19 +143,9 @@ impl Browser {
     /// Window display update loop
     pub fn start_loop(&mut self, canvas: &mut canvas::Canvas) {
         loop {
-            let preview_dir = self.get_preview();
+            self.preview_dir = self.get_preview();
 
-            canvas.draw(
-                self.cursor,
-                &self.content,
-                &preview_dir,
-                self.window_start,
-                &self.current_path,
-                self.mode,
-                &self.search_txt,
-                self.input_cursor_pos,
-                None,
-            );
+            canvas.draw(self, None);
 
             if matches!(self.mode, Mode::Search) || matches!(self.mode, Mode::RevSearch) {
                 self.search(canvas);
@@ -747,6 +738,7 @@ pub fn new(path: &str, dest_file: Option<String>, config_path: Option<&str>) -> 
         trunc: Vec::new(),
         input_cursor_pos: 0,
         rev_search: false,
+        preview_dir: Vec::new(),
     };
     browser.init(&path);
     browser

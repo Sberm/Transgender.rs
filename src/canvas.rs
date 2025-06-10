@@ -6,12 +6,12 @@
 ║ above copyright notice and this permission notice appear in all copies ║
 ╚═══════════════════════════════════════════════════════════════════════*/
 
+use crate::browser;
 use crate::ops::Mode;
 use crate::theme;
 use crate::util;
 use crate::widechar_width::{WcLookupTable, WcWidth};
 use std::io::{self, Write};
-use std::path::PathBuf;
 
 pub struct Canvas {
     pub height: usize,
@@ -246,18 +246,7 @@ impl Canvas {
     }
 
     /// core function to display the window
-    pub fn draw(
-        &mut self,
-        cursor: usize,
-        content: &Vec<String>,
-        preview_dir: &Vec<String>,
-        window_start: usize,
-        current_path: &PathBuf,
-        mode: Mode,
-        search_txt: &Vec<char>,
-        input_cursor_pos: usize,
-        _test_out: Option<&mut String>,
-    ) {
+    pub fn draw(&mut self, browser: &browser::Browser, _test_out: Option<&mut String>) {
         #[cfg(not(test))]
         {
             // user may change the size of the terminal
@@ -282,13 +271,13 @@ impl Canvas {
         let r_w_r: usize = self.width - 1;
         let preview_width: usize = self.width - r_w_l;
 
-        let mut dir_i: usize = window_start;
+        let mut dir_i: usize = browser.window_start;
         let mut ch_i: usize;
 
         self.clear_pixels();
 
         // No files in directory
-        if content.len() == 0 {
+        if browser.content.len() == 0 {
             str_to_draw.push_str(&self.theme.normal);
             str_to_draw.push_str(&self.theme.normal_background);
 
@@ -300,10 +289,10 @@ impl Canvas {
 
             self.draw_bottom_line(
                 &mut str_to_draw,
-                mode,
-                &current_path.to_str().unwrap().to_string(),
-                search_txt,
-                input_cursor_pos,
+                browser.mode,
+                &browser.current_path.to_str().unwrap().to_string(),
+                &browser.search_txt,
+                browser.input_cursor_pos,
             );
 
             print!("{}", str_to_draw);
@@ -313,7 +302,7 @@ impl Canvas {
 
         // left window
         for i in 0..=self.height - 1 {
-            let c_a = content[dir_i].chars().collect::<Vec<char>>();
+            let c_a = browser.content[dir_i].chars().collect::<Vec<char>>();
             ch_i = 0;
             for j in l_w_l..=l_w_r {
                 if ch_i >= c_a.len() {
@@ -323,7 +312,7 @@ impl Canvas {
                 ch_i += 1;
             }
             dir_i += 1;
-            if dir_i >= content.len() {
+            if dir_i >= browser.content.len() {
                 break;
             }
         }
@@ -332,10 +321,10 @@ impl Canvas {
         dir_i = 0;
 
         for i in 0..=self.height - 1 {
-            if dir_i >= preview_dir.len() {
+            if dir_i >= browser.preview_dir.len() {
                 break;
             }
-            let c_a = preview_dir[dir_i].chars().collect::<Vec<char>>();
+            let c_a = browser.preview_dir[dir_i].chars().collect::<Vec<char>>();
             ch_i = 0;
             for j in r_w_l..=r_w_r {
                 if ch_i >= c_a.len() {
@@ -411,20 +400,20 @@ impl Canvas {
                     // decide if the directory highlight should be added, this applies to both the left
                     // window and the right preview window
                     let is_dir = if !do_preview {
-                        if i + window_start >= content.len() {
+                        if i + browser.window_start >= browser.content.len() {
                             false
                         } else {
-                            let mut tmp_path = current_path.clone();
-                            tmp_path.push(&content[i + window_start]);
+                            let mut tmp_path = browser.current_path.clone();
+                            tmp_path.push(&browser.content[i + browser.window_start]);
                             tmp_path.is_dir()
                         }
                     } else {
-                        let mut tmp_path = current_path.clone();
-                        tmp_path.push(&content[cursor]);
-                        if i >= preview_dir.len() {
+                        let mut tmp_path = browser.current_path.clone();
+                        tmp_path.push(&browser.content[browser.cursor]);
+                        if i >= browser.preview_dir.len() {
                             false
                         } else {
-                            tmp_path.push(&preview_dir[i]);
+                            tmp_path.push(&browser.preview_dir[i]);
                             tmp_path.is_dir()
                         }
                     };
@@ -434,7 +423,7 @@ impl Canvas {
                         &mut str_to_draw,
                         i,
                         j,
-                        cursor - window_start,
+                        browser.cursor - browser.window_start,
                         is_dir,
                     );
                 }
@@ -452,10 +441,10 @@ impl Canvas {
         // Draw bottom line after drawing the directories to prevent overlapping
         self.draw_bottom_line(
             &mut str_to_draw,
-            mode,
-            &current_path.to_str().unwrap().to_string(),
-            search_txt,
-            input_cursor_pos,
+            browser.mode,
+            &browser.current_path.to_str().unwrap().to_string(),
+            &browser.search_txt,
+            browser.input_cursor_pos,
         );
 
         #[cfg(not(test))]
@@ -488,6 +477,7 @@ mod test {
     use crate::ops::Mode;
     use crate::util::test::{mktemp_conf, CleanupDir, CleanupFile, Rand};
     use std::fs::{create_dir, File};
+    use std::path::PathBuf;
 
     #[test]
     fn test_csi() {
@@ -922,29 +912,28 @@ mod test {
         }
         // put the cursor on the first directory, and render the result I didn't sort the
         // directories, so d1 is the first entry, no need to change the value of the cursor
-        let current_path = PathBuf::from(parent);
         let mut test_out = String::new();
         let mut content = to_vec(&d_depth1, &f_depth1);
         let preview = to_vec(&d_depth2, &f_depth2);
         assert_eq!(canvas.width, width);
         assert_eq!(canvas.height, height);
-        canvas.draw(
-            0,
-            &content,
-            &preview,
-            0,
-            &current_path,
-            Mode::Normal,
-            &Vec::new(),
-            0,
-            Some(&mut test_out),
-        );
+        let mut browser = browser::new(&parent, None, None);
+        let current_path = PathBuf::from(parent);
+        browser.cursor = 0;
+        browser.content = content.clone();
+        browser.preview_dir = preview;
+        browser.window_start = 0;
+        browser.current_path = current_path.clone();
+        browser.mode = Mode::Normal;
+        browser.search_txt = Vec::new();
+        browser.input_cursor_pos = 0;
+        canvas.draw(&browser, Some(&mut test_out));
         assert_eq!(test_out, "\u{1b}[1H\u{1b}[?25l\u{1b}[38;5;187m\u{1b}[48;5;238m\u{1b}[38;5;117md1                \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117mdd1         \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117md2                \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117mdd2         \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117md3                \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117mdd3         \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117md4                \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117mdd4         \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117mzComplicatedDirect\u{1b}[38;5;188m\u{1b}[48;5;236mff1         \u{1b}[38;5;188m\u{1b}[48;5;236mf1                \u{1b}[38;5;188m\u{1b}[48;5;236mff2         \u{1b}[38;5;188m\u{1b}[48;5;236mf2                \u{1b}[38;5;188m\u{1b}[48;5;236mff3         \u{1b}[38;5;188m\u{1b}[48;5;236mf3                \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[14H\u{1b}[0K\u{1b}[38;5;188m\u{1b}[48;5;238m                              \u{1b}[14H\u{1b}[0K/tmp/ts-test-draw");
 
         // search
         //
-        // browser is not involved so no searching is performed, but move the cursor to the
-        // target position by hand just for the sake of it
+        // no searching is performed, but move the cursor to the target position by hand just for
+        // the sake of it
         let mut pos = 0;
         for d in d_depth1 {
             if d == comp_dir {
@@ -952,18 +941,16 @@ mod test {
             }
             pos += 1;
         }
-        // preview is empty (again, no browser is involved, just an imitation)
-        canvas.draw(
-            pos,
-            &content,
-            &Vec::new(),
-            0,
-            &current_path,
-            Mode::Search,
-            &comp_dir.chars().collect::<Vec<char>>(),
-            0,
-            Some(&mut test_out),
-        );
+        browser.cursor = pos;
+        browser.content = content.clone();
+        browser.preview_dir = Vec::new();
+        browser.window_start = 0;
+        browser.current_path = current_path.clone();
+        browser.mode = Mode::Search;
+        browser.search_txt = comp_dir.chars().collect::<Vec<char>>();
+        browser.input_cursor_pos = 0;
+        // preview is empty
+        canvas.draw(&browser, Some(&mut test_out));
         assert_eq!(test_out, "\u{1b}[1H\u{1b}[?25l\u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117md1                \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117md2                \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117md3                \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117md4                \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;187m\u{1b}[48;5;238m\u{1b}[38;5;117mzComplicatedDirect\u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236mf1                \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236mf2                \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236mf3                \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[14H\u{1b}[0K\u{1b}[38;5;188m\u{1b}[48;5;238m                              \u{1b}[14H\u{1b}[0K/zComplicatedDirectoryName\u{1b}[?25h\u{1b}[14;2H");
 
         // UTF8
@@ -971,17 +958,15 @@ mod test {
         // maximum 18 characters in the left window
         let utf8_filename = ":::冬川や家鴨四五羽に足らぬ水:::";
         content.push(utf8_filename.to_owned());
-        canvas.draw(
-            pos,
-            &content,
-            &Vec::new(),
-            0,
-            &current_path,
-            Mode::Normal,
-            &Vec::new(),
-            0,
-            Some(&mut test_out),
-        );
+        browser.cursor = pos;
+        browser.content = content.clone();
+        browser.preview_dir = Vec::new();
+        browser.window_start = 0;
+        browser.current_path = current_path.clone();
+        browser.mode = Mode::Normal;
+        browser.search_txt = Vec::new();
+        browser.input_cursor_pos = 0;
+        canvas.draw(&browser, Some(&mut test_out));
         assert_eq!(test_out, "\u{1b}[1H\u{1b}[?25l\u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117md1                \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117md2                \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117md3                \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117md4                \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;187m\u{1b}[48;5;238m\u{1b}[38;5;117mzComplicatedDirect\u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236mf1                \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236mf2                \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236mf3                \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m:::冬川や家鴨四五 \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[14H\u{1b}[0K\u{1b}[38;5;188m\u{1b}[48;5;238m                              \u{1b}[14H\u{1b}[0K/tmp/ts-test-draw");
     }
 }
