@@ -42,6 +42,6 @@ if [ $fetched -eq 1 ]; then
   log "Fetched [$BINARY]\n\n"
   sudo install $TMP $BIN_PATH
   rm -f $TMP
-  log "Installed at $BIN_PATH/$TRANS\n\n"
-  log "Add this line:\n\n  \033[36meval \"\$(transgender --sh)\"\n\n\033[39mto your shell configuration file, and do \033[36msource ~/.bashrc \033[39mor \033[36msource ~/.zshrc\033[39m .\n"
+  log "\033[36m[Success]\033[39m Installed at $BIN_PATH/$TRANS\n\n"
+  log "Add this line to your shell configuration file:\n\n  \033[36meval \"\$(transgender --sh)\"\n\n\033[39mand do \033[36msource ~/.bashrc \033[39mor \033[36msource ~/.zshrc\033[39m .\n"
 fi
