@@ -5,7 +5,7 @@
 [OK]Use libc's mktemp to create temporary files and directories
 [OK]Add fast installation script
 [OK]Get-filename-and-create logic in tests may be flawed, consider retry creation if failed
+Doc of binary usage, and installation script
 Add edge case tests
 	e.g. Empty directory
 Add a regex match test
-Doc of binary usage
