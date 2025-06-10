@@ -30,6 +30,13 @@ A minimalistic file explorer with **minimal dependencies**, written by a [ranger
 
 ### Installation
 
+#### Linux & MacOS
+```sh
+curl -fsSL https://raw.githubusercontent.com/Sberm/Transgender.rs/refs/heads/main/scripts/install.sh | sh
+```
+
+> Currently only supports Linux and MacOS of x86_64 and Arm64 architectures.
+
 #### Arch Linux
 
 [transgender](https://aur.archlinux.org/packages/transgender) is available as a package in the [AUR](https://aur.archlinux.org). you can install it using your preferred AUR helper. example:
