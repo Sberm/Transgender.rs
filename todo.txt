@@ -7,3 +7,4 @@
 [OK]Get-filename-and-create logic in tests may be flawed, consider retry creation if failed
 Add edge case tests
 	e.g. Empty directory
+Add a regex match test
