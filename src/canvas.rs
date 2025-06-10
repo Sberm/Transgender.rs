@@ -43,21 +43,20 @@ impl Canvas {
     }
 
     /// Get the index where the bottom line text should be cropped
-    fn bottom_line_configure(
-        &mut self,
-        current_path: &str,
-        search_txt: &Vec<char>,
-        mode: Mode,
-        input_cursor_pos: usize,
-    ) -> String {
+    fn bottom_line_configure(&mut self, browser: &browser::Browser) -> String {
         let mut bottom_line = String::new();
         let mut has_extra_slash = false;
 
-        if matches!(mode, Mode::Search) || matches!(mode, Mode::RevSearch) {
+        if matches!(browser.mode, Mode::Search) || matches!(browser.mode, Mode::RevSearch) {
             has_extra_slash = true; // we will prepend the slash later
-            bottom_line.push_str(&search_txt.into_iter().collect::<String>());
+            bottom_line.push_str(&browser.search_txt.iter().collect::<String>());
         } else {
-            bottom_line.push_str(current_path);
+            bottom_line.push_str(
+                &browser
+                    .current_path
+                    .to_str()
+                    .expect("couldn't convert current_path to str"),
+            );
         }
 
         let mut real_width = self.width - (has_extra_slash as usize + self.add_algnmt as usize);
@@ -67,11 +66,11 @@ impl Canvas {
         let mut real_len = 0;
         let mut trunc = false;
         // find the right_border
-        for i in self.bottom_start..search_txt.len() + 1 {
-            if i == search_txt.len() {
+        for i in self.bottom_start..browser.search_txt.len() + 1 {
+            if i == browser.search_txt.len() {
                 real_len += 1;
             } else {
-                real_len += self.get_utf8_len(search_txt[i]);
+                real_len += self.get_utf8_len(browser.search_txt[i]);
             }
             if real_len > real_width {
                 trunc = true;
@@ -86,26 +85,26 @@ impl Canvas {
         // border detection
         let mut last_real_len = 0;
         let mut new_right_border = false;
-        if left_border > input_cursor_pos {
+        if left_border > browser.input_cursor_pos {
             if self.add_algnmt == true {
                 real_width += 1;
                 self.add_algnmt = false;
             }
-            self.bottom_start = input_cursor_pos;
-        } else if right_border < input_cursor_pos {
+            self.bottom_start = browser.input_cursor_pos;
+        } else if right_border < browser.input_cursor_pos {
             if self.add_algnmt == true {
                 real_width += 1;
                 self.add_algnmt = false;
             }
 
-            let mut i = input_cursor_pos;
+            let mut i = browser.input_cursor_pos;
             real_len = 0;
             // decide the correct bottom_start, from right to left
             loop {
-                if i == search_txt.len() {
+                if i == browser.search_txt.len() {
                     real_len += 1;
                 } else {
-                    real_len += self.get_utf8_len(search_txt[i]);
+                    real_len += self.get_utf8_len(browser.search_txt[i]);
                 }
                 if real_len > real_width {
                     break;
@@ -129,7 +128,7 @@ impl Canvas {
         let skipped = bottom_line.chars().skip(self.bottom_start);
         let mut to_take: usize = 0;
         if new_right_border {
-            to_take = input_cursor_pos - self.bottom_start + 1;
+            to_take = browser.input_cursor_pos - self.bottom_start + 1;
         } else {
             real_len = 0;
             for c in skipped.clone() {
@@ -146,7 +145,7 @@ impl Canvas {
             result.insert(0, '>');
         }
         if has_extra_slash {
-            match mode {
+            match browser.mode {
                 Mode::Search => result.insert(0, '/'),
                 Mode::RevSearch => result.insert(0, '?'),
                 _ => {}
@@ -205,14 +204,7 @@ impl Canvas {
     }
 
     /// Draw file path or search text in the bottom line
-    fn draw_bottom_line(
-        &mut self,
-        str_to_draw: &mut String,
-        mode: Mode,
-        current_path: &str,
-        search_txt: &Vec<char>,
-        input_cursor_pos: usize,
-    ) {
+    fn draw_bottom_line(&mut self, str_to_draw: &mut String, browser: &browser::Browser) {
         // Goto the bottom line
         str_to_draw.push_str(&csi(&format!("{}H", self.height)));
         str_to_draw.push_str(&csi("0K"));
@@ -226,15 +218,15 @@ impl Canvas {
         str_to_draw.push_str(&csi(&format!("{}H", self.height)));
         str_to_draw.push_str(&csi("0K"));
 
-        let content = self.bottom_line_configure(current_path, search_txt, mode, input_cursor_pos);
+        let content = self.bottom_line_configure(browser);
         str_to_draw.push_str(&content);
 
-        if matches!(mode, Mode::Search) || matches!(mode, Mode::RevSearch) {
+        if matches!(browser.mode, Mode::Search) || matches!(browser.mode, Mode::RevSearch) {
             // show the cursor when searching
             str_to_draw.push_str(&csi("?25h"));
             let mut real_len = 0;
-            for i in self.bottom_start..input_cursor_pos {
-                real_len += self.get_utf8_len(search_txt[i]);
+            for i in self.bottom_start..browser.input_cursor_pos {
+                real_len += self.get_utf8_len(browser.search_txt[i]);
             }
             // + 1 + 1: one because ansi escape is 1-index, another one because the extra slash
             str_to_draw.push_str(&csi(&format!(
@@ -287,13 +279,7 @@ impl Canvas {
                 str_to_draw.push_str(&tmp_s);
             }
 
-            self.draw_bottom_line(
-                &mut str_to_draw,
-                browser.mode,
-                &browser.current_path.to_str().unwrap().to_string(),
-                &browser.search_txt,
-                browser.input_cursor_pos,
-            );
+            self.draw_bottom_line(&mut str_to_draw, &browser);
 
             print!("{}", str_to_draw);
             let _ = io::stdout().flush();
@@ -439,13 +425,7 @@ impl Canvas {
         }
 
         // Draw bottom line after drawing the directories to prevent overlapping
-        self.draw_bottom_line(
-            &mut str_to_draw,
-            browser.mode,
-            &browser.current_path.to_str().unwrap().to_string(),
-            &browser.search_txt,
-            browser.input_cursor_pos,
-        );
+        self.draw_bottom_line(&mut str_to_draw, &browser);
 
         #[cfg(not(test))]
         {
@@ -554,20 +534,23 @@ mod test {
         let width = 40;
         canvas.width = width;
         canvas.bottom_start = 4;
+        let mut browser = browser::new(".", None, None);
+        browser.mode = Mode::Search;
+        browser.input_cursor_pos = canvas.bottom_start;
         let mut i = 0;
         for st in texts.iter() {
-            let search_txt = st.chars().collect::<Vec<char>>();
-            let bottom_line_str =
-                canvas.bottom_line_configure("", &search_txt, Mode::Search, canvas.bottom_start);
+            browser.search_txt = st.chars().collect::<Vec<char>>();
+            let bottom_line_str = canvas.bottom_line_configure(&browser);
             assert_eq!(bottom_line_str, texts_configured[i]);
             i += 1;
         }
         // reverse search
+        browser.mode = Mode::RevSearch;
+        browser.input_cursor_pos = canvas.bottom_start;
         i = 0;
         for st in texts.iter() {
-            let search_txt = st.chars().collect::<Vec<char>>();
-            let bottom_line_str =
-                canvas.bottom_line_configure("", &search_txt, Mode::RevSearch, canvas.bottom_start);
+            browser.search_txt = st.chars().collect::<Vec<char>>();
+            let bottom_line_str = canvas.bottom_line_configure(&browser);
             assert_eq!(bottom_line_str, texts_configured_rev[i]);
             i += 1;
         }
@@ -649,8 +632,14 @@ mod test {
         // in normal mode, print current path
         let mut str_to_draw = String::new();
         let current_path = "dummy_path";
+        let current_path_buf = PathBuf::from(current_path);
+        let mut browser = browser::new(".", None, None);
+        browser.mode = Mode::Normal;
+        browser.current_path = current_path_buf.clone();
+        browser.search_txt = Vec::new();
+        browser.input_cursor_pos = 0;
         canvas.width = current_path.chars().count();
-        canvas.draw_bottom_line(&mut str_to_draw, Mode::Normal, current_path, &Vec::new(), 0);
+        canvas.draw_bottom_line(&mut str_to_draw, &browser);
         assert_eq!(
             str_to_draw,
             format!(
@@ -669,7 +658,11 @@ mod test {
         let to_crop = 2;
         str_to_draw = String::new();
         canvas.width -= to_crop;
-        canvas.draw_bottom_line(&mut str_to_draw, Mode::Normal, current_path, &Vec::new(), 0);
+        browser.mode = Mode::Normal;
+        browser.current_path = current_path_buf.clone();
+        browser.search_txt = Vec::new();
+        browser.input_cursor_pos = 0;
+        canvas.draw_bottom_line(&mut str_to_draw, &browser);
         assert_eq!(
             str_to_draw,
             format!(
@@ -693,7 +686,11 @@ mod test {
         let search_txt = text.chars().collect::<Vec<char>>();
         canvas.width = search_txt.len() + 3;
         let cursor_pos = search_txt.len() / 2;
-        canvas.draw_bottom_line(&mut str_to_draw, Mode::Search, "", &search_txt, cursor_pos);
+        browser.mode = Mode::Search;
+        browser.current_path = current_path_buf.clone();
+        browser.search_txt = search_txt.clone();
+        browser.input_cursor_pos = cursor_pos;
+        canvas.draw_bottom_line(&mut str_to_draw, &browser);
         assert_eq!(
             str_to_draw,
             format!(
@@ -720,7 +717,11 @@ mod test {
         let search_txt = text.chars().collect::<Vec<char>>();
         let cursor_pos = 0;
         canvas.width = search_txt.len() / 2;
-        canvas.draw_bottom_line(&mut str_to_draw, Mode::Search, "", &search_txt, cursor_pos);
+        browser.mode = Mode::Search;
+        browser.current_path = current_path_buf.clone();
+        browser.search_txt = search_txt.clone();
+        browser.input_cursor_pos = cursor_pos;
+        canvas.draw_bottom_line(&mut str_to_draw, &browser);
         assert_eq!(
             str_to_draw,
             format!(
@@ -749,7 +750,11 @@ mod test {
         let search_txt = text.chars().collect::<Vec<char>>();
         let cursor_pos = search_txt.len() - 2; // on the 'a'
         canvas.width = search_txt.len() / 2;
-        canvas.draw_bottom_line(&mut str_to_draw, Mode::Search, "", &search_txt, cursor_pos);
+        browser.mode = Mode::Search;
+        browser.current_path = current_path_buf.clone();
+        browser.search_txt = search_txt.clone();
+        browser.input_cursor_pos = cursor_pos;
+        canvas.draw_bottom_line(&mut str_to_draw, &browser);
         assert_eq!(
             str_to_draw,
             format!(
@@ -773,7 +778,11 @@ mod test {
         let search_txt = text.chars().collect::<Vec<char>>();
         let cursor_pos = search_txt.len();
         canvas.width = 18;
-        canvas.draw_bottom_line(&mut str_to_draw, Mode::Search, "", &search_txt, cursor_pos);
+        browser.mode = Mode::Search;
+        browser.current_path = current_path_buf.clone();
+        browser.search_txt = search_txt.clone();
+        browser.input_cursor_pos = cursor_pos;
+        canvas.draw_bottom_line(&mut str_to_draw, &browser);
         assert_eq!(
             str_to_draw,
             format!(
@@ -797,7 +806,11 @@ mod test {
         let search_txt = text.chars().collect::<Vec<char>>();
         let cursor_pos = search_txt.len();
         canvas.width = 19;
-        canvas.draw_bottom_line(&mut str_to_draw, Mode::Search, "", &search_txt, cursor_pos);
+        browser.mode = Mode::Search;
+        browser.current_path = current_path_buf.clone();
+        browser.search_txt = search_txt.clone();
+        browser.input_cursor_pos = cursor_pos;
+        canvas.draw_bottom_line(&mut str_to_draw, &browser);
         assert_eq!(
             str_to_draw,
             format!(
@@ -821,13 +834,11 @@ mod test {
         let search_txt = text.chars().collect::<Vec<char>>();
         let cursor_pos = search_txt.len();
         canvas.width = 18;
-        canvas.draw_bottom_line(
-            &mut str_to_draw,
-            Mode::RevSearch,
-            "",
-            &search_txt,
-            cursor_pos,
-        );
+        browser.mode = Mode::RevSearch;
+        browser.current_path = current_path_buf.clone();
+        browser.search_txt = search_txt.clone();
+        browser.input_cursor_pos = cursor_pos;
+        canvas.draw_bottom_line(&mut str_to_draw, &browser);
         assert_eq!(
             str_to_draw,
             format!(
