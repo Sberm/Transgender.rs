@@ -8,3 +8,4 @@
 Add edge case tests
 	e.g. Empty directory
 Add a regex match test
+Doc of binary usage
