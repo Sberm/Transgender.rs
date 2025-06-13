@@ -1015,5 +1015,13 @@ mod test {
         b.search_txt = f.chars().collect::<Vec<char>>();
         b.next_match(b.cursor, false);
         assert_eq!(b.cursor, answer);
+
+        // regex
+        b.search_txt = f.chars().take(f.len() / 2).collect::<Vec<char>>();
+        b.search_txt.push('.');
+        b.search_txt.push('*');
+        b.cursor = 0;
+        b.next_match(b.cursor, false);
+        assert_eq!(b.cursor, answer);
     }
 }

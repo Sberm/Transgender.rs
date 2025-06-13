@@ -8,4 +8,4 @@
 [OK]Doc of binary usage, and installation script
 Add edge case tests
 	e.g. Empty directory
-Add a regex match test
+[OK]Add a regex match test
