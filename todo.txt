@@ -6,6 +6,6 @@
 [OK]Add fast installation script
 [OK]Get-filename-and-create logic in tests may be flawed, consider retry creation if failed
 [OK]Doc of binary usage, and installation script
-Add edge case tests
-	e.g. Empty directory
+[OK]Add edge case tests
+	[OK]e.g. Empty directory
 [OK]Add a regex match test

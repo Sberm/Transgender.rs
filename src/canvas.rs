@@ -847,6 +847,14 @@ mod test {
         );
     }
 
+    fn new_canvas(width: usize, height: usize, conf: Option<&str>) -> Canvas {
+        let mut canvas = new(conf);
+        canvas.width = width;
+        canvas.height = height;
+        canvas.pixels = vec![vec![' '; width]; height];
+        canvas
+    }
+
     #[test]
     fn test_draw() {
         let (conf, _file) = mktemp_conf();
@@ -858,13 +866,6 @@ mod test {
         let _ = file.write(b"theme = lucius\n");
         let width = 30;
         let height = 14;
-        let new_canvas = || {
-            let mut canvas = new(Some(&conf));
-            canvas.width = width;
-            canvas.height = height;
-            canvas.pixels = vec![vec![' '; width]; height];
-            canvas
-        };
         let to_vec = |slice1: &[&str], slice2: &[&str]| {
             let mut v = Vec::new();
             for s in slice1 {
@@ -879,7 +880,7 @@ mod test {
 
         // normal
         //
-        let mut canvas = new_canvas();
+        let mut canvas = new_canvas(width, height, Some(&conf));
         // create a directory named /tmp/ts-test-draw
         let parent = "/tmp/ts-test-draw";
         cleanups.push(CleanupDir {
@@ -969,5 +970,22 @@ mod test {
         browser.input_cursor_pos = 0;
         canvas.draw(&browser, Some(&mut test_out));
         assert_eq!(test_out, "\u{1b}[1H\u{1b}[?25l\u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117md1                \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117md2                \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117md3                \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117md4                \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;187m\u{1b}[48;5;238m\u{1b}[38;5;117mzComplicatedDirect\u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236mf1                \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236mf2                \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236mf3                \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m:::冬川や家鴨四五 \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[14H\u{1b}[0K\u{1b}[38;5;188m\u{1b}[48;5;238m                              \u{1b}[14H\u{1b}[0K/tmp/ts-test-draw");
+    }
+
+    #[test]
+    fn test_draw_empty_dir() {
+        let width = 30;
+        let height = 14;
+        let mut canvas = new_canvas(width, height, None);
+        let parent = "/tmp/ts-test-draw-empty";
+        let _ = create_dir(parent);
+        let _cd = CleanupDir {
+            dir: parent.to_owned(),
+        };
+        let browser = browser::new(&parent, None, None);
+        let mut test_out = String::new();
+        // everything is empty (in an empty directory)
+        canvas.draw(&browser, Some(&mut test_out));
+        assert_eq!(test_out, "\u{1b}[1H\u{1b}[?25l\u{1b}[38;5;187m\u{1b}[48;5;238m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[14H\u{1b}[0K\u{1b}[38;5;188m\u{1b}[48;5;238m                              \u{1b}[14H\u{1b}[0K/tmp/ts-test-draw-empty");
     }
 }
