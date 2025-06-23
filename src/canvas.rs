@@ -292,7 +292,6 @@ impl Canvas {
 
         // right preview window
         dir_i = 0;
-
         for i in 0..=self.height - 1 {
             if dir_i >= browser.preview_dir.len() {
                 break;
@@ -310,11 +309,16 @@ impl Canvas {
         }
 
         // after setting the pixels, format str_to_draw
-        let mut actual_len: usize = 0;
-        let mut do_preview: bool = false;
-        let mut complement: usize = 0;
+        let mut actual_len: usize;
+        let mut do_preview: bool;
+        let mut complement: usize;
+        let mut j;
         for i in 0..self.height {
-            let mut j = 0;
+            j = 0;
+            actual_len = 0;
+            complement = 0;
+            do_preview = false;
+
             // Iterate the column, j is jumpable so make it a loop instead of a for
             loop {
                 if j >= self.width {
@@ -368,6 +372,7 @@ impl Canvas {
                     break;
                 }
 
+                // Add highlights
                 if j == 0 || j == r_w_l {
                     // decide if the directory highlight should be added, this applies to both the left
                     // window and the right preview window
@@ -393,8 +398,7 @@ impl Canvas {
                             }
                         }
                     };
-
-                    // checks both windows
+                    // checks and inserts for both windows
                     self.check_insert_highlight(
                         &mut str_to_draw,
                         i,
@@ -408,10 +412,6 @@ impl Canvas {
             } // loop j
 
             str_to_draw.push_str(&(0..complement).map(|_| ' ').collect::<String>());
-
-            actual_len = 0;
-            complement = 0;
-            do_preview = false;
         }
 
         // Draw bottom line after drawing the directories to prevent overlapping
@@ -976,13 +976,19 @@ mod test {
     fn test_draw_empty_dir() {
         let width = 30;
         let height = 14;
-        let mut canvas = new_canvas(width, height, None);
+
+        let (conf, _file) = mktemp_conf();
+        let mut file = _file.unwrap();
+        let _cf = CleanupFile { file: conf.clone() };
+        let _ = file.write(b"theme = lucius\n");
+
+        let mut canvas = new_canvas(width, height, Some(&conf));
         let parent = "/tmp/ts-test-draw-empty";
         let _ = create_dir(parent);
         let _cd = CleanupDir {
             dir: parent.to_owned(),
         };
-        let browser = browser::new(&parent, None, None);
+        let browser = browser::new(&parent, None, Some(&conf));
         let mut test_out = String::new();
         // everything is empty (in an empty directory)
         canvas.draw(&browser, Some(&mut test_out));
