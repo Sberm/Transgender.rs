@@ -1,6 +1,6 @@
 ARCH="$(uname -m)"
 SYS="$(uname -s)"
-V="1.5.2"
+V="1.5.3"
 TRANS="transgender"
 BINARY=
 TMP="/tmp/transgender"
