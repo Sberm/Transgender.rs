@@ -65,16 +65,17 @@ impl Canvas {
         let left_border = self.bottom_start;
         let mut right_border = self.bottom_start + width - 1;
         let mut right_maybe_smaller = 0;
-        let mut real_len = 0;
+        let mut len = 0;
         let mut trunc = false;
         // find the right_border
         for i in self.bottom_start..browser.search_txt.len() + 1 {
+            // the last empty character
             if i == browser.search_txt.len() {
-                real_len += 1;
+                len += 1;
             } else {
-                real_len += self.get_utf8_len(browser.search_txt[i]);
+                len += self.get_utf8_len(browser.search_txt[i]);
             }
-            if real_len > width {
+            if len > width {
                 trunc = true;
                 break;
             }
@@ -85,7 +86,7 @@ impl Canvas {
         }
 
         // border detection
-        let mut last_real_len = 0;
+        let mut last_len = 0;
         let mut new_right_border = false;
         if left_border > browser.input_cursor_pos {
             if self.add_algnmt == true {
@@ -100,18 +101,18 @@ impl Canvas {
             }
 
             let mut i = browser.input_cursor_pos;
-            real_len = 0;
+            len = 0;
             // decide the correct bottom_start, from right to left
             loop {
                 if i == browser.search_txt.len() {
-                    real_len += 1;
+                    len += 1;
                 } else {
-                    real_len += self.get_utf8_len(browser.search_txt[i]);
+                    len += self.get_utf8_len(browser.search_txt[i]);
                 }
-                if real_len > width {
+                if len > width {
                     break;
                 }
-                last_real_len = real_len;
+                last_len = len;
                 self.bottom_start = i;
                 if i == 0 {
                     break;
@@ -120,7 +121,7 @@ impl Canvas {
                 }
             }
             // this means that a UTF8 full width character causes the cursor to shiver
-            if last_real_len != width && !self.add_algnmt {
+            if last_len != width && !self.add_algnmt {
                 self.add_algnmt = true;
                 width -= 1;
             }
@@ -132,10 +133,10 @@ impl Canvas {
         if new_right_border {
             to_take = browser.input_cursor_pos - self.bottom_start + 1;
         } else {
-            real_len = 0;
+            len = 0;
             for c in skipped.clone() {
-                real_len += self.get_utf8_len(c);
-                if real_len > width {
+                len += self.get_utf8_len(c);
+                if len > width {
                     break;
                 }
                 to_take += 1;
