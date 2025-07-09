@@ -63,10 +63,10 @@ impl Canvas {
 
         let mut width = self.width - (has_extra_slash as usize + self.add_algnmt as usize);
         let left_border = self.bottom_start;
+        // TODO: possible integer underflow
         let mut right_border = self.bottom_start + width - 1;
-        let mut right_maybe_smaller = 0;
         let mut len = 0;
-        let mut trunc = false;
+
         // find the right_border
         for i in self.bottom_start..browser.search_txt.len() + 1 {
             // the last empty character
@@ -76,18 +76,13 @@ impl Canvas {
                 len += self.get_utf8_len(browser.search_txt[i]);
             }
             if len > width {
-                trunc = true;
                 break;
             }
-            right_maybe_smaller = i;
-        }
-        if trunc {
-            right_border = right_maybe_smaller;
+            right_border = i;
         }
 
-        // border detection
-        let mut last_len = 0;
-        let mut new_right_border = false;
+        // move the bottom text based on the position of the input cursor
+        let mut right_overflow = false;
         if left_border > browser.input_cursor_pos {
             if self.add_algnmt == true {
                 width += 1;
@@ -101,6 +96,7 @@ impl Canvas {
             }
 
             let mut i = browser.input_cursor_pos;
+            let mut legal_len = 0;
             len = 0;
             // decide the correct bottom_start, from right to left
             loop {
@@ -112,25 +108,25 @@ impl Canvas {
                 if len > width {
                     break;
                 }
-                last_len = len;
+
+                legal_len = len;
                 self.bottom_start = i;
                 if i == 0 {
                     break;
-                } else {
-                    i -= 1;
                 }
+                i -= 1;
             }
             // this means that a UTF8 full width character causes the cursor to shiver
-            if last_len != width && !self.add_algnmt {
+            if legal_len != width && !self.add_algnmt {
                 self.add_algnmt = true;
                 width -= 1;
             }
-            new_right_border = true;
+            right_overflow = true;
         }
 
         let skipped = bottom_line.chars().skip(self.bottom_start);
         let mut to_take: usize = 0;
-        if new_right_border {
+        if right_overflow {
             to_take = browser.input_cursor_pos - self.bottom_start + 1;
         } else {
             len = 0;
@@ -142,8 +138,8 @@ impl Canvas {
                 to_take += 1;
             }
         }
-
         let mut result = skipped.take(to_take).collect::<String>();
+
         if self.add_algnmt {
             result.insert(0, '>');
         }
