@@ -47,10 +47,10 @@ impl Canvas {
     /// Get the index where the bottom line text should be cropped
     fn bottom_line_configure(&mut self, browser: &browser::Browser) -> String {
         let mut bottom_line = String::new();
-        let mut has_extra_slash = false;
+        let mut special_char = false;
 
         if matches!(browser.mode, Mode::Search) || matches!(browser.mode, Mode::RevSearch) {
-            has_extra_slash = true; // we will prepend the slash later
+            special_char = true; // we will prepend the slash later
             bottom_line.push_str(&browser.search_txt.iter().collect::<String>());
         } else {
             bottom_line.push_str(
@@ -61,7 +61,7 @@ impl Canvas {
             );
         }
 
-        let mut width = self.width - (has_extra_slash as usize + self.add_algnmt as usize);
+        let mut width = self.width - (special_char as usize + self.add_algnmt as usize);
         let left_border = self.bottom_start;
         // TODO: possible integer underflow
         let mut right_border = self.bottom_start + width - 1;
@@ -143,7 +143,7 @@ impl Canvas {
         if self.add_algnmt {
             result.insert(0, '>');
         }
-        if has_extra_slash {
+        if special_char {
             match browser.mode {
                 Mode::Search => result.insert(0, '/'),
                 Mode::RevSearch => result.insert(0, '?'),
