@@ -61,9 +61,9 @@ impl Canvas {
             );
         }
 
-        let mut real_width = self.width - (has_extra_slash as usize + self.add_algnmt as usize);
+        let mut width = self.width - (has_extra_slash as usize + self.add_algnmt as usize);
         let left_border = self.bottom_start;
-        let mut right_border = self.bottom_start + real_width - 1;
+        let mut right_border = self.bottom_start + width - 1;
         let mut right_maybe_smaller = 0;
         let mut real_len = 0;
         let mut trunc = false;
@@ -74,7 +74,7 @@ impl Canvas {
             } else {
                 real_len += self.get_utf8_len(browser.search_txt[i]);
             }
-            if real_len > real_width {
+            if real_len > width {
                 trunc = true;
                 break;
             }
@@ -89,13 +89,13 @@ impl Canvas {
         let mut new_right_border = false;
         if left_border > browser.input_cursor_pos {
             if self.add_algnmt == true {
-                real_width += 1;
+                width += 1;
                 self.add_algnmt = false;
             }
             self.bottom_start = browser.input_cursor_pos;
         } else if right_border < browser.input_cursor_pos {
             if self.add_algnmt == true {
-                real_width += 1;
+                width += 1;
                 self.add_algnmt = false;
             }
 
@@ -108,7 +108,7 @@ impl Canvas {
                 } else {
                     real_len += self.get_utf8_len(browser.search_txt[i]);
                 }
-                if real_len > real_width {
+                if real_len > width {
                     break;
                 }
                 last_real_len = real_len;
@@ -120,9 +120,9 @@ impl Canvas {
                 }
             }
             // this means that a UTF8 full width character causes the cursor to shiver
-            if last_real_len != real_width && !self.add_algnmt {
+            if last_real_len != width && !self.add_algnmt {
                 self.add_algnmt = true;
-                real_width -= 1;
+                width -= 1;
             }
             new_right_border = true;
         }
@@ -135,7 +135,7 @@ impl Canvas {
             real_len = 0;
             for c in skipped.clone() {
                 real_len += self.get_utf8_len(c);
-                if real_len > real_width {
+                if real_len > width {
                     break;
                 }
                 to_take += 1;
