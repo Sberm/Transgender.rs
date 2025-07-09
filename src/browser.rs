@@ -14,6 +14,7 @@ use std::collections::VecDeque;
 use std::ffi::OsString;
 use std::fs::read_dir;
 use std::iter::Rev;
+use std::mem::take;
 use std::ops::Range;
 use std::path::PathBuf;
 use std::process::{exit, Command};
@@ -46,7 +47,8 @@ pub struct Browser {
     trunc: Vec<u8>,
     pub input_cursor_pos: usize,
     rev_search: bool,
-    pub preview_dir: Vec<String>,
+    pub preview: Vec<String>,
+    refresh_preview: bool,
 }
 
 pub enum UsizeIter {
@@ -143,7 +145,10 @@ impl Browser {
     /// Window display update loop
     pub fn start_loop(&mut self, canvas: &mut canvas::Canvas) {
         loop {
-            self.preview_dir = self.get_preview();
+            if self.refresh_preview {
+                self.refresh_preview = false;
+                self.preview = self.get_preview();
+            }
 
             canvas.draw(self, None);
 
@@ -290,6 +295,8 @@ impl Browser {
         if self.search_txt.len() == 0 {
             return;
         }
+
+        self.refresh_preview = true;
 
         if matches!(self.mode, Mode::RevSearch) || self.rev_search == true {
             rev = !rev;
@@ -478,16 +485,20 @@ impl Browser {
     fn top(&mut self) {
         self.cursor = 0;
         self.window_start = 0;
+        self.refresh_preview = true;
     }
 
     fn bottom(&mut self) {
         self.set_cursor_pos_centered(self.content.len() - 1);
+        self.refresh_preview = true;
     }
 
     fn up(&mut self) {
         if self.content.is_empty() == true {
             return;
         }
+
+        self.refresh_preview = true;
 
         self.cursor = if self.cursor as isize - 1 >= 0 {
             self.cursor - 1
@@ -505,6 +516,8 @@ impl Browser {
             return;
         }
 
+        self.refresh_preview = true;
+
         let max_len = self.content.len();
         self.cursor = if self.cursor + 1 < max_len {
             self.cursor + 1
@@ -519,12 +532,15 @@ impl Browser {
         }
     }
 
+    // don't need to refresh the preview window
     fn left(&mut self) {
         let child = self.current_path.clone();
         // for example, root dir '/' doesn't have a file name
         if child.file_name() == None {
             return;
         }
+
+        self.preview = take(&mut self.content);
 
         // access the parent dir and read its content
         self.current_path = self
@@ -569,6 +585,8 @@ impl Browser {
             return;
         }
 
+        self.refresh_preview = true;
+
         let mut dir_under_cursor = self.current_path.clone();
         dir_under_cursor.push(&self.content[self.cursor]);
         if dir_under_cursor.is_dir() == false {
@@ -579,12 +597,7 @@ impl Browser {
         self.past_cursor.push(self.cursor);
         self.past_window_start.push(self.window_start);
         self.current_path = dir_under_cursor.clone();
-        self.read_content(
-            &dir_under_cursor
-                .to_str()
-                .expect("Failed to call to_str() for the dir under cursor")
-                .to_string(),
-        );
+        self.content = take(&mut self.preview);
         self.top();
     }
 
@@ -669,6 +682,8 @@ impl Browser {
             return;
         }
 
+        self.refresh_preview = true;
+
         let height = get_height();
         let half_page = height / 2;
 
@@ -685,6 +700,8 @@ impl Browser {
         if self.content.is_empty() == true {
             return;
         }
+
+        self.refresh_preview = true;
 
         let height = get_height();
         let half_page = height / 2;
@@ -738,7 +755,8 @@ pub fn new(path: &str, dest_file: Option<String>, config_path: Option<&str>) -> 
         trunc: Vec::new(),
         input_cursor_pos: 0,
         rev_search: false,
-        preview_dir: Vec::new(),
+        preview: Vec::new(),
+        refresh_preview: true,
     };
     browser.init(&path);
     browser

@@ -290,10 +290,10 @@ impl Canvas {
         // right preview window
         dir_i = 0;
         for i in 0..=self.height - 1 {
-            if dir_i >= browser.preview_dir.len() {
+            if dir_i >= browser.preview.len() {
                 break;
             }
-            let c_a = browser.preview_dir[dir_i].chars().collect::<Vec<char>>();
+            let c_a = browser.preview[dir_i].chars().collect::<Vec<char>>();
             ch_i = 0;
             for j in r_w_l..=r_w_r {
                 if ch_i >= c_a.len() {
@@ -387,10 +387,10 @@ impl Canvas {
                         } else {
                             let mut tmp_path = browser.current_path.clone();
                             tmp_path.push(&browser.content[browser.cursor]);
-                            if i >= browser.preview_dir.len() {
+                            if i >= browser.preview.len() {
                                 false
                             } else {
-                                tmp_path.push(&browser.preview_dir[i]);
+                                tmp_path.push(&browser.preview[i]);
                                 tmp_path.is_dir()
                             }
                         }
@@ -920,7 +920,7 @@ mod test {
         let current_path = PathBuf::from(parent);
         browser.cursor = 0;
         browser.content = content.clone();
-        browser.preview_dir = preview;
+        browser.preview = preview;
         browser.window_start = 0;
         browser.current_path = current_path.clone();
         browser.mode = Mode::Normal;
@@ -942,7 +942,7 @@ mod test {
         }
         browser.cursor = pos;
         browser.content = content.clone();
-        browser.preview_dir = Vec::new();
+        browser.preview = Vec::new();
         browser.window_start = 0;
         browser.current_path = current_path.clone();
         browser.mode = Mode::Search;
@@ -959,7 +959,7 @@ mod test {
         content.push(utf8_filename.to_owned());
         browser.cursor = pos;
         browser.content = content.clone();
-        browser.preview_dir = Vec::new();
+        browser.preview = Vec::new();
         browser.window_start = 0;
         browser.current_path = current_path.clone();
         browser.mode = Mode::Normal;
