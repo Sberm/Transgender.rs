@@ -13,9 +13,7 @@ use regex_lite::RegexBuilder;
 use std::collections::VecDeque;
 use std::ffi::OsString;
 use std::fs::read_dir;
-use std::iter::Rev;
 use std::mem::take;
-use std::ops::Range;
 use std::path::PathBuf;
 use std::process::{exit, Command};
 use std::vec::Vec;
@@ -49,22 +47,6 @@ pub struct Browser {
     rev_search: bool,
     pub preview: Vec<String>,
     refresh_preview: bool,
-}
-
-pub enum UsizeIter {
-    Forward(Range<usize>),
-    Backward(Rev<Range<usize>>),
-}
-
-impl Iterator for UsizeIter {
-    type Item = usize;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        match self {
-            UsizeIter::Forward(range) => range.next(),
-            UsizeIter::Backward(range) => range.next(),
-        }
-    }
 }
 
 #[cfg(test)]
@@ -349,34 +331,45 @@ impl Browser {
                 .expect("Failed to parse regex for ^$"),
         };
 
-        let it1 = if rev == false {
-            UsizeIter::Forward(start..self.content.len())
-        } else {
-            UsizeIter::Backward((0..start + 1).rev())
-        };
-
-        for i in it1 {
-            if re.is_match(&self.content[i]) {
-                self.set_cursor_pos_centered(i);
-                matched = true;
-                break;
-            }
-        }
-
-        // starts from 0
-        if matched == false {
-            let it2 = if rev == false {
-                UsizeIter::Forward(0..start)
-            } else {
-                UsizeIter::Backward((start + 1..self.content.len()).rev())
-            };
-
-            for i in it2 {
+        if rev == false {
+            let ra = start..self.content.len();
+            for i in ra {
                 if re.is_match(&self.content[i]) {
                     self.set_cursor_pos_centered(i);
+                    matched = true;
                     break;
                 }
             }
+        } else {
+            let ra = (0..start + 1).rev();
+            for i in ra {
+                if re.is_match(&self.content[i]) {
+                    self.set_cursor_pos_centered(i);
+                    matched = true;
+                    break;
+                }
+            }
+        };
+
+        // Didn't match? Start over
+        if matched == false {
+            if rev == false {
+                let ra = 0..start;
+                for i in ra {
+                    if re.is_match(&self.content[i]) {
+                        self.set_cursor_pos_centered(i);
+                        break;
+                    }
+                }
+            } else {
+                let ra = (start + 1..self.content.len()).rev();
+                for i in ra {
+                    if re.is_match(&self.content[i]) {
+                        self.set_cursor_pos_centered(i);
+                        break;
+                    }
+                }
+            };
         }
     }
 
