@@ -30,6 +30,31 @@ fn csi(s: &str) -> String {
     ret
 }
 
+fn is_dir(do_preview: bool, i: usize, browser: &browser::Browser) -> bool {
+    if !do_preview {
+        if i + browser.window_start >= browser.content.len() {
+            return false;
+        } else {
+            let mut tmp_path = browser.current_path.clone();
+            tmp_path.push(&browser.content[i + browser.window_start]);
+            return tmp_path.is_dir();
+        }
+    } else {
+        if browser.cursor >= browser.content.len() {
+            return false;
+        } else {
+            let mut tmp_path = browser.current_path.clone();
+            tmp_path.push(&browser.content[browser.cursor]);
+            if i >= browser.preview.len() {
+                return false;
+            } else {
+                tmp_path.push(&browser.preview[i]);
+                return tmp_path.is_dir();
+            }
+        }
+    }
+}
+
 impl Canvas {
     /// Set the internel pixel (char) representation
     fn set_pixel(&self, pixels: &mut Vec<Vec<char>>, i: usize, j: usize, c: char) {
@@ -293,13 +318,13 @@ impl Canvas {
         }
 
         // after setting the pixels, format str_to_draw
-        let mut actual_len: usize;
+        let mut real_len: usize;
         let mut do_preview: bool;
         let mut complement: usize;
         let mut j;
         for i in 0..self.height {
             j = 0;
-            actual_len = 0;
+            real_len = 0;
             complement = 0;
             do_preview = false;
 
@@ -314,24 +339,21 @@ impl Canvas {
                 // for a zero-width character such as a combining character, spaces in pixels is
                 // not enough, insert more spaces (complement) for alignment
                 if len == 0 {
-                    actual_len += 1;
+                    real_len += 1;
                     complement += 1;
                 } else {
-                    actual_len += len;
+                    real_len += len;
                 }
 
-                //  If the actual_len reaches over the capcity of the left window, discard this
+                let left_win_len = l_w_r + 1;
+                //  If the real_len reaches over the capcity of the left window, discard this
                 //  character and update the preview window.
-                if actual_len > l_w_r + 1 && !do_preview {
-                    // If the last character of this window is wide and that causes overflow,
+                if real_len > left_win_len && !do_preview {
+                    // If the last character of this window is wide and it causes overflow,
                     // discard it, insert a white space so it aligns.
-                    //
-                    // actual_len == l_w_r + 2 means it has to be a wide character from the left
-                    // window that just subtly causes the overflow, but not because it's time to
-                    // preview the right window (for example, left window is exactly filled, and we
-                    // got one more wide character on the left, no space left to insert it so it's
-                    // time to switch to preview)
-                    if j <= l_w_r && actual_len == l_w_r + 2 && self.get_utf8_len(pixels[i][j]) > 1
+                    if j <= l_w_r
+                        && real_len == left_win_len + 1
+                        && self.get_utf8_len(pixels[i][j]) > 1
                     {
                         str_to_draw.push(' ');
                     }
@@ -339,16 +361,16 @@ impl Canvas {
                     str_to_draw.push_str(&(0..complement).map(|_| ' ').collect::<String>());
 
                     j = r_w_l;
-                    actual_len = 0;
+                    real_len = 0;
                     complement = 0;
                     do_preview = true;
 
                     continue;
                 }
 
-                if do_preview && actual_len > preview_width {
-                    // Same last wide character discard filling logic as above
-                    if actual_len == preview_width + 1 && self.get_utf8_len(pixels[i][j]) > 1 {
+                if do_preview && real_len > preview_width {
+                    // Same last wide character discard logic as above
+                    if real_len == preview_width + 1 && self.get_utf8_len(pixels[i][j]) > 1 {
                         str_to_draw.push(' ');
                     }
                     break;
@@ -358,28 +380,7 @@ impl Canvas {
                 if j == 0 || j == r_w_l {
                     // decide if the directory highlight should be added, this applies to both the left
                     // window and the right preview window
-                    let is_dir = if !do_preview {
-                        if i + browser.window_start >= browser.content.len() {
-                            false
-                        } else {
-                            let mut tmp_path = browser.current_path.clone();
-                            tmp_path.push(&browser.content[i + browser.window_start]);
-                            tmp_path.is_dir()
-                        }
-                    } else {
-                        if browser.cursor >= browser.content.len() {
-                            false
-                        } else {
-                            let mut tmp_path = browser.current_path.clone();
-                            tmp_path.push(&browser.content[browser.cursor]);
-                            if i >= browser.preview.len() {
-                                false
-                            } else {
-                                tmp_path.push(&browser.preview[i]);
-                                tmp_path.is_dir()
-                            }
-                        }
-                    };
+                    let is_dir = is_dir(do_preview, i, browser);
                     // checks and inserts for both windows
                     self.check_insert_highlight(
                         &mut str_to_draw,
