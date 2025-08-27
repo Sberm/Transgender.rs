@@ -18,7 +18,6 @@ use std::io::Write;
 pub struct Canvas {
     pub height: usize,
     pub width: usize,
-    pixels: Vec<Vec<char>>,
     theme: theme::Theme,
     utf8_table: WcLookupTable,
     pub bottom_start: usize, // the left border of the bottom bar text
@@ -33,9 +32,9 @@ fn csi(s: &str) -> String {
 
 impl Canvas {
     /// Set the internel pixel (char) representation
-    fn set(&mut self, i: usize, j: usize, c: char) {
+    fn set_pixel(&self, pixels: &mut Vec<Vec<char>>, i: usize, j: usize, c: char) {
         if i < self.height && j < self.width {
-            self.pixels[i][j] = c;
+            pixels[i][j] = c;
         }
     }
 
@@ -169,16 +168,6 @@ impl Canvas {
         }
     }
 
-    /// Clear the internel character array
-    fn clear_pixels(&mut self) {
-        let c: char = ' ';
-        for i in 0..self.height {
-            for j in 0..self.width {
-                self.pixels[i][j] = c;
-            }
-        }
-    }
-
     /// Check if trans needs to highlight this text, if so, highlight
     fn check_insert_highlight(
         &self,
@@ -245,10 +234,10 @@ impl Canvas {
             if self.height != h || self.width != w {
                 self.height = h;
                 self.width = w;
-                self.pixels = vec![vec![' '; self.width]; self.height];
             }
         }
 
+        let mut pixels = vec![vec![' '; self.width]; self.height];
         let mut str_to_draw = String::from("");
 
         str_to_draw.push_str(&csi("1H"));
@@ -265,8 +254,6 @@ impl Canvas {
         let mut dir_i: usize = browser.window_start;
         let mut ch_i: usize;
 
-        self.clear_pixels();
-
         // left window
         for i in 0..=self.height - 1 {
             if dir_i >= browser.content.len() {
@@ -278,7 +265,7 @@ impl Canvas {
                 if ch_i >= c_a.len() {
                     break;
                 }
-                self.set(i, j, c_a[ch_i]);
+                self.set_pixel(&mut pixels, i, j, c_a[ch_i]);
                 ch_i += 1;
             }
             dir_i += 1;
@@ -299,7 +286,7 @@ impl Canvas {
                 if ch_i >= c_a.len() {
                     break;
                 }
-                self.set(i, j, c_a[ch_i]);
+                self.set_pixel(&mut pixels, i, j, c_a[ch_i]);
                 ch_i += 1;
             }
             dir_i += 1;
@@ -322,7 +309,7 @@ impl Canvas {
                     break;
                 }
 
-                let len = self.get_utf8_len(self.pixels[i][j]);
+                let len = self.get_utf8_len(pixels[i][j]);
 
                 // for a zero-width character such as a combining character, spaces in pixels is
                 // not enough, insert more spaces (complement) for alignment
@@ -344,9 +331,7 @@ impl Canvas {
                     // preview the right window (for example, left window is exactly filled, and we
                     // got one more wide character on the left, no space left to insert it so it's
                     // time to switch to preview)
-                    if j <= l_w_r
-                        && actual_len == l_w_r + 2
-                        && self.get_utf8_len(self.pixels[i][j]) > 1
+                    if j <= l_w_r && actual_len == l_w_r + 2 && self.get_utf8_len(pixels[i][j]) > 1
                     {
                         str_to_draw.push(' ');
                     }
@@ -363,7 +348,7 @@ impl Canvas {
 
                 if do_preview && actual_len > preview_width {
                     // Same last wide character discard filling logic as above
-                    if actual_len == preview_width + 1 && self.get_utf8_len(self.pixels[i][j]) > 1 {
+                    if actual_len == preview_width + 1 && self.get_utf8_len(pixels[i][j]) > 1 {
                         str_to_draw.push(' ');
                     }
                     break;
@@ -404,7 +389,7 @@ impl Canvas {
                         is_dir,
                     );
                 }
-                str_to_draw.push(self.pixels[i][j]);
+                str_to_draw.push(pixels[i][j]);
                 j += 1;
             } // loop j
 
@@ -430,7 +415,6 @@ pub fn new(config_path: Option<&str>) -> Canvas {
     Canvas {
         height: 0,
         width: 0,
-        pixels: Vec::new(),
         theme: theme::Theme::from(&util::get_theme(config_path)),
         utf8_table: WcLookupTable::new(),
         bottom_start: 0,
@@ -463,7 +447,6 @@ mod test {
         let canvas = new(Some(&conf));
         assert_eq!(canvas.height, 0);
         assert_eq!(canvas.width, 0);
-        assert_eq!(canvas.pixels.is_empty(), true);
         // trans' highlight value
         assert_eq!(canvas.theme.highlight, "\x1b[0;37m");
         assert_eq!(canvas.utf8_table.table.len(), 65536);
@@ -478,9 +461,9 @@ mod test {
         let n = rand.rand_uint(4, 50);
         canvas.width = n;
         canvas.height = n;
-        canvas.pixels = vec![vec!['X'; n]; n];
-        canvas.set(n / 2, n / 2, 'Y');
-        assert_eq!(canvas.pixels[n / 2][n / 2], 'Y');
+        let mut pixels = vec![vec!['X'; n]; n];
+        canvas.set_pixel(&mut pixels, n / 2, n / 2, 'Y');
+        assert_eq!(pixels[n / 2][n / 2], 'Y');
     }
 
     #[test]
@@ -549,20 +532,6 @@ mod test {
         assert_eq!(canvas.get_utf8_len('𰻝'), 2);
         assert_eq!(canvas.get_utf8_len('ぎ'), 2);
         assert_eq!(canvas.get_utf8_len(')'), 1);
-    }
-
-    #[test]
-    fn test_clear_pixels() {
-        let mut canvas = new(None);
-        let n = 10;
-        let v = vec![vec![' '; n]; n];
-        canvas.pixels = v.clone();
-        canvas.pixels[0][0] = '&';
-        canvas.pixels[n - 1][n - 1] = '^';
-        canvas.height = n;
-        canvas.width = n;
-        canvas.clear_pixels();
-        assert_eq!(canvas.pixels, v);
     }
 
     #[test]
@@ -848,7 +817,6 @@ mod test {
         let mut canvas = new(conf);
         canvas.width = width;
         canvas.height = height;
-        canvas.pixels = vec![vec![' '; width]; height];
         canvas
     }
 
