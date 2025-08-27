@@ -392,10 +392,9 @@ impl Canvas {
                 }
                 str_to_draw.push(pixels[i][j]);
                 j += 1;
-            } // loop j
-
+            } // j
             str_to_draw.push_str(&(0..complement).map(|_| ' ').collect::<String>());
-        }
+        } // i
 
         // Draw bottom line after drawing the directories to prevent overlapping
         self.draw_bottom_line(&mut str_to_draw, &browser);
