@@ -6,8 +6,9 @@ else
 	msg = @printf '	%-8s %s%s\n' "$(1)" "$(2)" "$(if $(3), $(3))";
 endif
 
-install_path := /usr/local/bin
-target := target/release/transgender
+INSTALL_PATH := "/usr/local/bin"
+TRANS        := "transgender"
+TARGET       := "target/release/${TRANS}"
 
 all: 
 	$(call msg,TRANS,STARTS-BUILDING)
@@ -15,13 +16,13 @@ all:
 	$(call msg,TRANS,BUILD-SUCCEED)
 
 install:
-	$(call msg,INSTALL,${install_path}/transgender)
-	$(Q)sudo install ${target} ${install_path}
+	$(call msg,INSTALL,${INSTALL_PATH}/${TRANS})
+	$(Q)sudo install ${TARGET} ${INSTALL_PATH}
 
 uninstall:
-	$(call msg,UNINSTALL)
-	$(Q)sudo rm -f ${install_path}/transgender
+	$(call msg,UNINSTALL,${INSTALL_PATH}/${TRANS})
+	$(Q)sudo rm -f ${INSTALL_PATH}/${TRANS}
 
 clean:
-	$(call msg,CLEAN)
-	$(Q)sudo rm -f ${target}
+	$(call msg,CLEAN,${TARGET})
+	$(Q)sudo rm -f ${TARGET}
