@@ -36,7 +36,7 @@ static SHELL_SCRIPT: &str = r###"function ts() {
   transgender $@ --dest "${dest_file}"
   dest_dir=$(tail -n 1 "${dest_file}")
   cd "${dest_dir}"
-  rm -rf "${dest_file}"
+  rm -f "${dest_file}"
 }
 
 if [[ "$0" =~ .*bash$ ]];
