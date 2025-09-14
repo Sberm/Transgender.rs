@@ -11,7 +11,7 @@ rpath = false
 
 [package]
 name = "transgender"
-version = "1.5.6"
+version = "1.5.7"
 edition = "2021"
 
 [dependencies]
