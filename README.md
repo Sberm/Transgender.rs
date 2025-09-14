@@ -62,6 +62,12 @@ make
 make install
 ```
 
+> [!NOTE]
+> `release.sh` can be used for cross-compilation on Mac and Linux platforms for
+> both aarch64 and x86_64 architectures. It is intended to be run on macOS
+> rather than Linux, as setting up a build environment on Linux to generate Mac
+> builds is difficult.
+
 ### Shell configuration
 
 Currently only supports `bash` and `zsh`.
