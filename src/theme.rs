@@ -201,15 +201,15 @@ mod test {
             }
         }
         if theme_entry.is_some() {
-            let te_ref = theme_entry.unwrap();
-            assert_eq!((*te_ref).name, theme_name);
-            assert_eq!((*te_ref).color[0], theme.highlight);
-            assert_eq!((*te_ref).color[1], theme.highlight_dir);
-            assert_eq!((*te_ref).color[2], theme.highlight_background);
-            assert_eq!((*te_ref).color[3], theme.normal);
-            assert_eq!((*te_ref).color[4], theme.normal_background);
-            assert_eq!((*te_ref).color[5], theme.bottom_bar);
-            assert_eq!((*te_ref).color[6], theme.bottom_bar_background);
+            let te = theme_entry.unwrap();
+            assert_eq!((*te).name, theme_name);
+            assert_eq!((*te).color[0], theme.highlight);
+            assert_eq!((*te).color[1], theme.highlight_dir);
+            assert_eq!((*te).color[2], theme.highlight_background);
+            assert_eq!((*te).color[3], theme.normal);
+            assert_eq!((*te).color[4], theme.normal_background);
+            assert_eq!((*te).color[5], theme.bottom_bar);
+            assert_eq!((*te).color[6], theme.bottom_bar_background);
         } else {
             panic!("failed to get trans theme");
         }
