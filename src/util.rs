@@ -82,7 +82,7 @@ pub fn canonical_input() {
 }
 
 pub fn reduce_flick() {
-    print!("\x1b[0;0m");
+    print!("\x1b[0m");
     let _ = io::stdout().flush();
 }
 
