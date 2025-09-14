@@ -81,7 +81,7 @@ pub fn canonical_input() {
     }
 }
 
-pub fn reduce_flick() {
+pub fn reduce_flicker() {
     print!("\x1b[0m");
     let _ = io::stdout().flush();
 }

@@ -633,8 +633,8 @@ impl Browser {
         };
 
         if dir.is_dir() == false {
-            // reduce color flicking (the flicking color is the bottom bar color)
-            util::reduce_flick();
+            // reduce color flickering (the flickering color is the bottom bar color)
+            util::reduce_flicker();
 
             if let Ok(_) = Command::new(&(*opener).comm)
                 .args(&(*opener).args)
