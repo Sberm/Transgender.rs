@@ -173,6 +173,7 @@ The default theme is `lucius`.
 Other themes:
 
 * [catppuccin](https://imgur.com/a/mK2Toin)
+> Catppuccin only works on terminals that support Truecolor
 * [trans](https://imgur.com/a/m4dmLig)
 * [lucius](https://github.com/jonathanfilip/lucius)
 * [acme](https://github.com/ianyepan/acme-emacs-theme)
