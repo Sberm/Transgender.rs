@@ -24,9 +24,13 @@ A minimalistic file explorer with **minimal dependencies**, written by a [ranger
 
 <br/>
 
-![](img/lucius.jpg)
+<p align="center">
+  <img style="width:70%" src="img/lucius.jpg"/>
+</p>
 
-![](img/catppuccin.png)
+<p align="center">
+  <img style="width:70%" src="img/catppuccin.png"/>
+</p>
 
 ## Quick start
 
