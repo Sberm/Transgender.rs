@@ -293,11 +293,11 @@ fn parse_utf8(_raw: &[u8], prev_trunc: &Vec<u8>) -> (Vec<char>, Vec<u8>) {
         }
         if this_byte & 0b10000000 == 0 {
             bytes_cnt = 1;
-        } else if this_byte & 0b11000000 == 0b11000000 && this_byte & 0b00100000 == 0 {
+        } else if this_byte & 0b11100000 == 0b11000000 {
             bytes_cnt = 2;
-        } else if this_byte & 0b11100000 == 0b11100000 && this_byte & 0b00010000 == 0 {
+        } else if this_byte & 0b11110000 == 0b11100000{
             bytes_cnt = 3;
-        } else if this_byte & 0b11110000 == 0b11110000 && this_byte & 0b00001000 == 0 {
+        } else if this_byte & 0b11111000 == 0b11110000 {
             bytes_cnt = 4;
         }
         // truncate bytes
