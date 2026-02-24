@@ -6,7 +6,7 @@
 ║ above copyright notice and this permission notice appear in all copies ║
 ╚═══════════════════════════════════════════════════════════════════════*/
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct Theme {
     // filename when selected
     pub highlight: String,
@@ -35,31 +35,13 @@ impl Theme {
                 break;
             }
         }
-
         for (i, t) in theme_table.theme_entries.iter().enumerate() {
             if t.name == name {
                 theme_i = i;
                 break;
             }
         }
-        let t = &theme_table.theme_entries[theme_i];
-        let mut theme = Theme {
-            highlight: (*t).color[0].clone(),
-            highlight_dir: (*t).color[1].clone(),
-            highlight_background: (*t).color[2].clone(),
-            normal: (*t).color[3].clone(),
-            normal_background: (*t).color[4].clone(),
-            bottom_bar: String::new(),
-            bottom_bar_background: String::new(),
-        };
-        // optional extra colors for bottom bar
-        if !t.color[5].is_empty() {
-            theme.bottom_bar = t.color[5].clone();
-        }
-        if !t.color[6].is_empty() {
-            theme.bottom_bar_background = t.color[6].clone();
-        }
-        theme
+        theme_table.theme_entries[theme_i].theme.clone()
     }
 }
 
@@ -67,120 +49,124 @@ struct ThemeTable {
     theme_entries: Vec<ThemeEntry>,
 }
 
-const THEME_COLOR_NUM: usize = 7;
-
 struct ThemeEntry {
     name: String,
-    color: [String; THEME_COLOR_NUM],
-}
-
-macro_rules! __theme {
-    ( $name: expr, $($x: expr),+ ) => {
-        ThemeEntry {
-            name: String::from($name),
-            color: [
-            $(
-                String::from($x),
-            )*],
-        }
-    };
+    theme: Theme
 }
 
 impl ThemeTable {
     fn new() -> Self {
         ThemeTable {
             theme_entries: vec![
-                __theme![
-                    "trans",
-                    "\x1b[0;37m",
-                    "\x1b[38;5;175m",
-                    "\x1b[48;5;24m",
-                    "\x1b[0;37m",
-                    "\x1b[48;5;31m",
-                    "\x1b[38;5;0m",
-                    "\x1b[48;5;175m"
-                ],
-                __theme![
-                    "dark",
-                    "\x1b[38;5;0m",
-                    "\x1b[38;5;27m",
-                    "\x1b[48;5;255m",
-                    "\x1b[38;5;255m",
-                    "\x1b[48;5;0m",
-                    "\x1b[38;5;255m",
-                    "\x1b[38;5;255m"
-                ],
-                __theme![
-                    "lucius",
-                    "\x1b[38;5;187m",
-                    "\x1b[38;5;117m",
-                    "\x1b[48;5;238m",
-                    "\x1b[38;5;188m",
-                    "\x1b[48;5;236m",
-                    "\x1b[38;5;188m",
-                    "\x1b[48;5;238m"
-                ],
-                __theme![
-                    "acme",
-                    "\x1b[38;5;233m",
-                    "\x1b[38;5;39m",
-                    "\x1b[48;5;186m",
-                    "\x1b[38;5;233m",
-                    "\x1b[48;5;230m",
-                    "\x1b[38;5;233m",
-                    "\x1b[48;5;195m"
-                ],
-                __theme![
-                    "sakura",
-                    "\x1b[38;5;253m",
-                    "\x1b[38;5;52m",
-                    "\x1b[48;5;175m",
-                    "\x1b[38;5;253m",
-                    "\x1b[48;5;168m",
-                    "\x1b[38;5;52m",
-                    "\x1b[48;5;175m"
-                ],
-                __theme![
-                    "vscode",
-                    "\x1b[38;5;176m",
-                    "\x1b[38;5;43m",
-                    "\x1b[48;5;236m",
-                    "\x1b[38;5;75m",
-                    "\x1b[48;5;235m",
-                    "\x1b[38;5;117m",
-                    "\x1b[48;5;236m"
-                ],
-                __theme![
-                    "jesus",
-                    "\x1b[38;5;94m",
-                    "\x1b[38;5;236m",
-                    "\x1b[48;5;180m",
-                    "\x1b[38;5;187m",
-                    "\x1b[48;5;137m",
-                    "\x1b[38;5;236m",
-                    "\x1b[48;5;180m"
-                ],
-                __theme![
-                    "catppuccin",
-                    "\x1b[38;2;238;212;159m",
-                    "\x1b[38;2;245;169;127m",
-                    "\x1b[48;2;48;51;71m",
-                    "\x1b[38;2;138;173;244m",
-                    "\x1b[48;2;36;39;58m",
-                    "\x1b[38;2;128;135;162m",
-                    "\x1b[48;2;54;58;79m"
-                ],
-                __theme![
-                    "lucius-l",
-                    "\x1b[38;5;130m",
-                    "\x1b[38;5;25m",
-                    "\x1b[48;5;253m",
-                    "\x1b[38;5;238m",
-                    "\x1b[48;5;255m",
-                    "\x1b[38;5;255m",
-                    "\x1b[48;5;244m"
-                ],
-            ],
+                ThemeEntry {
+                    name: "trans".to_string(),
+                    theme: Theme {
+                        highlight:             "\x1b[0;37m".to_string(),
+                        highlight_dir:         "\x1b[38;5;175m".to_string(),
+                        highlight_background:  "\x1b[48;5;24m".to_string(),
+                        normal:                "\x1b[0;37m".to_string(),
+                        normal_background:     "\x1b[48;5;31m".to_string(),
+                        bottom_bar:            "\x1b[38;5;0m".to_string(),
+                        bottom_bar_background: "\x1b[48;5;175m".to_string()
+                    }
+                },
+                ThemeEntry {
+                    name: "dark".to_string(),
+                    theme: Theme {
+                        highlight:             "\x1b[38;5;0m".to_string(),
+                        highlight_dir:         "\x1b[38;5;27m".to_string(),
+                        highlight_background:  "\x1b[48;5;255m".to_string(),
+                        normal:                "\x1b[38;5;255m".to_string(),
+                        normal_background:     "\x1b[48;5;0m".to_string(),
+                        bottom_bar:            "\x1b[38;5;255m".to_string(),
+                        bottom_bar_background: "\x1b[38;5;255m".to_string()
+                    }
+                },
+                ThemeEntry {
+                    name: "lucius".to_string(),
+                    theme: Theme {
+                        highlight:             "\x1b[38;5;187m".to_string(),
+                        highlight_dir:         "\x1b[38;5;117m".to_string(),
+                        highlight_background:  "\x1b[48;5;238m".to_string(),
+                        normal:                "\x1b[38;5;188m".to_string(),
+                        normal_background:     "\x1b[48;5;236m".to_string(),
+                        bottom_bar:            "\x1b[38;5;188m".to_string(),
+                        bottom_bar_background: "\x1b[48;5;238m".to_string()
+                    }
+                },
+                ThemeEntry {
+                    name: "acme".to_string(),
+                    theme: Theme {
+                        highlight:             "\x1b[38;5;233m".to_string(),
+                        highlight_dir:         "\x1b[38;5;39m".to_string(),
+                        highlight_background:  "\x1b[48;5;186m".to_string(),
+                        normal:                "\x1b[38;5;233m".to_string(),
+                        normal_background:     "\x1b[48;5;230m".to_string(),
+                        bottom_bar:            "\x1b[38;5;233m".to_string(),
+                        bottom_bar_background: "\x1b[48;5;195m".to_string()
+                    }
+                },
+                ThemeEntry {
+                    name: "sakura".to_string(),
+                    theme: Theme {
+                        highlight:             "\x1b[38;5;253m".to_string(),
+                        highlight_dir:         "\x1b[38;5;52m".to_string(),
+                        highlight_background:  "\x1b[48;5;175m".to_string(),
+                        normal:                "\x1b[38;5;253m".to_string(),
+                        normal_background:     "\x1b[48;5;168m".to_string(),
+                        bottom_bar:            "\x1b[38;5;52m".to_string(),
+                        bottom_bar_background: "\x1b[48;5;175m".to_string()
+                    }
+                },
+                ThemeEntry {
+                    name: "vscode".to_string(),
+                    theme: Theme {
+                        highlight:             "\x1b[38;5;176m".to_string(),
+                        highlight_dir:         "\x1b[38;5;43m".to_string(),
+                        highlight_background:  "\x1b[48;5;236m".to_string(),
+                        normal:                "\x1b[38;5;75m".to_string(),
+                        normal_background:     "\x1b[48;5;235m".to_string(),
+                        bottom_bar:            "\x1b[38;5;117m".to_string(),
+                        bottom_bar_background: "\x1b[48;5;236m".to_string()
+                    }
+                },
+                ThemeEntry {
+                    name: "jesus".to_string(),
+                    theme: Theme {
+                        highlight:             "\x1b[38;5;94m".to_string(),
+                        highlight_dir:         "\x1b[38;5;236m".to_string(),
+                        highlight_background:  "\x1b[48;5;180m".to_string(),
+                        normal:                "\x1b[38;5;187m".to_string(),
+                        normal_background:     "\x1b[48;5;137m".to_string(),
+                        bottom_bar:            "\x1b[38;5;236m".to_string(),
+                        bottom_bar_background: "\x1b[48;5;180m".to_string()
+                    }
+                },
+                ThemeEntry {
+                    name: "catppuccin".to_string(),
+                    theme: Theme {
+                        highlight:             "\x1b[38;2;238;212;159m".to_string(),
+                        highlight_dir:         "\x1b[38;2;245;169;127m".to_string(),
+                        highlight_background:  "\x1b[48;2;48;51;71m".to_string(),
+                        normal:                "\x1b[38;2;138;173;244m".to_string(),
+                        normal_background:     "\x1b[48;2;36;39;58m".to_string(),
+                        bottom_bar:            "\x1b[38;2;128;135;162m".to_string(),
+                        bottom_bar_background: "\x1b[48;2;54;58;79m".to_string()
+                    }
+                },
+                ThemeEntry {
+                    name: "lucius-l".to_string(),
+                    theme: Theme {
+                        highlight:             "\x1b[38;5;130m".to_string(),
+                        highlight_dir:         "\x1b[38;5;25m".to_string(),
+                        highlight_background:  "\x1b[48;5;253m".to_string(),
+                        normal:                "\x1b[38;5;238m".to_string(),
+                        normal_background:     "\x1b[48;5;255m".to_string(),
+                        bottom_bar:            "\x1b[38;5;255m".to_string(),
+                        bottom_bar_background: "\x1b[48;5;244m".to_string()
+                    }
+                }
+            ]
         }
     }
 }
@@ -191,25 +177,24 @@ mod test {
 
     #[test]
     fn test_theme() {
-        let theme_name = "trans";
-        let theme = Theme::from(theme_name);
+        let name = "trans";
+        let need = Theme::from(name);
         let theme_table = ThemeTable::new();
         let mut theme_entry: Option<&ThemeEntry> = None;
         for t in theme_table.theme_entries.iter() {
-            if theme_name == t.name {
+            if name == t.name {
                 theme_entry = Some(t);
             }
         }
         if theme_entry.is_some() {
-            let te = theme_entry.unwrap();
-            assert_eq!((*te).name, theme_name);
-            assert_eq!((*te).color[0], theme.highlight);
-            assert_eq!((*te).color[1], theme.highlight_dir);
-            assert_eq!((*te).color[2], theme.highlight_background);
-            assert_eq!((*te).color[3], theme.normal);
-            assert_eq!((*te).color[4], theme.normal_background);
-            assert_eq!((*te).color[5], theme.bottom_bar);
-            assert_eq!((*te).color[6], theme.bottom_bar_background);
+            let got = &theme_entry.unwrap().theme;
+            assert_eq!(got.highlight,             need.highlight);
+            assert_eq!(got.highlight_dir,         need.highlight_dir);
+            assert_eq!(got.highlight_background,  need.highlight_background);
+            assert_eq!(got.normal,                need.normal);
+            assert_eq!(got.normal_background,     need.normal_background);
+            assert_eq!(got.bottom_bar,            need.bottom_bar);
+            assert_eq!(got.bottom_bar_background, need.bottom_bar_background);
         } else {
             panic!("failed to get trans theme");
         }
