@@ -279,6 +279,11 @@ impl Canvas {
 
         // l_w_l: left window's left
         let l_w_l: usize = 0;
+        if self.width / 10 * 6 < 1 {
+            println!("width is too small to divide");
+            util::slp(2);
+            browser.exit_cur_dir();
+        }
         let l_w_r: usize = (self.width / 10 * 6 - 1) as usize;
 
         let r_w_l: usize = l_w_r + 1;
