@@ -482,6 +482,9 @@ impl Browser {
     }
 
     fn bottom(&mut self) {
+        if self.content.is_empty() == true {
+            return;
+        }
         self.set_cursor_pos_centered(self.content.len() - 1);
         self.refresh_preview = true;
     }
