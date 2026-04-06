@@ -184,8 +184,8 @@ pub fn print_path(_path: &PathBuf, dest_file: Option<&PathBuf>) {
                 .to_str()
                 .expect("Failed to print the temporary destination file")
         ));
-        let mut __empty = file.write_all(path.as_bytes());
-        __empty = file.flush();
+        file.write_all(path.as_bytes()).expect("failed to write all");
+        file.flush().expect("failed to flush");
     } else {
         println!("\n{}", path);
     }
