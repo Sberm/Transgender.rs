@@ -371,7 +371,7 @@ pub mod test {
         }
 
         pub fn rand_uint(&mut self, min: usize, max: usize) -> usize {
-            assert!(max >= min);
+            assert!(max > min);
             let mut x = if self.x_pre.is_none() {
                 SystemTime::now()
                     .duration_since(SystemTime::UNIX_EPOCH)
