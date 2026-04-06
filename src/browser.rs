@@ -617,7 +617,7 @@ impl Browser {
     }
 
     /// quit trans and goto the directory in the left window
-    fn exit_cur_dir(&self) {
+    pub fn exit_cur_dir(&self) {
         util::exit_albuf();
         util::print_path(&self.current_path, (&self.dest_file).as_ref());
         exit(0);

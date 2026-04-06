@@ -85,9 +85,18 @@ impl Canvas {
             );
         }
 
+        if self.width < special_char as usize + self.add_algnmt as usize {
+            println!("width too small to contain special char and alignment");
+            util::slp(2);
+            browser.exit_cur_dir();
+        }
         let mut width = self.width - (special_char as usize + self.add_algnmt as usize);
         let left_border = self.bottom_start;
-        // TODO: possible integer underflow
+        if self.bottom_start + width < 1 {
+            println!("width too small and start + width < 1");
+            util::slp(2);
+            browser.exit_cur_dir();
+        }
         let mut right_border = self.bottom_start + width - 1;
         let mut len = 0;
 
@@ -273,6 +282,11 @@ impl Canvas {
         let l_w_r: usize = (self.width / 10 * 6 - 1) as usize;
 
         let r_w_l: usize = l_w_r + 1;
+        if self.width < 1 {
+            println!("width too small, unable to proceed drawing");
+            util::slp(1);
+            browser.exit_cur_dir();
+        }
         let r_w_r: usize = self.width - 1;
         let preview_width: usize = self.width - r_w_l;
 
