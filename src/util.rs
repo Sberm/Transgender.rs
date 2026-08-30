@@ -24,6 +24,29 @@ use std::thread::sleep;
 use std::time::Duration;
 use std::vec::Vec;
 
+const ESC : u8            = 27;
+const SQUARE_BRACKET : u8 = 91;
+const A : u8              = 65;
+const B : u8              = 66;
+const C : u8              = 67;
+const D : u8              = 68;
+const EOT : u8            = 4;
+const NAK : u8            = 21;
+const G_LOW : u8          = 103;
+const K_LOW : u8          = 107;
+const J_LOW : u8          = 106;
+const H_LOW : u8          = 104;
+const L_LOW : u8          = 108;
+const O_LOW : u8          = 111;
+const LF : u8             = 10;
+const I_LOW : u8          = 105;
+const Q_LOW : u8          = 113;
+const SLASH : u8          = 47;
+const Q_MARK : u8         = 63; // ?
+const G : u8              = 71;
+const N_LOW : u8          = 110;
+const N : u8              = 78;
+
 #[inline(always)]
 pub fn hide_cursor() {
     print!("\x1b[?25l"); // hide cursor
@@ -104,63 +127,63 @@ pub fn exit_albuf() {
 ///
 /// returns
 ///  ascii byte
-fn read_input() -> isize {
+fn read_input() -> u8 {
     let mut stdin_handle = stdin().lock();
     let mut byte = [0_u8];
     stdin_handle
         .read_exact(&mut byte)
         .expect("Failed to read single byte");
-    byte[0] as isize
+    byte[0] as u8
 }
 
 pub fn process_input() -> Op {
     let mut input = read_input();
 
-    if input == 27 {
+    if input == ESC {
         // arrow keys
         match read_input() {
-            91 => match read_input() {
-                65 => return Op::Up,
-                66 => return Op::Down,
-                67 => return Op::Right,
-                68 => return Op::Left,
+            SQUARE_BRACKET => match read_input() {
+                A => return Op::Up,
+                B => return Op::Down,
+                C => return Op::Right,
+                D => return Op::Left,
                 _ => return Op::Noop,
             },
             _ => return Op::Noop,
         }
     }
 
-    if input == 4 {
+    if input == EOT {
         // ctrl + D
         return Op::PageDown;
-    } else if input == 21 {
+    } else if input == NAK {
         // ctrl + U
         return Op::PageUp;
     }
 
     // gg
-    if input == 103 {
+    if input == G_LOW {
         input = read_input();
-        if input == 103 {
+        if input == G_LOW {
             return Op::Top;
         }
     }
 
     match input {
-        107 => return Op::Up,             // k
-        106 => return Op::Down,           // j
-        104 => return Op::Left,           // h
-        108 => return Op::Right,          // l
-        111 => return Op::ExitCursorO,    // o
-        10 => return Op::ExitCursorEnter, // Enter
-        105 => return Op::Exit,           // i
-        113 => return Op::Quit,           // q
-        47 => return Op::Search,          // /
-        63 => return Op::RevSearch,       // ?
-        71 => return Op::Bottom,          // G
-        110 => return Op::NextMatch,      // n
-        78 => return Op::PrevMatch,       // N
-        _ => return Op::Noop,
+        K_LOW  => return Op::Up,
+        J_LOW  => return Op::Down,
+        H_LOW  => return Op::Left,
+        L_LOW  => return Op::Right,
+        O_LOW  => return Op::ExitCursorO,
+        LF     => return Op::ExitCursorEnter,
+        I_LOW  => return Op::Exit,
+        Q_LOW  => return Op::Quit,
+        SLASH  => return Op::Search,
+        Q_MARK => return Op::RevSearch,
+        G      => return Op::Bottom,
+        N_LOW  => return Op::NextMatch,
+        N      => return Op::PrevMatch,
+        _      => return Op::Noop,
     }
 }
 
