@@ -20,8 +20,9 @@ pub struct Canvas {
     pub width: usize,
     theme: theme::Theme,
     utf8_table: WcLookupTable,
-    pub bottom_start: usize, // the left border of the bottom bar text
-    add_algnmt: bool,
+    pub bottom_left: usize, // index in search_txt
+    pub bottom_right: usize,
+    pad: bool,
 }
 
 fn csi(s: &str) -> String {
@@ -55,6 +56,11 @@ fn is_dir(do_preview: bool, i: usize, browser: &browser::Browser) -> bool {
     }
 }
 
+enum FitDirection {
+    Forward,
+    Backward,
+}
+
 impl Canvas {
     /// Set the internel pixel (char) representation
     fn set_pixel(&self, pixels: &mut Vec<Vec<char>>, i: usize, j: usize, c: char) {
@@ -63,127 +69,119 @@ impl Canvas {
         }
     }
 
-    pub fn reset_bottom_bar(&mut self) {
-        self.bottom_start = 0;
-        self.add_algnmt = false;
+    pub fn reset_bottom(&mut self) {
+        self.bottom_left = 0;
+        self.bottom_right = 0;
+        self.pad = false;
     }
 
-    /// Get start index of the bottom line
-    fn bottom_line_configure(&mut self, browser: &browser::Browser) -> String {
-        let mut bottom_line = String::new();
-        let mut special_char = false;
+    fn fit(&mut self, bottom: &Vec<char>, width: usize, order: FitDirection) {
+        let mut len = 0;
+        let mut len_good = 0;
+        match order {
+            FitDirection::Forward => {
+                for i in self.bottom_left..bottom.len() + 1 {
+                    // the last empty character
+                    if i == bottom.len() {
+                        len += 1;
+                    } else {
+                        len += self.utf8_len(bottom[i]);
+                    }
+                    if len > width {
+                        break;
+                    }
+                    self.bottom_right = i;
+                }
+            }
+            FitDirection::Backward => {
+                for i in (0..=self.bottom_right).rev() {
+                    if i == bottom.len() {
+                        len += 1;
+                    } else {
+                        len += self.utf8_len(bottom[i]);
+                    }
+                    if len > width {
+                        break;
+                    }
+                    len_good = len;
+                    self.bottom_left = i;
+                }
+                if !self.pad && len_good + 1 == width {
+                    self.pad = true;
+                }
+            }
+        }
+    }
 
-        if matches!(browser.mode, Mode::Search) || matches!(browser.mode, Mode::RevSearch) {
-            special_char = true; // we will prepend the slash later
-            bottom_line.push_str(&browser.search_txt.iter().collect::<String>());
+    fn get_bottom(&mut self, browser: &browser::Browser) -> String {
+        let mut special_char = false;
+        // unconditional, I know
+        let cur_path_v = browser
+            .current_path
+            .to_str()
+            .expect("couldn't convert current_path to str")
+            .chars()
+            .collect::<Vec<char>>();
+        let bottom_v =
+            if matches!(browser.mode, Mode::Search) || matches!(browser.mode, Mode::RevSearch) {
+                special_char = true; // we will prepend the slash later
+                &browser.search_txt
+            } else {
+                &cur_path_v
+            };
+
+        // 1 is the special character for search mode, / or ?
+        if self.width < 1 {
+            println!("width too small");
+            util::slp(2);
+            browser.exit_cur_dir();
+        }
+        let width_no_spec_char = self.width - special_char as usize;
+        // right = 0 means reset is needed
+        if self.bottom_right == 0 {
+            self.fit(bottom_v, width_no_spec_char, FitDirection::Forward);
+        }
+
+        // when cursor goes out of bound
+        if browser.input_cursor_pos < self.bottom_left {
+            // pad is only refreshed when borders are crossed
+            self.pad = false;
+            self.bottom_left = browser.input_cursor_pos;
+            self.fit(bottom_v, width_no_spec_char, FitDirection::Forward);
+        } else if browser.input_cursor_pos > self.bottom_right {
+            self.pad = false;
+            self.bottom_right = browser.input_cursor_pos;
+            self.fit(bottom_v, width_no_spec_char, FitDirection::Backward);
         } else {
-            bottom_line.push_str(
-                &browser
-                    .current_path
-                    .to_str()
-                    .expect("couldn't convert current_path to str"),
+            // left <= cursor <= right
+            self.fit(
+                bottom_v,
+                width_no_spec_char - self.pad as usize,
+                FitDirection::Forward,
             );
         }
 
-        if self.width < special_char as usize + self.add_algnmt as usize {
-            println!("width too small to contain special char and alignment");
-            util::slp(2);
-            browser.exit_cur_dir();
-        }
-        let mut width = self.width - (special_char as usize + self.add_algnmt as usize);
-        let left_border = self.bottom_start;
-        if self.bottom_start + width < 1 {
-            println!("width too small and start + width < 1");
-            util::slp(2);
-            browser.exit_cur_dir();
-        }
-        let mut right_border = self.bottom_start + width - 1;
-        let mut len = 0;
-
-        // find the right_border
-        for i in self.bottom_start..browser.search_txt.len() + 1 {
-            // the last empty character
-            if i == browser.search_txt.len() {
-                len += 1;
-            } else {
-                len += self.utf8_len(browser.search_txt[i]);
-            }
-            if len > width {
-                break;
-            }
-            right_border = i;
-        }
-
-        // move the bottom text based on the position of the input cursor
-        let mut right_overflow = false;
-        if left_border > browser.input_cursor_pos {
-            if self.add_algnmt == true {
-                width += 1;
-                self.add_algnmt = false;
-            }
-            self.bottom_start = browser.input_cursor_pos;
-        } else if right_border < browser.input_cursor_pos {
-            if self.add_algnmt == true {
-                width += 1;
-                self.add_algnmt = false;
-            }
-
-            let mut i = browser.input_cursor_pos;
-            let mut legal_len = 0;
-            len = 0;
-            // decide the correct bottom_start, from right to left
-            loop {
-                if i == browser.search_txt.len() {
-                    len += 1;
-                } else {
-                    len += self.utf8_len(browser.search_txt[i]);
-                }
-                if len > width {
-                    break;
-                }
-
-                legal_len = len;
-                self.bottom_start = i;
-                if i == 0 {
-                    break;
-                }
-                i -= 1;
-            }
-            // this means that a UTF8 full width character causes the cursor to shiver
-            if legal_len != width && !self.add_algnmt {
-                self.add_algnmt = true;
-                width -= 1;
-            }
-            right_overflow = true;
-        }
-
-        let skipped = bottom_line.chars().skip(self.bottom_start);
-        let mut to_take: usize = 0;
-        if right_overflow {
-            to_take = browser.input_cursor_pos - self.bottom_start + 1;
-        } else {
-            len = 0;
-            for c in skipped.clone() {
-                len += self.utf8_len(c);
-                if len > width {
-                    break;
-                }
-                to_take += 1;
-            }
-        }
-        let mut result = skipped.take(to_take).collect::<String>();
-
-        if self.add_algnmt {
-            result.insert(0, '>');
-        }
+        // construct bottom
+        let mut bottom = String::new();
         if special_char {
             match browser.mode {
-                Mode::Search => result.insert(0, '/'),
-                Mode::RevSearch => result.insert(0, '?'),
+                Mode::Search => bottom.push('/'),
+                Mode::RevSearch => bottom.push('?'),
                 _ => {}
             }
         }
-        result
+        if self.pad {
+            bottom.push('>');
+        }
+        assert!(self.bottom_right >= self.bottom_left);
+        bottom.push_str(
+            &bottom_v
+                .into_iter()
+                .skip(self.bottom_left)
+                .take(self.bottom_right - self.bottom_left + 1)
+                .collect::<String>(),
+        );
+        bottom
     }
 
     /// return whether this character is a full-width character that displays as two blocks in the
@@ -226,7 +224,7 @@ impl Canvas {
     }
 
     /// Draw file path or search text in the bottom line
-    fn draw_bottom_line(&mut self, str_to_draw: &mut String, browser: &browser::Browser) {
+    fn draw_bottom(&mut self, str_to_draw: &mut String, browser: &browser::Browser) {
         // Goto the bottom line
         str_to_draw.push_str(&csi(&format!("{}H", self.height)));
         str_to_draw.push_str(&csi("0K"));
@@ -240,21 +238,21 @@ impl Canvas {
         str_to_draw.push_str(&csi(&format!("{}H", self.height)));
         str_to_draw.push_str(&csi("0K"));
 
-        let content = self.bottom_line_configure(browser);
+        let content = self.get_bottom(browser);
         str_to_draw.push_str(&content);
 
         if matches!(browser.mode, Mode::Search) || matches!(browser.mode, Mode::RevSearch) {
             // show the cursor when searching
             str_to_draw.push_str(&csi("?25h"));
             let mut real_len = 0;
-            for i in self.bottom_start..browser.input_cursor_pos {
+            for i in self.bottom_left..browser.input_cursor_pos {
                 real_len += self.utf8_len(browser.search_txt[i]);
             }
             // + 1 + 1: one because ansi escape is 1-index, another one because the extra slash
             str_to_draw.push_str(&csi(&format!(
                 "{};{}H",
                 self.height,
-                real_len + 1 + 1 + if self.add_algnmt { 1 } else { 0 }
+                real_len + 1 + 1 + if self.pad { 1 } else { 0 }
             )));
         }
     }
@@ -356,7 +354,7 @@ impl Canvas {
                 let len = self.utf8_len(pixels[i][j]);
 
                 // for a zero-width character such as a combining character, spaces in pixels is
-                // not enough, insert more spaces (complement) for alignment
+                // not enough, insert more spaces (complement) for paddings
                 if len == 0 {
                     real_len += 1;
                     complement += 1;
@@ -369,10 +367,8 @@ impl Canvas {
                 //  character and update the preview window.
                 if real_len > left_win_len && !do_preview {
                     // If the last character of this window is wide and it causes overflow,
-                    // discard it, insert a white space so it aligns.
-                    if j <= l_w_r
-                        && real_len == left_win_len + 1
-                        && self.utf8_len(pixels[i][j]) > 1
+                    // discard it, insert a white space so it paddings.
+                    if j <= l_w_r && real_len == left_win_len + 1 && self.utf8_len(pixels[i][j]) > 1
                     {
                         str_to_draw.push(' ');
                     }
@@ -416,7 +412,7 @@ impl Canvas {
         } // i
 
         // Draw bottom line after drawing the directories to prevent overlapping
-        self.draw_bottom_line(&mut str_to_draw, &browser);
+        self.draw_bottom(&mut str_to_draw, &browser);
 
         #[cfg(not(test))]
         {
@@ -436,8 +432,9 @@ pub fn new(config_path: Option<&str>) -> Canvas {
         width: 0,
         theme: theme::Theme::from(&util::get_theme(config_path)),
         utf8_table: WcLookupTable::new(),
-        bottom_start: 0,
-        add_algnmt: false,
+        bottom_left: 0,
+        bottom_right: 0,
+        pad: false,
     }
 }
 
@@ -469,8 +466,8 @@ mod test {
         // trans' highlight value
         assert_eq!(canvas.theme.highlight, "\x1b[0;37m");
         assert_eq!(canvas.utf8_table.table.len(), 65536);
-        assert_eq!(canvas.bottom_start, 0);
-        assert_eq!(canvas.add_algnmt, false);
+        assert_eq!(canvas.bottom_left, 0);
+        assert_eq!(canvas.pad, false);
     }
 
     #[test]
@@ -486,15 +483,16 @@ mod test {
     }
 
     #[test]
-    fn test_reset_bottom_bar() {
+    fn test_reset_bottom() {
         let mut canvas = new(None);
-        canvas.reset_bottom_bar();
-        assert_eq!(canvas.bottom_start, 0);
-        assert_eq!(canvas.add_algnmt, false);
+        canvas.reset_bottom();
+        assert_eq!(canvas.bottom_left, 0);
+        assert_eq!(canvas.bottom_right, 0);
+        assert_eq!(canvas.pad, false);
     }
 
     #[test]
-    fn test_bottom_line_configure() {
+    fn test_get_bottom() {
         let texts = [
             "Ċ昃.鱁ᔡԝv6tղЈ液ϋxꖷA㣌₡i䔸긫qަ쬸쒽mUǦ裊[⿇::žҟ掕",
             "汉皇重色思倾国，御宇多年求不得。杨家有女初长成，养在深闺人未识。
@@ -522,25 +520,28 @@ mod test {
         let mut canvas = new(None);
         let width = 40;
         canvas.width = width;
-        canvas.bottom_start = 4;
+        canvas.bottom_left = 4;
         let mut browser = browser::new(".", None, None);
         browser.mode = Mode::Search;
-        browser.input_cursor_pos = canvas.bottom_start;
+        browser.input_cursor_pos = canvas.bottom_left;
         let mut i = 0;
         for st in texts.iter() {
             browser.search_txt = st.chars().collect::<Vec<char>>();
-            let bottom_line_str = canvas.bottom_line_configure(&browser);
-            assert_eq!(bottom_line_str, texts_configured[i]);
+            // this readjust the bottom_right
+            canvas.bottom_right = 0;
+            let bottom = canvas.get_bottom(&browser);
+            assert_eq!(bottom, texts_configured[i]);
             i += 1;
         }
         // reverse search
         browser.mode = Mode::RevSearch;
-        browser.input_cursor_pos = canvas.bottom_start;
+        browser.input_cursor_pos = canvas.bottom_left;
         i = 0;
         for st in texts.iter() {
             browser.search_txt = st.chars().collect::<Vec<char>>();
-            let bottom_line_str = canvas.bottom_line_configure(&browser);
-            assert_eq!(bottom_line_str, texts_configured_rev[i]);
+            canvas.bottom_right = 0;
+            let bottom = canvas.get_bottom(&browser);
+            assert_eq!(bottom, texts_configured_rev[i]);
             i += 1;
         }
     }
@@ -602,7 +603,7 @@ mod test {
     }
 
     #[test]
-    fn test_draw_bottom_line() {
+    fn test_draw_bottom() {
         let mut canvas = new(None);
         // in normal mode, print current path
         let mut str_to_draw = String::new();
@@ -614,7 +615,7 @@ mod test {
         browser.search_txt = Vec::new();
         browser.input_cursor_pos = 0;
         canvas.width = current_path.chars().count();
-        canvas.draw_bottom_line(&mut str_to_draw, &browser);
+        canvas.draw_bottom(&mut str_to_draw, &browser);
         assert_eq!(
             str_to_draw,
             format!(
@@ -630,6 +631,7 @@ mod test {
             )
         );
         // cropped
+        canvas.reset_bottom();
         let to_crop = 2;
         str_to_draw = String::new();
         canvas.width -= to_crop;
@@ -637,7 +639,7 @@ mod test {
         browser.current_path = current_path_buf.clone();
         browser.search_txt = Vec::new();
         browser.input_cursor_pos = 0;
-        canvas.draw_bottom_line(&mut str_to_draw, &browser);
+        canvas.draw_bottom(&mut str_to_draw, &browser);
         assert_eq!(
             str_to_draw,
             format!(
@@ -656,6 +658,7 @@ mod test {
             )
         );
         // search no crop
+        canvas.reset_bottom();
         str_to_draw = String::new();
         let text = "foobar";
         let search_txt = text.chars().collect::<Vec<char>>();
@@ -665,7 +668,7 @@ mod test {
         browser.current_path = current_path_buf.clone();
         browser.search_txt = search_txt.clone();
         browser.input_cursor_pos = cursor_pos;
-        canvas.draw_bottom_line(&mut str_to_draw, &browser);
+        canvas.draw_bottom(&mut str_to_draw, &browser);
         assert_eq!(
             str_to_draw,
             format!(
@@ -681,12 +684,12 @@ mod test {
                 &csi("?25h"),
                 &csi(&format!(
                     "0;{}H",
-                    search_txt.len() / 2 + 2 + if canvas.add_algnmt { 1 } else { 0 }
+                    search_txt.len() / 2 + 2 + if canvas.pad { 1 } else { 0 }
                 ))
             )
         );
         // search cropped
-        canvas.reset_bottom_bar();
+        canvas.reset_bottom();
         str_to_draw = String::new();
         let text = "foobarfoobar";
         let search_txt = text.chars().collect::<Vec<char>>();
@@ -696,7 +699,7 @@ mod test {
         browser.current_path = current_path_buf.clone();
         browser.search_txt = search_txt.clone();
         browser.input_cursor_pos = cursor_pos;
-        canvas.draw_bottom_line(&mut str_to_draw, &browser);
+        canvas.draw_bottom(&mut str_to_draw, &browser);
         assert_eq!(
             str_to_draw,
             format!(
@@ -709,17 +712,17 @@ mod test {
                 &csi("0H"),
                 &csi("0K"),
                 text.chars()
-                    .take(canvas.width - (1 + if canvas.add_algnmt { 1 } else { 0 }))
+                    .take(canvas.width - (1 + if canvas.pad { 1 } else { 0 }))
                     .collect::<String>(),
                 &csi("?25h"),
                 &csi(&format!(
                     "0;{}H",
-                    cursor_pos + 2 + if canvas.add_algnmt { 1 } else { 0 }
+                    cursor_pos + 2 + if canvas.pad { 1 } else { 0 }
                 ))
             )
         );
         // search cropped and non-zero cursor placement
-        canvas.reset_bottom_bar();
+        canvas.reset_bottom();
         str_to_draw = String::new();
         let text = "foobarfoobar";
         let search_txt = text.chars().collect::<Vec<char>>();
@@ -729,7 +732,7 @@ mod test {
         browser.current_path = current_path_buf.clone();
         browser.search_txt = search_txt.clone();
         browser.input_cursor_pos = cursor_pos;
-        canvas.draw_bottom_line(&mut str_to_draw, &browser);
+        canvas.draw_bottom(&mut str_to_draw, &browser);
         assert_eq!(
             str_to_draw,
             format!(
@@ -747,7 +750,7 @@ mod test {
             )
         );
         // search cropped and non-zero cursor placement and UTF8 character
-        canvas.reset_bottom_bar();
+        canvas.reset_bottom();
         str_to_draw = String::new();
         let text = "从此君王不早朝aaab";
         let search_txt = text.chars().collect::<Vec<char>>();
@@ -757,7 +760,7 @@ mod test {
         browser.current_path = current_path_buf.clone();
         browser.search_txt = search_txt.clone();
         browser.input_cursor_pos = cursor_pos;
-        canvas.draw_bottom_line(&mut str_to_draw, &browser);
+        canvas.draw_bottom(&mut str_to_draw, &browser);
         assert_eq!(
             str_to_draw,
             format!(
@@ -774,8 +777,8 @@ mod test {
                 &csi(&format!("0;{}H", canvas.width))
             )
         );
-        // search cropped and non-zero cursor placement and UTF8 character and alignment '>'
-        canvas.reset_bottom_bar();
+        // search cropped and non-zero cursor placement and UTF8 characters and paddings '>'
+        canvas.reset_bottom();
         str_to_draw = String::new();
         let text = "从此君王不早朝aaab";
         let search_txt = text.chars().collect::<Vec<char>>();
@@ -785,7 +788,7 @@ mod test {
         browser.current_path = current_path_buf.clone();
         browser.search_txt = search_txt.clone();
         browser.input_cursor_pos = cursor_pos;
-        canvas.draw_bottom_line(&mut str_to_draw, &browser);
+        canvas.draw_bottom(&mut str_to_draw, &browser);
         assert_eq!(
             str_to_draw,
             format!(
@@ -803,7 +806,7 @@ mod test {
             )
         );
         // reverse search/slash
-        canvas.reset_bottom_bar();
+        canvas.reset_bottom();
         str_to_draw = String::new();
         let text = "从此君王不早朝aaab";
         let search_txt = text.chars().collect::<Vec<char>>();
@@ -813,7 +816,7 @@ mod test {
         browser.current_path = current_path_buf.clone();
         browser.search_txt = search_txt.clone();
         browser.input_cursor_pos = cursor_pos;
-        canvas.draw_bottom_line(&mut str_to_draw, &browser);
+        canvas.draw_bottom(&mut str_to_draw, &browser);
         assert_eq!(
             str_to_draw,
             format!(
@@ -913,6 +916,7 @@ mod test {
         browser.mode = Mode::Normal;
         browser.search_txt = Vec::new();
         browser.input_cursor_pos = 0;
+        canvas.reset_bottom();
         canvas.draw(&browser, Some(&mut test_out));
         assert_eq!(test_out, "\u{1b}[1H\u{1b}[?25l\u{1b}[38;5;187m\u{1b}[48;5;238m\u{1b}[38;5;117md1                \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117mdd1         \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117md2                \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117mdd2         \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117md3                \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117mdd3         \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117md4                \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117mdd4         \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117mzComplicatedDirect\u{1b}[38;5;188m\u{1b}[48;5;236mff1         \u{1b}[38;5;188m\u{1b}[48;5;236mf1                \u{1b}[38;5;188m\u{1b}[48;5;236mff2         \u{1b}[38;5;188m\u{1b}[48;5;236mf2                \u{1b}[38;5;188m\u{1b}[48;5;236mff3         \u{1b}[38;5;188m\u{1b}[48;5;236mf3                \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[14H\u{1b}[0K\u{1b}[38;5;188m\u{1b}[48;5;238m                              \u{1b}[14H\u{1b}[0K/tmp/ts-test-draw");
 
@@ -936,6 +940,7 @@ mod test {
         browser.search_txt = comp_dir.chars().collect::<Vec<char>>();
         browser.input_cursor_pos = 0;
         // preview is empty
+        canvas.reset_bottom();
         canvas.draw(&browser, Some(&mut test_out));
         assert_eq!(test_out, "\u{1b}[1H\u{1b}[?25l\u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117md1                \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117md2                \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117md3                \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117md4                \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;187m\u{1b}[48;5;238m\u{1b}[38;5;117mzComplicatedDirect\u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236mf1                \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236mf2                \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236mf3                \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[14H\u{1b}[0K\u{1b}[38;5;188m\u{1b}[48;5;238m                              \u{1b}[14H\u{1b}[0K/zComplicatedDirectoryName\u{1b}[?25h\u{1b}[14;2H");
 
@@ -952,6 +957,7 @@ mod test {
         browser.mode = Mode::Normal;
         browser.search_txt = Vec::new();
         browser.input_cursor_pos = 0;
+        canvas.reset_bottom();
         canvas.draw(&browser, Some(&mut test_out));
         assert_eq!(test_out, "\u{1b}[1H\u{1b}[?25l\u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117md1                \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117md2                \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117md3                \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m\u{1b}[38;5;117md4                \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;187m\u{1b}[48;5;238m\u{1b}[38;5;117mzComplicatedDirect\u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236mf1                \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236mf2                \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236mf3                \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m:::冬川や家鴨四五 \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m            \u{1b}[14H\u{1b}[0K\u{1b}[38;5;188m\u{1b}[48;5;238m                              \u{1b}[14H\u{1b}[0K/tmp/ts-test-draw");
     }
@@ -980,6 +986,7 @@ mod test {
         browser.current_path = PathBuf::from(parent);
         let mut test_out = String::new();
         // everything is empty (in an empty directory)
+        canvas.reset_bottom();
         canvas.draw(&browser, Some(&mut test_out));
         assert_eq!(test_out, "\u{1b}[1H\u{1b}[?25l\u{1b}[38;5;187m\u{1b}[48;5;238m                  \u{1b}[38;5;188m\u{1b}[48;5;236m             \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m             \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m             \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m             \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m             \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m             \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m             \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m             \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m             \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m             \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m             \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m             \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m             \u{1b}[38;5;188m\u{1b}[48;5;236m                  \u{1b}[38;5;188m\u{1b}[48;5;236m             \u{1b}[14H\u{1b}[0K\u{1b}[38;5;188m\u{1b}[48;5;238m                               \u{1b}[14H\u{1b}[0K/tmp/ts-test-draw-empty");
     }
