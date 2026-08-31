@@ -68,7 +68,7 @@ impl Canvas {
         self.add_algnmt = false;
     }
 
-    /// Get the index where the bottom line text should be cropped
+    /// Get start index of the bottom line
     fn bottom_line_configure(&mut self, browser: &browser::Browser) -> String {
         let mut bottom_line = String::new();
         let mut special_char = false;
@@ -106,7 +106,7 @@ impl Canvas {
             if i == browser.search_txt.len() {
                 len += 1;
             } else {
-                len += self.get_utf8_len(browser.search_txt[i]);
+                len += self.utf8_len(browser.search_txt[i]);
             }
             if len > width {
                 break;
@@ -136,7 +136,7 @@ impl Canvas {
                 if i == browser.search_txt.len() {
                     len += 1;
                 } else {
-                    len += self.get_utf8_len(browser.search_txt[i]);
+                    len += self.utf8_len(browser.search_txt[i]);
                 }
                 if len > width {
                     break;
@@ -164,7 +164,7 @@ impl Canvas {
         } else {
             len = 0;
             for c in skipped.clone() {
-                len += self.get_utf8_len(c);
+                len += self.utf8_len(c);
                 if len > width {
                     break;
                 }
@@ -188,7 +188,7 @@ impl Canvas {
 
     /// return whether this character is a full-width character that displays as two blocks in the
     /// terminal
-    fn get_utf8_len(&self, c: char) -> usize {
+    fn utf8_len(&self, c: char) -> usize {
         match self.utf8_table.classify(c) {
             WcWidth::One => 1,
             WcWidth::Two => 2,
@@ -248,7 +248,7 @@ impl Canvas {
             str_to_draw.push_str(&csi("?25h"));
             let mut real_len = 0;
             for i in self.bottom_start..browser.input_cursor_pos {
-                real_len += self.get_utf8_len(browser.search_txt[i]);
+                real_len += self.utf8_len(browser.search_txt[i]);
             }
             // + 1 + 1: one because ansi escape is 1-index, another one because the extra slash
             str_to_draw.push_str(&csi(&format!(
@@ -353,7 +353,7 @@ impl Canvas {
                     break;
                 }
 
-                let len = self.get_utf8_len(pixels[i][j]);
+                let len = self.utf8_len(pixels[i][j]);
 
                 // for a zero-width character such as a combining character, spaces in pixels is
                 // not enough, insert more spaces (complement) for alignment
@@ -372,7 +372,7 @@ impl Canvas {
                     // discard it, insert a white space so it aligns.
                     if j <= l_w_r
                         && real_len == left_win_len + 1
-                        && self.get_utf8_len(pixels[i][j]) > 1
+                        && self.utf8_len(pixels[i][j]) > 1
                     {
                         str_to_draw.push(' ');
                     }
@@ -389,7 +389,7 @@ impl Canvas {
 
                 if do_preview && real_len > preview_width {
                     // Same last wide character discard logic as above
-                    if real_len == preview_width + 1 && self.get_utf8_len(pixels[i][j]) > 1 {
+                    if real_len == preview_width + 1 && self.utf8_len(pixels[i][j]) > 1 {
                         str_to_draw.push(' ');
                     }
                     break;
@@ -546,11 +546,11 @@ mod test {
     }
 
     #[test]
-    fn test_line_get_utf8_len() {
+    fn test_line_utf8_len() {
         let canvas = new(None);
-        assert_eq!(canvas.get_utf8_len('𰻝'), 2);
-        assert_eq!(canvas.get_utf8_len('ぎ'), 2);
-        assert_eq!(canvas.get_utf8_len(')'), 1);
+        assert_eq!(canvas.utf8_len('𰻝'), 2);
+        assert_eq!(canvas.utf8_len('ぎ'), 2);
+        assert_eq!(canvas.utf8_len(')'), 1);
     }
 
     #[test]
