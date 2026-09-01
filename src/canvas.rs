@@ -275,83 +275,82 @@ impl Canvas {
         str_to_draw.push_str(&csi("1H"));
         str_to_draw.push_str(&csi("?25l")); // hide cursor
 
-        // l_w_l: left window's left
-        let l_w_l: usize = 0;
+        let left_st: usize = 0;
         if self.width / 10 * 6 < 1 {
             println!("width is too small to divide");
             util::slp(2);
             browser.exit_cur_dir();
         }
-        let l_w_r: usize = (self.width / 10 * 6 - 1) as usize;
+        let left_end: usize = (self.width / 10 * 6 - 1) as usize;
 
-        let r_w_l: usize = l_w_r + 1;
+        let right_st: usize = left_end + 1;
         if self.width < 1 {
             println!("width too small, unable to proceed drawing");
             util::slp(1);
             browser.exit_cur_dir();
         }
-        let r_w_r: usize = self.width - 1;
-        let preview_width: usize = self.width - r_w_l;
+        let right_end: usize = self.width - 1;
+        let preview_width: usize = self.width - right_st;
 
-        let mut dir_i: usize = browser.window_start;
-        let mut ch_i: usize;
+        let mut dir_idx: usize = browser.window_start;
+        let mut idx: usize;
 
         // left window
         for i in 0..=self.height - 1 {
-            if dir_i >= browser.content.len() {
+            if dir_idx >= browser.content.len() {
                 break;
             }
-            let c_a = browser.content[dir_i].chars().collect::<Vec<char>>();
-            ch_i = 0;
-            for j in l_w_l..=l_w_r {
-                if ch_i >= c_a.len() {
+            let char_v = browser.content[dir_idx].chars().collect::<Vec<char>>();
+            idx = 0;
+            for j in left_st..=left_end {
+                if idx >= char_v.len() {
                     break;
                 }
-                self.set_pixel(&mut pixels, i, j, c_a[ch_i]);
-                ch_i += 1;
+                self.set_pixel(&mut pixels, i, j, char_v[idx]);
+                idx += 1;
             }
-            dir_i += 1;
-            if dir_i >= browser.content.len() {
+            dir_idx += 1;
+            if dir_idx >= browser.content.len() {
                 break;
             }
         }
 
         // right preview window
-        dir_i = 0;
+        dir_idx = 0;
         for i in 0..=self.height - 1 {
-            if dir_i >= browser.preview.len() {
+            if dir_idx >= browser.preview.len() {
                 break;
             }
-            let c_a = browser.preview[dir_i].chars().collect::<Vec<char>>();
-            ch_i = 0;
-            for j in r_w_l..=r_w_r {
-                if ch_i >= c_a.len() {
+            let char_v = browser.preview[dir_idx].chars().collect::<Vec<char>>();
+            idx = 0;
+            for j in right_st..=right_end {
+                if idx >= char_v.len() {
                     break;
                 }
-                self.set_pixel(&mut pixels, i, j, c_a[ch_i]);
-                ch_i += 1;
+                self.set_pixel(&mut pixels, i, j, char_v[idx]);
+                idx += 1;
             }
-            dir_i += 1;
+            dir_idx += 1;
         }
 
         // after setting the pixels, format str_to_draw
         let mut real_len: usize;
         let mut do_preview: bool;
         let mut complement: usize;
-        let mut j;
-        for i in 0..self.height {
-            j = 0;
+        let mut col;
+        for row in 0..self.height {
+            col = 0;
             real_len = 0;
             complement = 0;
             do_preview = false;
 
-            // Iterate the column, j is jumpable so make it a loop instead of a for
+            // Iterate the column, row is jumpable so make it a loop instead of a for
             loop {
-                if j >= self.width {
+                if col >= self.width {
                     break;
                 }
 
-                let len = self.utf8_len(pixels[i][j]);
+                let len = self.utf8_len(pixels[row][col]);
 
                 // for a zero-width character such as a combining character, spaces in pixels is
                 // not enough, insert more spaces (complement) for paddings
@@ -362,20 +361,20 @@ impl Canvas {
                     real_len += len;
                 }
 
-                let left_win_len = l_w_r + 1;
+                let left_win_len = left_end + 1;
                 //  If the real_len reaches over the capcity of the left window, discard this
                 //  character and update the preview window.
                 if real_len > left_win_len && !do_preview {
                     // If the last character of this window is wide and it causes overflow,
                     // discard it, insert a white space so it aligns.
-                    if j <= l_w_r && real_len == left_win_len + 1 && self.utf8_len(pixels[i][j]) > 1
+                    if col <= left_end && real_len == left_win_len + 1 && self.utf8_len(pixels[row][col]) > 1
                     {
                         str_to_draw.push(' ');
                     }
 
                     str_to_draw.push_str(&(0..complement).map(|_| ' ').collect::<String>());
 
-                    j = r_w_l;
+                    col = right_st;
                     real_len = 0;
                     complement = 0;
                     do_preview = true;
@@ -385,31 +384,31 @@ impl Canvas {
 
                 if do_preview && real_len > preview_width {
                     // Same last wide character discard logic as above
-                    if real_len == preview_width + 1 && self.utf8_len(pixels[i][j]) > 1 {
+                    if real_len == preview_width + 1 && self.utf8_len(pixels[row][col]) > 1 {
                         str_to_draw.push(' ');
                     }
                     break;
                 }
 
                 // Add highlights
-                if j == 0 || j == r_w_l {
+                if col == 0 || col == right_st {
                     // decide if the directory highlight should be added, this applies to both the left
                     // window and the right preview window
-                    let is_dir = is_dir(do_preview, i, browser);
+                    let is_dir = is_dir(do_preview, row, browser);
                     // checks and inserts for both windows
                     self.check_insert_highlight(
                         &mut str_to_draw,
-                        i,
-                        j,
+                        row,
+                        col,
                         browser.cursor - browser.window_start,
                         is_dir,
                     );
                 }
-                str_to_draw.push(pixels[i][j]);
-                j += 1;
-            } // j
+                str_to_draw.push(pixels[row][col]);
+                col += 1;
+            } // col
             str_to_draw.push_str(&(0..complement).map(|_| ' ').collect::<String>());
-        } // i
+        } // row
 
         // Draw bottom line after drawing the directories to prevent overlapping
         self.draw_bottom(&mut str_to_draw, &browser);
