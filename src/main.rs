@@ -17,7 +17,7 @@ use std::env;
 use std::path::Path;
 use std::process::exit;
 
-static VERSION: &str = "1.5.8";
+static VERSION: &str = "1.6.0";
 
 static HELP_MSG: &str = r###"
   transgender
