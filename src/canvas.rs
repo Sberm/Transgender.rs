@@ -370,9 +370,7 @@ impl Canvas {
                 if real_len > left_win_len && !do_preview {
                     // If the last character of this window is wide and it causes overflow,
                     // discard it, insert a white space so it aligns.
-                    if j <= l_w_r
-                        && real_len == left_win_len + 1
-                        && self.utf8_len(pixels[i][j]) > 1
+                    if j <= l_w_r && real_len == left_win_len + 1 && self.utf8_len(pixels[i][j]) > 1
                     {
                         str_to_draw.push(' ');
                     }

@@ -24,30 +24,30 @@ use std::thread::sleep;
 use std::time::Duration;
 use std::vec::Vec;
 
-pub const ESC : u8            = 27;
-pub const SQUARE_BRACKET : u8 = 91;
-pub const A : u8              = 65;
-pub const B : u8              = 66;
-pub const C : u8              = 67;
-pub const D : u8              = 68;
-pub const EOT : u8            = 4;
-pub const NAK : u8            = 21;
-pub const G_LOW : u8          = 103;
-pub const K_LOW : u8          = 107;
-pub const J_LOW : u8          = 106;
-pub const H_LOW : u8          = 104;
-pub const L_LOW : u8          = 108;
-pub const O_LOW : u8          = 111;
-pub const LF : u8             = 10;
-pub const I_LOW : u8          = 105;
-pub const Q_LOW : u8          = 113;
-pub const SLASH : u8          = 47;
-pub const Q_MARK : u8         = 63; // ?
-pub const G : u8              = 71;
-pub const N_LOW : u8          = 110;
-pub const N : u8              = 78;
-pub const DEL : u8            = 127;
-pub const SPACE : u8          = 32;
+pub const ESC: u8 = 27;
+pub const SQUARE_BRACKET: u8 = 91;
+pub const A: u8 = 65;
+pub const B: u8 = 66;
+pub const C: u8 = 67;
+pub const D: u8 = 68;
+pub const EOT: u8 = 4;
+pub const NAK: u8 = 21;
+pub const G_LOW: u8 = 103;
+pub const K_LOW: u8 = 107;
+pub const J_LOW: u8 = 106;
+pub const H_LOW: u8 = 104;
+pub const L_LOW: u8 = 108;
+pub const O_LOW: u8 = 111;
+pub const LF: u8 = 10;
+pub const I_LOW: u8 = 105;
+pub const Q_LOW: u8 = 113;
+pub const SLASH: u8 = 47;
+pub const Q_MARK: u8 = 63; // ?
+pub const G: u8 = 71;
+pub const N_LOW: u8 = 110;
+pub const N: u8 = 78;
+pub const DEL: u8 = 127;
+pub const SPACE: u8 = 32;
 
 #[inline(always)]
 pub fn hide_cursor() {
@@ -172,20 +172,20 @@ pub fn process_input() -> Op {
     }
 
     match input {
-        K_LOW  => return Op::Up,
-        J_LOW  => return Op::Down,
-        H_LOW  => return Op::Left,
-        L_LOW  => return Op::Right,
-        O_LOW  => return Op::ExitCursorO,
-        LF     => return Op::ExitCursorEnter,
-        I_LOW  => return Op::Exit,
-        Q_LOW  => return Op::Quit,
-        SLASH  => return Op::Search,
+        K_LOW => return Op::Up,
+        J_LOW => return Op::Down,
+        H_LOW => return Op::Left,
+        L_LOW => return Op::Right,
+        O_LOW => return Op::ExitCursorO,
+        LF => return Op::ExitCursorEnter,
+        I_LOW => return Op::Exit,
+        Q_LOW => return Op::Quit,
+        SLASH => return Op::Search,
         Q_MARK => return Op::RevSearch,
-        G      => return Op::Bottom,
-        N_LOW  => return Op::NextMatch,
-        N      => return Op::PrevMatch,
-        _      => return Op::Noop,
+        G => return Op::Bottom,
+        N_LOW => return Op::NextMatch,
+        N => return Op::PrevMatch,
+        _ => return Op::Noop,
     }
 }
 
@@ -209,7 +209,8 @@ pub fn print_path(_path: &PathBuf, dest_file: Option<&PathBuf>) {
                 .to_str()
                 .expect("Failed to print the temporary destination file")
         ));
-        file.write_all(path.as_bytes()).expect("failed to write all");
+        file.write_all(path.as_bytes())
+            .expect("failed to write all");
         file.flush().expect("failed to flush");
     } else {
         println!("\n{}", path);
@@ -320,7 +321,7 @@ fn parse_utf8(_raw: &[u8], prev_trunc: &Vec<u8>) -> (Vec<char>, Vec<u8>) {
             bytes_cnt = 1;
         } else if this_byte & 0b11100000 == 0b11000000 {
             bytes_cnt = 2;
-        } else if this_byte & 0b11110000 == 0b11100000{
+        } else if this_byte & 0b11110000 == 0b11100000 {
             bytes_cnt = 3;
         } else if this_byte & 0b11111000 == 0b11110000 {
             bytes_cnt = 4;
