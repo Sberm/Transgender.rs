@@ -170,11 +170,13 @@ impl Browser {
                     self.bottom();
                 }
                 Op::Search => {
+                    canvas.reset_bottom();
                     self.search_txt = Vec::new();
                     self.mode = Mode::Search;
                     self.rev_search = false;
                 }
                 Op::RevSearch => {
+                    canvas.reset_bottom();
                     self.search_txt = Vec::new();
                     self.mode = Mode::RevSearch; // for canvas to print out '?'
                     self.rev_search = true;
@@ -393,19 +395,12 @@ impl Browser {
                 self.mode = Mode::Normal;
                 self.search_history_index = self.search_history.len();
                 self.input_cursor_pos = 0;
-                canvas.reset_bottom_bar();
+                canvas.reset_bottom();
                 return;
             } else if first_char == (util::DEL as usize) {
                 // backspace
                 if self.input_cursor_pos >= 1 {
                     self.search_txt.remove(self.input_cursor_pos - 1);
-                    // this is added so user knows what's being deleted.
-                    // there could be a problem when the lengths of the UTF-8 characters (the one
-                    // being deleted and the new one added on the left for alignment) are not equal,
-                    // making the cursor all over the place.
-                    if canvas.bottom_start > 0 {
-                        canvas.bottom_start -= 1;
-                    }
                     self.input_cursor_pos -= 1;
                 }
             } else if first_char == (util::LF as usize) {
@@ -413,7 +408,7 @@ impl Browser {
                 self.save_history();
                 self.mode = Mode::Normal;
                 self.input_cursor_pos = 0;
-                canvas.reset_bottom_bar();
+                canvas.reset_bottom();
                 return;
             } else {
                 // input characters
