@@ -382,20 +382,20 @@ impl Browser {
             let first_char = chars[0] as usize;
             // for example, Ctrl + C = 3, Ctrl + I = 9 these characters cannot be displayed, yet
             // they will take space in the search text
-            if first_char < 32 {
+            if first_char < (util::SPACE as usize) {
                 // escape or return (line feed)
-                if first_char != 27 && first_char != 10 {
+                if first_char != (util::ESC as usize) && first_char != (util::LF as usize) {
                     return;
                 }
             }
-            if first_char == 27 {
+            if first_char == (util::ESC as usize) {
                 // esc
                 self.mode = Mode::Normal;
                 self.search_history_index = self.search_history.len();
                 self.input_cursor_pos = 0;
                 canvas.reset_bottom_bar();
                 return;
-            } else if first_char == 127 {
+            } else if first_char == (util::DEL as usize) {
                 // backspace
                 if self.input_cursor_pos >= 1 {
                     self.search_txt.remove(self.input_cursor_pos - 1);
@@ -408,7 +408,7 @@ impl Browser {
                     }
                     self.input_cursor_pos -= 1;
                 }
-            } else if first_char == 10 {
+            } else if first_char == (util::LF as usize) {
                 // enter
                 self.save_history();
                 self.mode = Mode::Normal;

@@ -24,28 +24,30 @@ use std::thread::sleep;
 use std::time::Duration;
 use std::vec::Vec;
 
-const ESC : u8            = 27;
-const SQUARE_BRACKET : u8 = 91;
-const A : u8              = 65;
-const B : u8              = 66;
-const C : u8              = 67;
-const D : u8              = 68;
-const EOT : u8            = 4;
-const NAK : u8            = 21;
-const G_LOW : u8          = 103;
-const K_LOW : u8          = 107;
-const J_LOW : u8          = 106;
-const H_LOW : u8          = 104;
-const L_LOW : u8          = 108;
-const O_LOW : u8          = 111;
-const LF : u8             = 10;
-const I_LOW : u8          = 105;
-const Q_LOW : u8          = 113;
-const SLASH : u8          = 47;
-const Q_MARK : u8         = 63; // ?
-const G : u8              = 71;
-const N_LOW : u8          = 110;
-const N : u8              = 78;
+pub const ESC : u8            = 27;
+pub const SQUARE_BRACKET : u8 = 91;
+pub const A : u8              = 65;
+pub const B : u8              = 66;
+pub const C : u8              = 67;
+pub const D : u8              = 68;
+pub const EOT : u8            = 4;
+pub const NAK : u8            = 21;
+pub const G_LOW : u8          = 103;
+pub const K_LOW : u8          = 107;
+pub const J_LOW : u8          = 106;
+pub const H_LOW : u8          = 104;
+pub const L_LOW : u8          = 108;
+pub const O_LOW : u8          = 111;
+pub const LF : u8             = 10;
+pub const I_LOW : u8          = 105;
+pub const Q_LOW : u8          = 113;
+pub const SLASH : u8          = 47;
+pub const Q_MARK : u8         = 63; // ?
+pub const G : u8              = 71;
+pub const N_LOW : u8          = 110;
+pub const N : u8              = 78;
+pub const DEL : u8            = 127;
+pub const SPACE : u8          = 32;
 
 #[inline(always)]
 pub fn hide_cursor() {
